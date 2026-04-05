@@ -1,0 +1,18 @@
+{
+  "id": "substation",
+  "name": "SubStation",
+  "description": "Route through Claude Max subscription via Claude Code CLI — zero API cost",
+  "providers": ["indigo"],
+  "modelSupport": {
+    "modelPrefixes": ["indigo/"]
+  },
+  "configSchema": {
+    "type": "object",
+    "properties": {
+      "port": {
+        "type": "number",
+        "description": "SubStation proxy port (default: 8403)"
+      }
+    }
+  }
+}

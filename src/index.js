@@ -488,7 +488,11 @@ function refreshOpenAIToken(entry) {
 // ---------------------------------------------------------------------------
 
 function convertForAnthropic(openaiMessages) {
-  const systemBlocks = [{ type: 'text', text: CLAUDE_CODE_SYSTEM_PREFIX }];
+  // Operator identity first (overrides Claude Code default), then CC prefix (fingerprint match)
+  const systemBlocks = [
+    { type: 'text', text: OPERATOR_SYSTEM_PROMPT },
+    { type: 'text', text: CLAUDE_CODE_SYSTEM_PREFIX },
+  ];
   const messages = [];
 
   for (const m of openaiMessages) {
@@ -1010,7 +1014,8 @@ function formatMessagesForSDK(openaiMessages) {
     }
   }
 
-  // Include operator system context (identity, personality, instructions)
+  // Always inject operator identity, then any caller-provided system context
+  parts.push(OPERATOR_SYSTEM_PROMPT);
   if (systemParts.length > 0) {
     parts.push(systemParts.join('\n\n'));
   }

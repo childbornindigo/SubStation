@@ -1,7 +1,7 @@
 {
   "id": "substation",
   "name": "SubStation",
-  "description": "Route through Claude Max subscription via Claude Code CLI — zero API cost",
+  "description": "Multi-provider LLM proxy — route through Claude Max and ChatGPT Pro subscriptions with token rotation and cross-provider failover",
   "providers": ["indigo"],
   "modelSupport": {
     "modelPrefixes": ["indigo/"]

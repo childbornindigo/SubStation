@@ -1,14 +1,14 @@
 {
   "name": "substation",
-  "version": "0.4.0",
-  "description": "OpenClaw plugin — route LLM requests through Claude Max and ChatGPT Pro subscriptions at zero API cost",
+  "version": "0.5.0",
+  "description": "SubStation — multi-provider LLM proxy for Claude Max and ChatGPT Pro subscriptions at zero API cost",
   "type": "module",
   "main": "src/index.js",
   "scripts": {
     "auth": "node scripts/substation-auth"
   },
   "keywords": [
-    "openclaw",
+    "substation",
     "claude",
     "chatgpt",
     "codex",

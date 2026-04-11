@@ -10,7 +10,7 @@ import { readFileSync, writeFileSync, mkdirSync, renameSync, statSync, watch } f
 // Config
 // ---------------------------------------------------------------------------
 
-const VERSION = '0.5.0';
+const VERSION = '0.6.0';
 const TIMEOUT = 300000; // 5 min
 
 // Operator system prompt — replaces Claude Code's default system prompt
@@ -26,7 +26,7 @@ const PORT = parseInt(process.env.SUBSTATION_PORT || '8403');
 
 const POOL_FILE = join(homedir(), '.substation', 'token-pool.json');
 const POOL_STATE_FILE = join(homedir(), '.substation', 'pool-state.json');
-const AUTH_PROFILES_PATH = process.env.SUBSTATION_AUTH_PROFILES || join(homedir(), '.openclaw', 'agents', 'main', 'agent', 'auth-profiles.json');
+const AUTH_PROFILES_PATH = process.env.SUBSTATION_AUTH_PROFILES || join(homedir(), '.claude', 'auth-profiles.json');
 const LOG_PATH = join(homedir(), '.substation', 'substation.log');
 
 // Ensure dirs
@@ -205,6 +205,21 @@ function loadTokenPool() {
     }
   } catch (e) {
     if (e.code !== 'ENOENT') log(`WARN: Failed to read auth-profiles.json: ${e.message}`);
+  }
+
+  // Source 2b: secondary agent auth-profiles (backup OAuth tokens)
+  const SECONDARY_AUTH = process.env.SUBSTATION_SECONDARY_AUTH_PROFILES;
+  if (SECONDARY_AUTH) {
+    try {
+      const sa = JSON.parse(readFileSync(SECONDARY_AUTH, 'utf8'));
+      for (const [pid, profile] of Object.entries(sa.profiles || {})) {
+        if (pid.startsWith('anthropic:') && profile.token && profile.token.startsWith('sk-ant-oat')) {
+          addToken(`backup:${pid}`, 'anthropic', profile.token);
+        }
+      }
+    } catch (e) {
+      if (e.code !== 'ENOENT') log(`WARN: Failed to read secondary auth-profiles: ${e.message}`);
+    }
   }
 
   // Source 3: env var (anthropic)

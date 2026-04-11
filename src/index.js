@@ -939,6 +939,7 @@ async function invokeClaudeDirect(openaiMessages, modelInfo, tokenAffinity, onDe
 // Warm session pool — keyed by "model:tokenId", LRU rotation
 // Each Anthropic OAuth token gets its own persistent session per model
 const warmSessions = new Map(); // "model:tokenId" → { session, tokenId, lastUsed, active, cooldownUntil }
+let anthropicRRIndex = 0; // Round-robin counter for Anthropic token selection
 
 async function getOrCreateSession(model, tokenId, oauthToken) {
   const key = `${model}:${tokenId}`;
@@ -985,26 +986,35 @@ function selectAnthropicToken() {
   if (tokens.length === 0) return null;
   if (tokens.length === 1) return tokens[0];
 
-  // LRU: pick the token whose session was least recently used and not in cooldown
-  let best = null;
-  let bestTime = Infinity;
-  for (const t of tokens) {
-    // Check all sessions for this token (across models)
-    let lastUsed = 0;
+  // Round-robin: rotate through tokens, skipping any in cooldown
+  const now = Date.now();
+  for (let i = 0; i < tokens.length; i++) {
+    const idx = (anthropicRRIndex + i) % tokens.length;
+    const t = tokens[idx];
+
+    // Check if this token is in cooldown
     let inCooldown = false;
     for (const [key, entry] of warmSessions) {
-      if (entry.tokenId === t.id) {
-        lastUsed = Math.max(lastUsed, entry.lastUsed);
-        if (entry.cooldownUntil && Date.now() < entry.cooldownUntil) inCooldown = true;
+      if (entry.tokenId === t.id && entry.cooldownUntil && now < entry.cooldownUntil) {
+        inCooldown = true;
+        break;
       }
     }
-    if (inCooldown) continue;
-    if (lastUsed < bestTime) {
-      bestTime = lastUsed;
-      best = t;
+    if (inCooldown) {
+      log(`Token ${t.id} in cooldown, skipping`);
+      continue;
     }
+
+    // Advance counter for next call
+    anthropicRRIndex = (idx + 1) % tokens.length;
+    log(`Round-robin selected token ${t.id} (index ${idx}/${tokens.length})`);
+    return t;
   }
-  return best || tokens[0]; // fallback to first if all in cooldown
+
+  // All in cooldown — return first and let it fail/retry
+  log('WARN: All Anthropic tokens in cooldown, using first available');
+  anthropicRRIndex = 1 % tokens.length;
+  return tokens[0];
 }
 
 // Format OpenAI-style messages into a single prompt string for the Agent SDK session.
@@ -1116,9 +1126,19 @@ async function invokeClaudeSDK(openaiMessages, modelInfo, onDelta) {
         warmSessions.delete(key);
       }
 
-      // If rate limited, cooldown this token and try next
-      if (err.message?.includes('rate') || err.message?.includes('limit') || err.message?.includes('usage')) {
-        log(`Token ${token.id} appears rate-limited, trying next...`);
+      // If rate/usage limited, cooldown this token for 30 min and try next
+      const errLower = (err.message || '').toLowerCase();
+      if (errLower.includes('rate') || errLower.includes('limit') || errLower.includes('usage') || errLower.includes('hit your') || errLower.includes('resets')) {
+        const cooldownMs = DEAD_REVIVE_MS; // 30 min
+        log(`Token ${token.id} hit usage/rate limit — cooldown ${cooldownMs/60000}min, trying next...`);
+        // Mark ALL sessions for this token as in cooldown
+        for (const [k, e] of warmSessions) {
+          if (e.tokenId === token.id) e.cooldownUntil = Date.now() + cooldownMs;
+        }
+        // Also create a placeholder entry if no session exists yet
+        if (!warmSessions.has(key)) {
+          warmSessions.set(key, { session: null, tokenId: token.id, lastUsed: 0, active: 0, cooldownUntil: Date.now() + cooldownMs });
+        }
         continue;
       }
 
@@ -1802,3 +1822,10 @@ export default {
     log(`SubStation plugin registered — ${getAllModels().length} models, ${pool.length} tokens`);
   },
 };
+
+// Standalone mode: if run directly (not imported as plugin), start the proxy server
+const isMainModule = import.meta.url === `file://${process.argv[1]}`;
+if (isMainModule) {
+  log(`SubStation v${VERSION} starting in standalone mode...`);
+  startProxy();
+}

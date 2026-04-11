@@ -1085,27 +1085,45 @@ async function invokeClaudeSDK(openaiMessages, modelInfo, onDelta) {
 
     try {
       const session = await getOrCreateSession(model, token.id, token.token);
-      await session.send(prompt);
 
-      let text = '';
-      let usage = {};
+      // Wrap send+stream in a timeout to catch silent hangs (e.g. usage limits)
+      const SDK_TIMEOUT = 120000; // 2 min timeout per attempt
+      const result = await Promise.race([
+        (async () => {
+          await session.send(prompt);
 
-      for await (const msg of session.stream()) {
-        // log(`Stream msg: ${JSON.stringify(msg).substring(0, 500)}`);
-        if (msg.type === 'assistant') {
-          for (const block of (msg.message?.content || [])) {
-            if (block.type === 'text' || 'text' in block) {
-              const chunk = block.text || '';
-              if (chunk) {
-                text += chunk;
-                if (onDelta) onDelta(chunk);
+          let text = '';
+          let usage = {};
+
+          for await (const msg of session.stream()) {
+            log(`Stream msg type=${msg.type}: ${JSON.stringify(msg).substring(0, 300)}`);
+            if (msg.type === 'assistant') {
+              for (const block of (msg.message?.content || [])) {
+                if (block.type === 'text' || 'text' in block) {
+                  const chunk = block.text || '';
+                  if (chunk) {
+                    text += chunk;
+                    if (onDelta) onDelta(chunk);
+                  }
+                }
               }
+            } else if (msg.type === 'result') {
+              if (msg.usage) usage = msg.usage;
+              if (msg.result && !text) text = msg.result;
             }
           }
-        } else if (msg.type === 'result') {
-          if (msg.usage) usage = msg.usage;
-          if (msg.result && !text) text = msg.result;
-        }
+
+          return { text, usage };
+        })(),
+        new Promise((_, reject) => setTimeout(() => reject(new Error('Agent SDK timeout — likely hit usage limit (no response in 2min)')), SDK_TIMEOUT)),
+      ]);
+
+      const { text, usage } = result;
+
+      // Check if the response itself contains a usage limit message
+      const textLower = (text || '').toLowerCase();
+      if (textLower.includes('hit your limit') || textLower.includes('usage limit') || textLower.includes('resets ')) {
+        throw new Error(`Usage limit detected in response: ${text.substring(0, 200)}`);
       }
 
       if (!text) throw new Error('Empty response from Claude via Agent SDK');
@@ -1556,18 +1574,15 @@ function startProxy() {
       req.on('end', async () => {
         if (res.headersSent) return;
 
-        // Select token: default to backup for this endpoint (secondary agents)
-        const tokenAffinity = req.headers['x-substation-token'] || 'backup';
-        const anthropicTokens = pool.filter(t => t.provider === 'anthropic' && !t.dead);
+        // Select token: round-robin by default, or specific token via header
+        const tokenAffinity = req.headers['x-substation-token'];
         let targetToken = null;
 
-        if (tokenAffinity === 'backup') {
-          targetToken = anthropicTokens.find(t => t.id.includes('backup'));
-          if (!targetToken) targetToken = anthropicTokens[anthropicTokens.length - 1];
-        } else {
+        if (tokenAffinity) {
+          const anthropicTokens = pool.filter(t => t.provider === 'anthropic' && !t.dead);
           targetToken = anthropicTokens.find(t => t.id === tokenAffinity || t.id.includes(tokenAffinity));
         }
-        if (!targetToken) targetToken = selectToken('anthropic');
+        if (!targetToken) targetToken = selectAnthropicToken();
 
         if (!targetToken) {
           safeEnd(res, 503, { type: 'error', error: { type: 'overloaded_error', message: 'No Anthropic tokens available' } });

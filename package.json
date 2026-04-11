@@ -4,6 +4,14 @@
   "description": "SubStation — multi-provider LLM proxy for Claude Max and ChatGPT Pro subscriptions at zero API cost",
   "type": "module",
   "main": "src/index.js",
+  "openclaw": {
+    "extensions": [
+      "./dist/index.js"
+    ],
+    "providers": [
+      "indigo"
+    ]
+  },
   "scripts": {
     "auth": "node scripts/substation-auth"
   },

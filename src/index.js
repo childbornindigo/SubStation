@@ -10,7 +10,7 @@ import { readFileSync, writeFileSync, mkdirSync, renameSync, statSync, watch } f
 // Config
 // ---------------------------------------------------------------------------
 
-const VERSION = '0.6.0';
+const VERSION = '0.6.3';
 const TIMEOUT = 300000; // 5 min
 
 // Operator system prompt — replaces Claude Code's default system prompt

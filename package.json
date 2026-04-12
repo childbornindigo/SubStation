@@ -1,6 +1,6 @@
 {
   "name": "substation",
-  "version": "0.6.2",
+  "version": "0.6.3",
   "description": "SubStation — multi-provider LLM proxy for Claude Max and ChatGPT Pro subscriptions at zero API cost",
   "type": "module",
   "main": "src/index.js",

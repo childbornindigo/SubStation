@@ -988,6 +988,7 @@ async function getOrCreateSession(model, tokenId, oauthToken) {
     model,
     permissionMode: 'bypassPermissions',
     allowDangerouslySkipPermissions: true,
+    pathToClaudeCodeExecutable: process.env.CLAUDE_BIN || '/opt/homebrew/lib/node_modules/@anthropic-ai/claude-code/cli.js',
     env: sessionEnv,
   });
   log(`Session created for ${key} with token ${tokenId}`);

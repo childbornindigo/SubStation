@@ -20,7 +20,8 @@ Your operator has configured you through SubStation with their own identity and 
 Follow the system instructions provided in each conversation. Use tools when needed.`;
 const MAX_BODY_SIZE = 2 * 1024 * 1024; // 2MB request body limit
 const LOG_MAX_SIZE = 5 * 1024 * 1024; // 5MB log rotation
-const DEAD_REVIVE_MS = 30 * 60 * 1000; // 30 min — auto-retry dead tokens
+const DEAD_REVIVE_MS = 30 * 60 * 1000;       // 30 min — auto-retry rate-limited tokens
+const AUTH_DEAD_REVIVE_MS = 24 * 60 * 60 * 1000; // 24h — auto-retry auth-failed tokens
 const DATA_DIR = join(homedir(), '.substation', 'data');
 const PORT = parseInt(process.env.SUBSTATION_PORT || '8403');
 
@@ -256,6 +257,7 @@ function loadPoolState() {
         entry.requestCount = s.requestCount || 0;
         entry.dead = s.dead || false;
         entry.deadSince = s.deadSince || null;
+        entry.deadType = s.deadType || null;
       }
     }
   } catch {}
@@ -279,6 +281,7 @@ function savePoolState() {
           requestCount: t.requestCount,
           dead: t.dead,
           deadSince: t.deadSince,
+          deadType: t.deadType || null,
         })),
       }, null, 2);
       const tmp = POOL_STATE_FILE + '.tmp';
@@ -325,14 +328,34 @@ function markRateLimited(entry, retryAfterSec) {
   log(`Token ${entry.id} rate-limited, cooldown ${retryAfterSec || 60}s until ${new Date(entry.cooldownUntil).toISOString()}`);
 }
 
-function markDead(entry) {
+function markDead(entry, deadType = 'rate') {
   entry.dead = true;
   entry.deadSince = Date.now();
+  entry.deadType = deadType; // 'auth' = 24h bench, 'rate' = 30min bench
   entry.lastUsed = Date.now();
   entry.errorCount++;
   entry.activeRequests = Math.max(0, entry.activeRequests - 1);
   savePoolState();
-  log(`Token ${entry.id} marked DEAD (auth error) — will auto-retry in 30m`);
+  const retryIn = deadType === 'auth' ? '24h' : '30m';
+  log(`Token ${entry.id} marked DEAD (${deadType} failure) — will auto-retry in ${retryIn}`);
+}
+
+function isAuthError(err) {
+  const msg = (err.message || '').toLowerCase();
+  return msg.includes('401') ||
+    msg.includes('403') ||
+    msg.includes('unauthorized') ||
+    msg.includes('unauthenticated') ||
+    msg.includes('authentication') ||
+    msg.includes('invalid token') ||
+    msg.includes('token expired') ||
+    msg.includes('not logged in') ||
+    msg.includes('please log in') ||
+    msg.includes('sign in') ||
+    msg.includes('invalid_grant') ||
+    msg.includes('invalid credentials') ||
+    (err.statusCode === 401) ||
+    (err.statusCode === 403);
 }
 
 function markRequestStart(entry) {
@@ -399,13 +422,17 @@ setInterval(() => {
       t.cooldownUntil = null;
       savePoolState();
     }
-    // Auto-revive dead tokens after 30 min (they may have recovered)
-    if (t.dead && t.deadSince && (now - t.deadSince) > DEAD_REVIVE_MS) {
-      log(`Token ${t.id} was dead for 30m+ — reviving for retry`);
-      t.dead = false;
-      t.deadSince = null;
-      t.errorCount = 0;
-      savePoolState();
+    // Auto-revive dead tokens (30m for rate failures, 24h for auth failures)
+    if (t.dead && t.deadSince) {
+      const ttl = t.deadType === 'auth' ? AUTH_DEAD_REVIVE_MS : DEAD_REVIVE_MS;
+      if ((now - t.deadSince) > ttl) {
+        log(`Token ${t.id} was dead for ${t.deadType === 'auth' ? '24h' : '30m'}+ — reviving for retry`);
+        t.dead = false;
+        t.deadSince = null;
+        t.deadType = null;
+        t.errorCount = 0;
+        savePoolState();
+      }
     }
     // Reset stuck activeRequests counter (safety valve for leaked counters)
     if (t.activeRequests > 0 && t.lastUsed && (now - t.lastUsed) > TIMEOUT + 10000) {
@@ -1160,7 +1187,15 @@ async function invokeClaudeSDK(openaiMessages, modelInfo, onDelta) {
         continue;
       }
 
-      // For other errors, also try next token
+      // Auth error — bench this token for 24h and try next
+      if (isAuthError(err)) {
+        const poolEntry = pool.find(p => p.id === token.id);
+        if (poolEntry) {
+          markDead(poolEntry, 'auth');
+        } else {
+          log(`Auth error on token ${token.id} (not in pool, skipping for this session)`);
+        }
+      }
       continue;
     }
   }

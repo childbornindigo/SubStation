@@ -10,7 +10,7 @@ import { readFileSync, writeFileSync, mkdirSync, renameSync, statSync, watch } f
 // Config
 // ---------------------------------------------------------------------------
 
-const VERSION = '0.6.3';
+const VERSION = '0.6.4';
 const TIMEOUT = 300000; // 5 min
 
 // Operator system prompt — replaces Claude Code's default system prompt
@@ -1010,39 +1010,35 @@ async function getOrCreateSession(model, tokenId, oauthToken) {
 }
 
 function selectAnthropicToken() {
-  const tokens = getAnthropicOAuthTokens();
+  const tokens = getAnthropicOAuthTokens(); // already filters !dead
   if (tokens.length === 0) return null;
   if (tokens.length === 1) return tokens[0];
 
-  // Round-robin: rotate through tokens, skipping any in cooldown
   const now = Date.now();
-  for (let i = 0; i < tokens.length; i++) {
-    const idx = (anthropicRRIndex + i) % tokens.length;
-    const t = tokens[idx];
 
-    // Check if this token is in cooldown
-    let inCooldown = false;
-    for (const [key, entry] of warmSessions) {
-      if (entry.tokenId === t.id && entry.cooldownUntil && now < entry.cooldownUntil) {
-        inCooldown = true;
-        break;
-      }
+  // Filter to tokens not in cooldown (pool cooldownUntil OR warmSessions cooldown)
+  const available = tokens.filter(t => {
+    if (t.cooldownUntil && t.cooldownUntil > now) return false;
+    for (const [, e] of warmSessions) {
+      if (e.tokenId === t.id && e.cooldownUntil && e.cooldownUntil > now) return false;
     }
-    if (inCooldown) {
-      log(`Token ${t.id} in cooldown, skipping`);
-      continue;
-    }
+    return true;
+  });
 
-    // Advance counter for next call
-    anthropicRRIndex = (idx + 1) % tokens.length;
-    log(`Round-robin selected token ${t.id} (index ${idx}/${tokens.length})`);
-    return t;
-  }
+  const candidates = available.length > 0 ? available : tokens; // fallback if all cooling down
 
-  // All in cooldown — return first and let it fail/retry
-  log('WARN: All Anthropic tokens in cooldown, using first available');
-  anthropicRRIndex = 1 % tokens.length;
-  return tokens[0];
+  // Sort: proven tokens (lastSuccess > 0) first, then fewest errors
+  const sorted = [...candidates].sort((a, b) => {
+    const aProven = a.lastSuccess > 0 ? 0 : 1;
+    const bProven = b.lastSuccess > 0 ? 0 : 1;
+    if (aProven !== bProven) return aProven - bProven;
+    return a.errorCount - b.errorCount;
+  });
+
+  const token = sorted[anthropicRRIndex % sorted.length];
+  anthropicRRIndex = (anthropicRRIndex + 1) % sorted.length;
+  log(`Selected token ${token.id} (proven=${token.lastSuccess > 0}, errors=${token.errorCount})`);
+  return token;
 }
 
 // Format OpenAI-style messages into a single prompt string for the Agent SDK session.
@@ -1110,6 +1106,7 @@ async function invokeClaudeSDK(openaiMessages, modelInfo, onDelta) {
 
     const key = `${model}:${token.id}`;
     log(`Agent SDK request (model=${model}, token=${token.id}, attempt=${attempt + 1}/${maxAttempts})`);
+    markRequestStart(token);
 
     try {
       const session = await getOrCreateSession(model, token.id, token.token);
@@ -1159,6 +1156,7 @@ async function invokeClaudeSDK(openaiMessages, modelInfo, onDelta) {
       // Mark success
       const entry = warmSessions.get(key);
       if (entry) entry.lastUsed = Date.now();
+      markSuccess(token); // persists lastSuccess/requestCount/errorCount to pool state
 
       return { text, usage };
     } catch (err) {
@@ -1177,11 +1175,11 @@ async function invokeClaudeSDK(openaiMessages, modelInfo, onDelta) {
       if (errLower.includes('rate') || errLower.includes('limit') || errLower.includes('usage') || errLower.includes('hit your') || errLower.includes('resets')) {
         const cooldownMs = DEAD_REVIVE_MS; // 30 min
         log(`Token ${token.id} hit usage/rate limit — cooldown ${cooldownMs/60000}min, trying next...`);
-        // Mark ALL sessions for this token as in cooldown
+        markRateLimited(token, cooldownMs / 1000); // persist cooldown to pool state (survives restart)
+        // Mark ALL warmSessions for this token as in cooldown too
         for (const [k, e] of warmSessions) {
           if (e.tokenId === token.id) e.cooldownUntil = Date.now() + cooldownMs;
         }
-        // Also create a placeholder entry if no session exists yet
         if (!warmSessions.has(key)) {
           warmSessions.set(key, { session: null, tokenId: token.id, lastUsed: 0, active: 0, cooldownUntil: Date.now() + cooldownMs });
         }
@@ -1190,13 +1188,12 @@ async function invokeClaudeSDK(openaiMessages, modelInfo, onDelta) {
 
       // Auth error — bench this token for 24h and try next
       if (isAuthError(err)) {
-        const poolEntry = pool.find(p => p.id === token.id);
-        if (poolEntry) {
-          markDead(poolEntry, 'auth');
-        } else {
-          log(`Auth error on token ${token.id} (not in pool, skipping for this session)`);
-        }
+        markDead(token, 'auth'); // marks dead + decrements activeRequests
+        continue;
       }
+
+      // Other errors — decrement activeRequests and try next token
+      markRequestEnd(token);
       continue;
     }
   }

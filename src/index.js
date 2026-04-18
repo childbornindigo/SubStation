@@ -1329,7 +1329,7 @@ async function invokeClaudeSDK(openaiMessages, modelInfo, onDelta) {
 
       // Check if the response itself contains a usage limit message
       const textLower = (text || '').toLowerCase();
-      if (textLower.includes('hit your limit') || textLower.includes('usage limit') || textLower.includes('resets ')) {
+      if (textLower.includes('hit your limit') || textLower.includes('usage limit') || textLower.includes('your limit resets') || textLower.includes('limit resets at')) {
         throw new Error(`Usage limit detected in response: ${text.substring(0, 200)}`);
       }
 

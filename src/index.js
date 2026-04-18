@@ -70,6 +70,7 @@ process.on('unhandledRejection', (reason) => {
 
 const MODEL_CONFIG = {
   // Anthropic
+  'claude-opus-4-7':           { maxTokens: 128000, adaptive: true,  provider: 'anthropic', contextWindow: 200000 },
   'claude-opus-4-6':           { maxTokens: 128000, adaptive: true,  provider: 'anthropic', contextWindow: 200000 },
   'claude-sonnet-4-6':         { maxTokens: 64000,  adaptive: true,  provider: 'anthropic', contextWindow: 200000 },
   'claude-haiku-4-5-20251001': { maxTokens: 64000,  adaptive: false, provider: 'anthropic', contextWindow: 200000 },
@@ -83,6 +84,8 @@ const MODEL_CONFIG = {
 
 const MODEL_MAP = {
   // Anthropic aliases
+  'opus-4-7': 'claude-opus-4-7',
+  'claude-opus-4-7': 'claude-opus-4-7',
   'opus-4-6': 'claude-opus-4-6',
   'sonnet-4-6': 'claude-sonnet-4-6',
   'haiku-4-5': 'claude-haiku-4-5-20251001',
@@ -847,6 +850,180 @@ function makeCodexRequest(bodyStr, tokenEntry, onDelta) {
 }
 
 // ---------------------------------------------------------------------------
+// ChatGPT Image Generation — via Codex/Responses API (bypasses Cloudflare)
+// ---------------------------------------------------------------------------
+
+function chatgptImageGenerate(tokenEntry, prompt, size = '1024x1024', quality = 'auto') {
+  return new Promise((resolve, reject) => {
+    // Use GPT 5.4 through the Codex/Responses endpoint — it supports native image generation
+    // gpt-image-1 is rejected by this endpoint, but gpt-5.4 handles image prompts natively
+    // Send as a plain text input — GPT 5.4 auto-generates images when the prompt describes one
+    const requestBody = JSON.stringify({
+      model: 'gpt-5.4',
+      input: `Generate an image: ${prompt}. Output ONLY the image, no text.`,
+    });
+
+    const options = {
+      hostname: 'chatgpt.com',
+      path: '/backend-api/codex/responses',
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'text/event-stream',
+        'Authorization': `Bearer ${tokenEntry.token}`,
+        'Content-Length': Buffer.byteLength(requestBody),
+      },
+    };
+
+    const req = httpsRequest(options, (res) => {
+      if (res.statusCode !== 200) {
+        let data = '';
+        res.on('data', c => data += c);
+        res.on('end', () => {
+          reject(Object.assign(
+            new Error(`Codex image API error ${res.statusCode}: ${data.slice(0, 500)}`),
+            { statusCode: res.statusCode }
+          ));
+        });
+        return;
+      }
+
+      let buf = '';
+      let imageB64 = null;
+
+      res.on('data', (chunk) => {
+        buf += chunk;
+        let nlIdx;
+        while ((nlIdx = buf.indexOf('\n')) !== -1) {
+          const line = buf.slice(0, nlIdx);
+          buf = buf.slice(nlIdx + 1);
+          if (!line.startsWith('data: ')) continue;
+          const payload = line.slice(6).trim();
+          if (payload === '[DONE]') continue;
+          try {
+            const event = JSON.parse(payload);
+
+            // Responses API image output events
+            if (event.type === 'response.image.delta' && event.delta) {
+              imageB64 = (imageB64 || '') + event.delta;
+            } else if (event.type === 'response.image.done' && event.image) {
+              imageB64 = event.image;
+            }
+            // Also check for output_image in response.completed
+            if (event.type === 'response.completed' && event.response?.output) {
+              for (const item of event.response.output) {
+                if (item.type === 'image' && item.image?.b64_json) {
+                  imageB64 = item.image.b64_json;
+                }
+                // Check nested content array
+                if (Array.isArray(item.content)) {
+                  for (const c of item.content) {
+                    if (c.type === 'image' && c.image?.b64_json) {
+                      imageB64 = c.image.b64_json;
+                    }
+                  }
+                }
+              }
+            }
+            // Catch errors from the API
+            if (event.type === 'response.failed') {
+              const errMsg = event.response?.error?.message || 'Image generation failed';
+              reject(Object.assign(new Error(errMsg), { statusCode: 0 }));
+              return;
+            }
+          } catch {}
+        }
+      });
+
+      res.on('end', () => {
+        if (imageB64) {
+          resolve({ b64: imageB64 });
+        } else {
+          reject(new Error('No image data in Codex response. The model may not support image generation through this endpoint.'));
+        }
+      });
+    });
+
+    req.on('error', e => reject(Object.assign(
+      new Error(`Network error calling Codex image API: ${e.message}`),
+      { statusCode: 0 }
+    )));
+
+    const timer = setTimeout(() => {
+      req.destroy();
+      reject(Object.assign(new Error('Image generation timed out after 5 minutes'), { statusCode: 0 }));
+    }, TIMEOUT);
+    req.on('close', () => clearTimeout(timer));
+
+    req.write(requestBody);
+    req.end();
+  });
+}
+
+function chatgptDeleteConversation(tokenEntry, conversationId) {
+  return new Promise((resolve, reject) => {
+    const body = JSON.stringify({ is_visible: false });
+    const options = {
+      hostname: 'chatgpt.com',
+      path: `/backend-api/conversation/${conversationId}`,
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${tokenEntry.token}`,
+        'Content-Length': Buffer.byteLength(body),
+      },
+    };
+    const req = httpsRequest(options, (res) => {
+      let d = '';
+      res.on('data', c => d += c);
+      res.on('end', () => resolve(d));
+    });
+    req.on('error', reject);
+    req.write(body);
+    req.end();
+  });
+}
+
+function fetchImageAsBase64(url, token) {
+  return new Promise((resolve, reject) => {
+    const parsedUrl = new URL(url);
+    const options = {
+      hostname: parsedUrl.hostname,
+      path: parsedUrl.pathname + parsedUrl.search,
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+    };
+
+    const req = httpsRequest(options, (res) => {
+      if (res.statusCode === 301 || res.statusCode === 302) {
+        // Follow redirect
+        fetchImageAsBase64(res.headers.location, token).then(resolve).catch(reject);
+        return;
+      }
+      if (res.statusCode !== 200) {
+        reject(new Error(`Image download failed: HTTP ${res.statusCode}`));
+        return;
+      }
+
+      const chunks = [];
+      res.on('data', c => chunks.push(c));
+      res.on('end', () => {
+        const buffer = Buffer.concat(chunks);
+        const contentType = res.headers['content-type'] || 'image/png';
+        const b64 = `data:${contentType};base64,${buffer.toString('base64')}`;
+        resolve(b64);
+      });
+    });
+
+    req.on('error', e => reject(e));
+    setTimeout(() => { req.destroy(); reject(new Error('Image download timed out')); }, 30000);
+    req.end();
+  });
+}
+
+// ---------------------------------------------------------------------------
 // Anthropic Direct API — Bearer auth with OAuth tokens (for secondary agents)
 // ---------------------------------------------------------------------------
 
@@ -972,8 +1149,13 @@ async function getOrCreateSession(model, tokenId, oauthToken) {
   const key = `${model}:${tokenId}`;
   const existing = warmSessions.get(key);
   if (existing) {
-    existing.lastUsed = Date.now();
-    return existing.session;
+    // If session is null (stored during rate-limit cooldown), clear it and create fresh
+    if (!existing.session) {
+      warmSessions.delete(key);
+    } else {
+      existing.lastUsed = Date.now();
+      return existing.session;
+    }
   }
 
   const sdk = await loadAgentSDK();
@@ -1441,10 +1623,20 @@ function startProxy() {
 
       if (req.url === '/v1/models' || req.url === '/models') {
         const models = [
+          { id: 'opus-4-7', object: 'model', owned_by: 'indigo-collective' },
           { id: 'opus-4-6', object: 'model', owned_by: 'indigo-collective' },
           { id: 'sonnet-4-6', object: 'model', owned_by: 'indigo-collective' },
           { id: 'haiku-4-5', object: 'model', owned_by: 'indigo-collective' },
         ];
+        // Per-account variants for manual token selection
+        const anthropicPoolTokens = pool.filter(t => t.provider === 'anthropic' && !t.dead);
+        for (const t of anthropicPoolTokens) {
+          models.push(
+            { id: `sonnet-4-6:${t.id}`, object: 'model', owned_by: 'indigo-collective' },
+            { id: `opus-4-6:${t.id}`, object: 'model', owned_by: 'indigo-collective' },
+            { id: `opus-4-7:${t.id}`, object: 'model', owned_by: 'indigo-collective' },
+          );
+        }
         if (pool.some(t => t.provider === 'openai')) {
           models.push(
             { id: 'gpt-5.4', object: 'model', owned_by: 'indigo-collective' },
@@ -1700,6 +1892,80 @@ function startProxy() {
       return;
     }
 
+    // --- POST /v1/images/generations — ChatGPT conversation API image proxy ---
+    if (req.method === 'POST' && (req.url === '/v1/images/generations' || req.url === '/images/generations')) {
+      let body = '';
+      let bodySize = 0;
+
+      req.on('data', c => {
+        bodySize += c.length;
+        if (bodySize > MAX_BODY_SIZE) {
+          safeEnd(res, 413, { error: { message: 'Request body too large' } });
+          req.destroy();
+          return;
+        }
+        body += c;
+      });
+
+      req.on('end', async () => {
+        if (res.headersSent) return;
+
+        let parsed;
+        try { parsed = JSON.parse(body); } catch {
+          safeEnd(res, 400, { error: { message: 'Invalid JSON in request body' } });
+          return;
+        }
+
+        const { prompt, model: _reqModel, size = '1024x1024', quality = 'auto', n = 1 } = parsed;
+        if (!prompt) {
+          safeEnd(res, 400, { error: { message: 'Missing required field: prompt' } });
+          return;
+        }
+
+        const tokenEntry = selectToken('openai');
+        if (!tokenEntry) {
+          safeEnd(res, 503, { error: { message: 'No OpenAI tokens available — run "substation-auth chatgpt" to add one' } });
+          return;
+        }
+
+        log(`Image gen request (token=${tokenEntry.id}, prompt="${prompt.slice(0, 80)}...")`);
+        markRequestStart(tokenEntry);
+
+        try {
+          const results = [];
+          for (let i = 0; i < Math.min(n, 4); i++) {
+            const result = await chatgptImageGenerate(tokenEntry, prompt, size, quality);
+            // result.b64 is already base64 from the Codex/Responses API stream
+            results.push({ b64: result.b64, revised_prompt: prompt });
+          }
+
+          markSuccess(tokenEntry);
+
+          safeEnd(res, 200, {
+            created: Math.floor(Date.now() / 1000),
+            data: results.map(r => ({ b64_json: r.b64, revised_prompt: r.revised_prompt })),
+          });
+        } catch (err) {
+          markRequestEnd(tokenEntry);
+          log(`Image gen error: ${err.message}`);
+
+          if (err.statusCode === 401 || err.statusCode === 403) {
+            markDead(tokenEntry);
+          }
+
+          safeEnd(res, err.statusCode && err.statusCode >= 400 ? err.statusCode : 502, {
+            error: { message: `Image generation failed: ${err.message}` },
+          });
+        }
+      });
+
+      req.on('error', () => {
+        safeEnd(res, 400, { error: { message: 'Request stream error' } });
+      });
+
+      return;
+    }
+
     res.writeHead(404); res.end('Not found');
   });
 
@@ -1739,6 +2005,15 @@ function startProxy() {
 // ---------------------------------------------------------------------------
 
 const ANTHROPIC_MODELS = [
+  {
+    id: 'opus-4-7',
+    name: 'Claude Opus 4.7 (SubStation)',
+    reasoning: false,
+    input: ['text'],
+    cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+    contextWindow: 200000,
+    maxTokens: 128000,
+  },
   {
     id: 'opus-4-6',
     name: 'Claude Opus 4.6 (SubStation)',

@@ -357,6 +357,9 @@ function isAuthError(err) {
     msg.includes('sign in') ||
     msg.includes('invalid_grant') ||
     msg.includes('invalid credentials') ||
+    msg.includes('organization does not have access') ||
+    msg.includes('contact your administrator') ||
+    msg.includes('please login again') ||
     (err.statusCode === 401) ||
     (err.statusCode === 403);
 }
@@ -1316,6 +1319,7 @@ async function invokeClaudeSDK(openaiMessages, modelInfo, onDelta) {
               }
             } else if (msg.type === 'result') {
               if (msg.usage) usage = msg.usage;
+              if (msg.is_error && msg.result) throw new Error(msg.result);
               if (msg.result && !text) text = msg.result;
             }
           }

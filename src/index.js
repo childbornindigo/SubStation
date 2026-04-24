@@ -1317,6 +1317,13 @@ async function invokeClaudeSDK(openaiMessages, modelInfo, onDelta) {
                   }
                 }
               }
+            } else if (msg.type === 'rate_limit_event') {
+              const info = msg.rate_limit_info || {};
+              if (info.status === 'rejected' && info.resetsAt) {
+                const cooldownMs = Math.max(0, info.resetsAt * 1000 - Date.now());
+                const resetStr = new Date(info.resetsAt * 1000).toISOString();
+                throw new Error(`usage limit resets at ${resetStr} (${info.rateLimitType}) — cooldown ${Math.ceil(cooldownMs/60000)}min`);
+              }
             } else if (msg.type === 'result') {
               if (msg.usage) usage = msg.usage;
               if (msg.is_error && msg.result) throw new Error(msg.result);

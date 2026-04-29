@@ -17,7 +17,19 @@ const TIMEOUT = 300000; // 5 min
 const OPERATOR_SYSTEM_PROMPT = `You are an AI assistant powered by SubStation.
 You are NOT Claude Code. You do not identify as Claude Code or as "Claude, an AI assistant by Anthropic."
 Your operator has configured you through SubStation with their own identity and instructions.
-Follow the system instructions provided in each conversation. Use tools when needed.`;
+Follow the system instructions provided in each conversation. Use tools when needed.
+
+## Execution discipline — MANDATORY
+
+These rules are enforced at the infrastructure level. Violations waste budget and will be flagged.
+
+1. TOOL CALLS FIRST. Every response that advances a task MUST contain at least one tool call. If you cannot make a tool call, state the specific blocker (error message, missing input, rate limit) — nothing else.
+2. NEVER output "starting now", "I will do X", "about to", "doing it now", "I've been silent", or any status narration without a tool call in the same response. Intent is not progress. Only tool results are progress.
+3. If you already said you would do something and have not done it, DO NOT repeat the promise. Either execute it (tool call) or state what is blocking you (specific error).
+4. After recovering from an error or rate limit, your FIRST action must be a tool call — not an apology, not a status update, not a summary of what happened.
+5. No summaries of work unless the work is verified complete with tool output as evidence. "Done" means you can point to the artifact.
+6. If a task will take multiple turns, write your plan to a file BEFORE announcing it. The file is the proof you started.
+7. If you are confused or stuck, say "BLOCKED: [reason]" and stop. Do not fill the gap with narration.`;
 const MAX_BODY_SIZE = 2 * 1024 * 1024; // 2MB request body limit
 const LOG_MAX_SIZE = 5 * 1024 * 1024; // 5MB log rotation
 const DEAD_REVIVE_MS = 30 * 60 * 1000;       // 30 min — auto-retry rate-limited tokens
@@ -103,6 +115,39 @@ const MODEL_MAP = {
   'codex': 'gpt-5.1-codex',
   'codex-mini': 'gpt-5.1-codex-mini',
 };
+
+// ---------------------------------------------------------------------------
+// Narration loop breaker — mechanical enforcement against apology loops
+// ---------------------------------------------------------------------------
+
+const NARRATION_PATTERNS = /\b(starting now|i will|i'll|about to|doing it now|i've been silent|apologies for|sorry for the|let me now|going to|working on it|i'm going to|right away|immediately)\b/i;
+const MAX_CONSECUTIVE_NARRATIONS = 2;
+const narrationCounters = new Map(); // sessionKey → count
+
+function isNarrationOnly(text) {
+  if (!text || text.length < 10) return false;
+  if (text.length > 2000) return false; // long responses are likely real work
+  return NARRATION_PATTERNS.test(text);
+}
+
+function trackNarration(sessionKey, hadToolUse, text) {
+  if (hadToolUse) {
+    narrationCounters.set(sessionKey, 0);
+    return false;
+  }
+  if (isNarrationOnly(text)) {
+    const count = (narrationCounters.get(sessionKey) || 0) + 1;
+    narrationCounters.set(sessionKey, count);
+    log(`Narration loop detector: ${sessionKey} — ${count}/${MAX_CONSECUTIVE_NARRATIONS} consecutive narrations`);
+    if (count >= MAX_CONSECUTIVE_NARRATIONS) {
+      narrationCounters.set(sessionKey, 0);
+      return true; // trigger circuit breaker
+    }
+  } else {
+    narrationCounters.set(sessionKey, 0);
+  }
+  return false;
+}
 
 function resolveModel(model) {
   const clean = model.includes('/') ? model.split('/').pop() : model;
@@ -317,18 +362,24 @@ function markSuccess(entry) {
   entry.lastSuccess = Date.now();
   entry.requestCount++;
   entry.errorCount = 0;
+  entry._consecutive429s = 0; // reset backoff on success
   entry.activeRequests = Math.max(0, entry.activeRequests - 1);
   savePoolState();
 }
 
 function markRateLimited(entry, retryAfterSec) {
-  const cooldownMs = Math.min((retryAfterSec || 60) * 1000, 3600000); // cap at 1hr
+  // Exponential backoff: consecutive 429s double the cooldown (60s → 120s → 240s → 480s, cap 30min)
+  const baseSec = retryAfterSec || 60;
+  const recentErrors = entry._consecutive429s || 0;
+  entry._consecutive429s = recentErrors + 1;
+  const backoffSec = Math.min(baseSec * Math.pow(2, recentErrors), 1800); // cap 30min
+  const cooldownMs = backoffSec * 1000;
   entry.cooldownUntil = Date.now() + cooldownMs;
   entry.lastUsed = Date.now();
   entry.errorCount++;
   entry.activeRequests = Math.max(0, entry.activeRequests - 1);
   savePoolState();
-  log(`Token ${entry.id} rate-limited, cooldown ${retryAfterSec || 60}s until ${new Date(entry.cooldownUntil).toISOString()}`);
+  log(`Token ${entry.id} rate-limited, cooldown ${backoffSec}s (attempt ${entry._consecutive429s}), until ${new Date(entry.cooldownUntil).toISOString()}`);
 }
 
 function markDead(entry, deadType = 'rate') {
@@ -1271,22 +1322,40 @@ function formatMessagesForSDK(openaiMessages) {
   return parts.join('\n\n');
 }
 
-async function invokeClaudeSDK(openaiMessages, modelInfo, onDelta) {
+async function invokeClaudeSDK(openaiMessages, modelInfo, onDelta, tokenAffinity) {
   const model = modelInfo.modelId;
   const tokens = getAnthropicOAuthTokens();
   if (tokens.length === 0) {
     throw new Error('No Anthropic OAuth tokens found. Log into Claude Code or add tokens to auth-profiles.json.');
   }
 
+  // If token affinity specified, filter to that token
+  const candidateTokens = tokenAffinity
+    ? tokens.filter(t => t.id === tokenAffinity || t.id.includes(tokenAffinity))
+    : tokens;
+  if (candidateTokens.length === 0) {
+    throw new Error(`No token matching affinity "${tokenAffinity}" found.`);
+  }
+
+  // Fast-fail: all tokens already in cooldown → return 429 immediately, don't hang
+  const now = Date.now();
+  const available = candidateTokens.filter(t => !t.cooldownUntil || t.cooldownUntil < now);
+  if (available.length === 0) {
+    const earliest = candidateTokens.reduce((min, t) => t.cooldownUntil && (!min || t.cooldownUntil < min) ? t.cooldownUntil : min, null);
+    const secsLeft = earliest ? Math.ceil((earliest - now) / 1000) : 60;
+    const minsLeft = Math.ceil(secsLeft / 60);
+    throw Object.assign(new Error(`All Anthropic tokens in cooldown — rate limit resets in ~${minsLeft}min`), { statusCode: 429, retryAfterSec: secsLeft });
+  }
+
   // Format full conversation context including system prompts and history
   const prompt = formatMessagesForSDK(openaiMessages);
 
   // Try tokens with rotation
-  const maxAttempts = tokens.length;
+  const maxAttempts = available.length;
   let lastError = null;
 
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
-    const token = attempt === 0 ? selectAnthropicToken() : tokens[attempt % tokens.length];
+    const token = tokenAffinity ? available[attempt] : (attempt === 0 ? selectAnthropicToken() : tokens[attempt % tokens.length]);
     if (!token) break;
 
     const key = `${model}:${token.id}`;
@@ -1296,19 +1365,45 @@ async function invokeClaudeSDK(openaiMessages, modelInfo, onDelta) {
     try {
       const session = await getOrCreateSession(model, token.id, token.token);
 
-      // Wrap send+stream in a timeout to catch silent hangs (e.g. usage limits)
-      const SDK_TIMEOUT = 120000; // 2 min timeout per attempt
+      // Idle timeout — resets on each stream message, extends during tool execution
+      let idleTimer;
+      let idleReject;
+      let toolRunning = false;
+      let hadToolUse = false;
+      const IDLE_TIMEOUT = 30000;          // 30s for text/thinking
+      const TOOL_IDLE_TIMEOUT = 300000;    // 5min for tool execution (commands can take a while)
+      const resetIdleTimer = () => {
+        if (idleTimer) clearTimeout(idleTimer);
+        const timeout = toolRunning ? TOOL_IDLE_TIMEOUT : IDLE_TIMEOUT;
+        idleTimer = setTimeout(() => idleReject(new Error(`Agent SDK timeout — no stream activity for ${timeout/1000}s`)), timeout);
+      };
+      const idlePromise = new Promise((_, reject) => { idleReject = reject; });
+
       const result = await Promise.race([
         (async () => {
           await session.send(prompt);
+          resetIdleTimer();
 
           let text = '';
           let usage = {};
 
           for await (const msg of session.stream()) {
+            resetIdleTimer();
             log(`Stream msg type=${msg.type}: ${JSON.stringify(msg).substring(0, 300)}`);
+            if (msg.type === 'user') {
+              // tool_result came back — tool finished, revert to short timeout
+              toolRunning = false;
+              resetIdleTimer();
+            }
             if (msg.type === 'assistant') {
               for (const block of (msg.message?.content || [])) {
+                if (block.type === 'tool_use') {
+                  hadToolUse = true;
+                  toolRunning = true; // tool dispatched — extend timeout
+                  resetIdleTimer();
+                } else if (block.type === 'tool_result') {
+                  hadToolUse = true;
+                }
                 if (block.type === 'text' || 'text' in block) {
                   const chunk = block.text || '';
                   if (chunk) {
@@ -1319,10 +1414,10 @@ async function invokeClaudeSDK(openaiMessages, modelInfo, onDelta) {
               }
             } else if (msg.type === 'rate_limit_event') {
               const info = msg.rate_limit_info || {};
-              if (info.status === 'rejected' && info.resetsAt) {
-                const cooldownMs = Math.max(0, info.resetsAt * 1000 - Date.now());
-                const resetStr = new Date(info.resetsAt * 1000).toISOString();
-                throw new Error(`usage limit resets at ${resetStr} (${info.rateLimitType}) — cooldown ${Math.ceil(cooldownMs/60000)}min`);
+              if (info.status !== 'allowed') {
+                const cooldownMs = info.resetsAt ? Math.max(0, info.resetsAt * 1000 - Date.now()) : DEAD_REVIVE_MS;
+                const resetStr = info.resetsAt ? new Date(info.resetsAt * 1000).toISOString() : 'unknown';
+                throw Object.assign(new Error(`usage limit hit — resets at ${resetStr} (${info.rateLimitType || 'claude_max'}) — cooldown ${Math.ceil(cooldownMs/60000)}min`), { statusCode: 429 });
               }
             } else if (msg.type === 'result') {
               if (msg.usage) usage = msg.usage;
@@ -1331,9 +1426,10 @@ async function invokeClaudeSDK(openaiMessages, modelInfo, onDelta) {
             }
           }
 
+          if (idleTimer) clearTimeout(idleTimer);
           return { text, usage };
         })(),
-        new Promise((_, reject) => setTimeout(() => reject(new Error('Agent SDK timeout — likely hit usage limit (no response in 2min)')), SDK_TIMEOUT)),
+        idlePromise,
       ]);
 
       const { text, usage } = result;
@@ -1346,6 +1442,17 @@ async function invokeClaudeSDK(openaiMessages, modelInfo, onDelta) {
 
       if (!text) throw new Error('Empty response from Claude via Agent SDK');
 
+      // Narration loop breaker — track per model (not per token) so rotation doesn't reset counter
+      if (trackNarration(model, hadToolUse, text)) {
+        log(`NARRATION LOOP DETECTED for ${key} — destroying session to break cycle`);
+        const broken = warmSessions.get(key);
+        if (broken) {
+          try { broken.session.close(); } catch {}
+          warmSessions.delete(key);
+        }
+        throw new Error('BLOCKED: Agent produced consecutive narration-only responses with no tool calls. Session destroyed to break apology loop. Re-send the task with a specific instruction.');
+      }
+
       // Mark success
       const entry = warmSessions.get(key);
       if (entry) entry.lastUsed = Date.now();
@@ -1356,6 +1463,11 @@ async function invokeClaudeSDK(openaiMessages, modelInfo, onDelta) {
       lastError = err;
       log(`Agent SDK error (token=${token.id}): ${err.message}`);
 
+      // Narration loop block is TERMINAL — do not retry with another token
+      if (err.message && err.message.startsWith('BLOCKED:')) {
+        throw err;
+      }
+
       // Destroy broken session
       const entry = warmSessions.get(key);
       if (entry) {
@@ -1363,12 +1475,24 @@ async function invokeClaudeSDK(openaiMessages, modelInfo, onDelta) {
         warmSessions.delete(key);
       }
 
-      // If rate/usage limited, cooldown this token for 30 min and try next
+      // If rate/usage limited, cooldown for the actual window duration (not just 30 min)
       const errLower = (err.message || '').toLowerCase();
-      if (errLower.includes('rate') || errLower.includes('limit') || errLower.includes('usage') || errLower.includes('hit your') || errLower.includes('resets')) {
-        const cooldownMs = DEAD_REVIVE_MS; // 30 min
-        log(`Token ${token.id} hit usage/rate limit — cooldown ${cooldownMs/60000}min, trying next...`);
-        markRateLimited(token, cooldownMs / 1000); // persist cooldown to pool state (survives restart)
+      if (errLower.includes('rate') || errLower.includes('limit') || errLower.includes('usage') || errLower.includes('hit your') || errLower.includes('resets') || errLower.includes('timeout')) {
+        // Parse actual reset time from rate_limit_event error if available
+        let cooldownSec = DEAD_REVIVE_MS / 1000; // fallback: 30 min
+        const resetsMatch = err.message.match(/resets at (\d{4}-\d{2}-\d{2}T[\d:.]+Z?)/);
+        if (resetsMatch) {
+          const resetsAt = new Date(resetsMatch[1]).getTime();
+          if (!isNaN(resetsAt) && resetsAt > Date.now()) {
+            cooldownSec = Math.ceil((resetsAt - Date.now()) / 1000);
+          }
+        } else if (errLower.includes('timeout')) {
+          // SDK timeout ≠ account cap. Likely transient — retry after short cooldown.
+          cooldownSec = 3 * 60; // 3 minutes, not 5 hours
+        }
+        const cooldownMs = cooldownSec * 1000;
+        log(`Token ${token.id} hit usage/rate limit — cooldown ${Math.ceil(cooldownMs / 60000)}min (until ${new Date(Date.now() + cooldownMs).toISOString()}), failing over...`);
+        markRateLimited(token, cooldownSec);
         // Mark ALL warmSessions for this token as in cooldown too
         for (const [k, e] of warmSessions) {
           if (e.tokenId === token.id) e.cooldownUntil = Date.now() + cooldownMs;
@@ -1483,16 +1607,20 @@ function isCapError(err) {
 // ---------------------------------------------------------------------------
 
 async function invokeModel(openaiMessages, model, onDelta, opts = {}) {
-  const modelInfo = resolveModel(model);
+  // Parse per-account suffix: "opus-4-6:acct2-dsskerritt11" → model=opus-4-6, tokenAffinity=acct2-dsskerritt11
+  let baseModel = model;
+  if (!opts.tokenAffinity && model.includes(':')) {
+    const colonIdx = model.indexOf(':');
+    baseModel = model.slice(0, colonIdx);
+    opts = { ...opts, tokenAffinity: model.slice(colonIdx + 1) };
+  }
+  const modelInfo = resolveModel(baseModel);
 
   if (modelInfo.provider === 'anthropic') {
     // --- Step 1: Try Agent SDK with token rotation (already rotates internally) ---
     let sdkErr = null;
     try {
-      if (opts.tokenAffinity) {
-        return await invokeClaudeDirect(openaiMessages, modelInfo, opts.tokenAffinity, onDelta);
-      }
-      return await invokeClaudeSDK(openaiMessages, modelInfo, onDelta);
+      return await invokeClaudeSDK(openaiMessages, modelInfo, onDelta, opts.tokenAffinity || null);
     } catch (err) {
       sdkErr = err;
       if (!isCapError(err)) throw err;
@@ -1500,7 +1628,12 @@ async function invokeModel(openaiMessages, model, onDelta, opts = {}) {
     }
 
     // --- Step 2: Try Direct API with each pool token (different auth path) ---
-    const directTokens = pool.filter(t => t.provider === 'anthropic' && !t.dead);
+    const now2 = Date.now();
+    const directTokens = pool.filter(t => t.provider === 'anthropic' && !t.dead && (!t.cooldownUntil || t.cooldownUntil < now2));
+    if (directTokens.length === 0) {
+      log('All Anthropic tokens in cooldown — skipping Direct API fallback');
+      throw sdkErr;
+    }
     for (const token of directTokens) {
       try {
         log(`Trying Direct API with token ${token.id}...`);
@@ -1514,24 +1647,8 @@ async function invokeModel(openaiMessages, model, onDelta, opts = {}) {
       }
     }
 
-    // --- Step 3: All Anthropic tokens exhausted → failover to Codex ---
-    const failoverModelId = FAILOVER_MAP[modelInfo.modelId];
-    if (!failoverModelId) throw sdkErr;
-
-    const failoverInfo = resolveModel(failoverModelId);
-    const codexTokens = pool.filter(t => t.provider === 'openai' && !t.dead);
-    if (codexTokens.length === 0) {
-      log(`No Codex tokens available for failover`);
-      throw sdkErr;
-    }
-
-    log(`>>> FAILOVER: All Anthropic tokens exhausted → ${failoverModelId} (Codex)`);
-    try {
-      return await invokeCodex(openaiMessages, failoverInfo, onDelta);
-    } catch (codexErr) {
-      log(`Codex failover also failed: ${codexErr.message}`);
-      throw sdkErr;  // return original Anthropic error
-    }
+    // All Anthropic tokens exhausted — no ChatGPT fallover, Claude only
+    throw sdkErr;
   }
 
   // --- OpenAI primary path with reverse failover to Anthropic ---
@@ -1656,6 +1773,13 @@ function startProxy() {
             { id: 'gpt-5.1-codex-mini', object: 'model', owned_by: 'indigo-collective' },
             { id: 'gpt-5.1-codex-max', object: 'model', owned_by: 'indigo-collective' },
           );
+          const openaiPoolTokens = pool.filter(t => t.provider === 'openai' && !t.dead);
+          for (const t of openaiPoolTokens) {
+            models.push(
+              { id: `gpt-5.4:${t.id}`, object: 'model', owned_by: 'indigo-collective' },
+              { id: `gpt-5.4-mini:${t.id}`, object: 'model', owned_by: 'indigo-collective' },
+            );
+          }
         }
         safeEnd(res, 200, { object: 'list', data: models });
         return;
@@ -1771,8 +1895,13 @@ function startProxy() {
           }
         } catch (e) {
           log(`Error: ${e.message}`);
-          const status = (e.message.includes('tokens exhausted') || e.message.includes('EXHAUSTED') || e.statusCode === 429) ? 429 : 502;
+          const status = (e.statusCode === 429 || e.message.includes('tokens exhausted') || e.message.includes('EXHAUSTED') || e.message.includes('usage limit') || e.message.includes('cooldown') || e.message.includes('Agent SDK timeout')) ? 429 : 502;
           if (!res.headersSent) {
+            if (status === 429 && e.retryAfterSec) {
+              res.setHeader('Retry-After', String(e.retryAfterSec));
+            } else if (status === 429) {
+              res.setHeader('Retry-After', '60');
+            }
             safeEnd(res, status, { error: { message: e.message } });
           } else {
             // Already streaming — send error as final SSE event and close
@@ -2104,8 +2233,24 @@ const OPENAI_MODELS = [
 
 function getAllModels() {
   const models = [...ANTHROPIC_MODELS];
+  // Per-account pinned variants: "opus-4-6:acct2-dsskerritt11" routes to that specific token
+  const anthropicPoolTokens = pool.filter(t => t.provider === 'anthropic' && !t.dead);
+  for (const t of anthropicPoolTokens) {
+    models.push(
+      { id: `opus-4-6:${t.id}`, name: `Opus 4.6 — ${t.id}`, reasoning: false, input: ['text'], cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 }, contextWindow: 200000, maxTokens: 128000 },
+      { id: `sonnet-4-6:${t.id}`, name: `Sonnet 4.6 — ${t.id}`, reasoning: false, input: ['text'], cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 }, contextWindow: 200000, maxTokens: 64000 },
+    );
+  }
   if (pool.some(t => t.provider === 'openai')) {
     models.push(...OPENAI_MODELS);
+    // Per-account pinned ChatGPT variants
+    const openaiPoolTokens = pool.filter(t => t.provider === 'openai' && !t.dead);
+    for (const t of openaiPoolTokens) {
+      models.push(
+        { id: `gpt-5.4:${t.id}`, name: `GPT 5.4 — ${t.id}`, reasoning: false, input: ['text'], cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 }, contextWindow: 200000, maxTokens: 128000 },
+        { id: `gpt-5.4-mini:${t.id}`, name: `GPT 5.4 Mini — ${t.id}`, reasoning: false, input: ['text'], cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 }, contextWindow: 200000, maxTokens: 64000 },
+      );
+    }
   }
   return models;
 }

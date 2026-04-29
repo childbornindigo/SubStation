@@ -11,3 +11,4 @@ auth-profiles.json
 # Runtime data
 .substation/
 data/
+.vercel

@@ -1370,7 +1370,7 @@ async function invokeClaudeSDK(openaiMessages, modelInfo, onDelta, tokenAffinity
       let idleReject;
       let toolRunning = false;
       let hadToolUse = false;
-      const IDLE_TIMEOUT = 30000;          // 30s for text/thinking
+      const IDLE_TIMEOUT = 120000;         // 120s for text/thinking (Opus needs >30s for deep reasoning)
       const TOOL_IDLE_TIMEOUT = 300000;    // 5min for tool execution (commands can take a while)
       const resetIdleTimer = () => {
         if (idleTimer) clearTimeout(idleTimer);
@@ -1677,22 +1677,25 @@ async function invokeModel(openaiMessages, model, onDelta, opts = {}) {
 
 function killStaleProcess(port) {
   try {
-    const pid = execSync(`lsof -ti :${port}`, { timeout: 5000 }).toString().trim();
+    const pid = execSync(`/usr/sbin/lsof -ti :${port}`, { timeout: 5000 }).toString().trim();
     if (pid && pid !== String(process.pid)) {
       log(`Killing stale process ${pid} on port ${port}`);
       execSync(`kill ${pid}`, { timeout: 5000 });
-      // Wait for it to die
       for (let i = 0; i < 10; i++) {
         try {
-          execSync(`lsof -ti :${port}`, { timeout: 2000 });
+          execSync(`/usr/sbin/lsof -ti :${port}`, { timeout: 2000 });
           execSync('sleep 0.3');
         } catch {
-          return true; // port freed
+          return true;
         }
       }
     }
-  } catch {
-    // lsof returned empty = port is free
+  } catch (err) {
+    const msg = err.message || '';
+    if (msg.includes('ENOENT') || msg.includes('not found') || msg.includes('No such file')) {
+      log('lsof not available — cannot resolve port conflict');
+      return false;
+    }
     return true;
   }
   return false;
@@ -2110,9 +2113,16 @@ function startProxy() {
   });
 
   // Handle server errors
+  let bindRetries = 0;
+  const MAX_BIND_RETRIES = 3;
   proxyServer.on('error', (err) => {
     if (err.code === 'EADDRINUSE') {
-      log(`Port ${PORT} in use — attempting to free it...`);
+      bindRetries++;
+      if (bindRetries > MAX_BIND_RETRIES) {
+        log(`ERROR: Port ${PORT} still in use after ${MAX_BIND_RETRIES} retries. Kill the process manually: /usr/sbin/lsof -ti :${PORT} | xargs kill`);
+        return;
+      }
+      log(`Port ${PORT} in use — attempting to free it (attempt ${bindRetries}/${MAX_BIND_RETRIES})...`);
       if (killStaleProcess(PORT)) {
         log('Stale process killed, retrying bind...');
         setTimeout(() => {
@@ -2120,7 +2130,7 @@ function startProxy() {
           proxyServer.listen(PORT, '127.0.0.1');
         }, 1000);
       } else {
-        log(`ERROR: Could not free port ${PORT}. Kill the process manually: lsof -ti :${PORT} | xargs kill`);
+        log(`ERROR: Could not free port ${PORT}. Kill the process manually: /usr/sbin/lsof -ti :${PORT} | xargs kill`);
       }
     } else {
       log(`Server error: ${err.message}`);

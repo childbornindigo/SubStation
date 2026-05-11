@@ -36,6 +36,7 @@ const DEAD_REVIVE_MS = 30 * 60 * 1000;       // 30 min — auto-retry rate-limit
 const AUTH_DEAD_REVIVE_MS = 24 * 60 * 60 * 1000; // 24h — auto-retry auth-failed tokens
 const DATA_DIR = join(homedir(), '.substation', 'data');
 const PORT = parseInt(process.env.SUBSTATION_PORT || '8403');
+const AUTH_KEY = process.env.SUBSTATION_API_KEY || 'sk-substation-local-proxy';
 
 const POOL_FILE = join(homedir(), '.substation', 'token-pool.json');
 const POOL_STATE_FILE = join(homedir(), '.substation', 'pool-state.json');
@@ -436,7 +437,7 @@ function getPoolStatus() {
       openai: pool.filter(t => t.provider === 'openai').length,
     },
     tokens: pool.map(t => ({
-      id: t.id,
+      id: t.id ? t.id.slice(0, 4) + '...' : t.id,
       provider: t.provider,
       available: !t.dead && (!t.cooldownUntil || t.cooldownUntil < now),
       dead: t.dead,
@@ -914,7 +915,11 @@ function chatgptImageGenerate(tokenEntry, prompt, size = '1024x1024', quality = 
     // Send as a plain text input — GPT 5.4 auto-generates images when the prompt describes one
     const requestBody = JSON.stringify({
       model: 'gpt-5.4',
-      input: `Generate an image: ${prompt}. Output ONLY the image, no text.`,
+      instructions: 'Generate the requested image. Output only the image.',
+      input: [{ role: 'user', content: prompt }],
+      tools: [{ type: 'image_generation', model: 'gpt-image-2', size, quality }],
+      store: false,
+      stream: true,
     });
 
     const options = {
@@ -957,19 +962,34 @@ function chatgptImageGenerate(tokenEntry, prompt, size = '1024x1024', quality = 
           try {
             const event = JSON.parse(payload);
 
-            // Responses API image output events
+            // Responses API image output events — multiple formats
             if (event.type === 'response.image.delta' && event.delta) {
               imageB64 = (imageB64 || '') + event.delta;
             } else if (event.type === 'response.image.done' && event.image) {
               imageB64 = event.image;
             }
+            // image_generation_call partial_image — use last partial as final
+            if (event.type === 'response.image_generation_call.partial_image' && event.partial_image_b64) {
+              imageB64 = event.partial_image_b64;
+            }
+            // output_item.done may carry the final image result
+            if (event.type === 'response.output_item.done' && event.item) {
+              if (event.item.type === 'image_generation_call' && event.item.result) {
+                imageB64 = event.item.result;
+              }
+              if (event.item.image_b64) {
+                imageB64 = event.item.image_b64;
+              }
+            }
             // Also check for output_image in response.completed
             if (event.type === 'response.completed' && event.response?.output) {
               for (const item of event.response.output) {
+                if (item.type === 'image_generation_call' && item.result) {
+                  imageB64 = item.result;
+                }
                 if (item.type === 'image' && item.image?.b64_json) {
                   imageB64 = item.image.b64_json;
                 }
-                // Check nested content array
                 if (Array.isArray(item.content)) {
                   for (const c of item.content) {
                     if (c.type === 'image' && c.image?.b64_json) {
@@ -1038,9 +1058,23 @@ function chatgptDeleteConversation(tokenEntry, conversationId) {
   });
 }
 
+const ALLOWED_IMAGE_HOSTS = ['.openai.com', '.chatgpt.com', 'oaiusercontent.com'];
+
+function isAllowedImageHost(hostname) {
+  return ALLOWED_IMAGE_HOSTS.some(allowed => hostname === allowed || hostname.endsWith(allowed));
+}
+
 function fetchImageAsBase64(url, token) {
   return new Promise((resolve, reject) => {
     const parsedUrl = new URL(url);
+
+    // SSRF protection: only allow known image CDN hosts
+    if (!isAllowedImageHost(parsedUrl.hostname)) {
+      log(`WARN: Blocked image fetch to disallowed host: ${parsedUrl.hostname}`);
+      resolve(null);
+      return;
+    }
+
     const options = {
       hostname: parsedUrl.hostname,
       path: parsedUrl.pathname + parsedUrl.search,
@@ -1052,8 +1086,20 @@ function fetchImageAsBase64(url, token) {
 
     const req = httpsRequest(options, (res) => {
       if (res.statusCode === 301 || res.statusCode === 302) {
-        // Follow redirect
-        fetchImageAsBase64(res.headers.location, token).then(resolve).catch(reject);
+        // Follow redirect only if target host is also allowlisted
+        const redirectUrl = res.headers.location;
+        try {
+          const redirectParsed = new URL(redirectUrl, url);
+          if (!isAllowedImageHost(redirectParsed.hostname)) {
+            log(`WARN: Blocked redirect to disallowed host: ${redirectParsed.hostname}`);
+            resolve(null);
+            return;
+          }
+        } catch {
+          resolve(null);
+          return;
+        }
+        fetchImageAsBase64(redirectUrl, token).then(resolve).catch(reject);
         return;
       }
       if (res.statusCode !== 200) {
@@ -1707,6 +1753,16 @@ function killStaleProcess(port) {
 
 let proxyServer = null;
 
+const rateLimitMap = new Map();
+const RATE_LIMIT_MAX = 120;
+const RATE_LIMIT_WINDOW_MS = 60000;
+setInterval(() => {
+  const now = Date.now();
+  for (const [ip, entry] of rateLimitMap) {
+    if (now - entry.windowStart > RATE_LIMIT_WINDOW_MS) rateLimitMap.delete(ip);
+  }
+}, 60000).unref();
+
 function safeEnd(res, statusCode, body) {
   if (res.headersSent) return;
   res.writeHead(statusCode, { 'Content-Type': 'application/json' });
@@ -1717,11 +1773,39 @@ function startProxy() {
   if (proxyServer) return;
 
   proxyServer = createServer(async (req, res) => {
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    // CORS: only allow localhost/127.0.0.1 origins
+    const origin = req.headers['origin'];
+    if (origin && /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)) {
+      res.setHeader('Access-Control-Allow-Origin', origin);
+      res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+      res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+      res.setHeader('Vary', 'Origin');
+    }
 
     if (req.method === 'OPTIONS') { res.writeHead(200); res.end(); return; }
+
+    const clientIp = req.socket.remoteAddress || 'unknown';
+    const now = Date.now();
+    let bucket = rateLimitMap.get(clientIp);
+    if (!bucket || now - bucket.windowStart > RATE_LIMIT_WINDOW_MS) {
+      bucket = { windowStart: now, count: 0 };
+      rateLimitMap.set(clientIp, bucket);
+    }
+    bucket.count++;
+    if (bucket.count > RATE_LIMIT_MAX) {
+      safeEnd(res, 429, { error: 'rate_limited', message: 'Too many requests. Limit: 120/minute.' });
+      return;
+    }
+
+    // --- Auth enforcement for POST requests ---
+    if (req.method === 'POST') {
+      const authHeader = req.headers['authorization'] || '';
+      const providedKey = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : '';
+      if (providedKey !== AUTH_KEY) {
+        safeEnd(res, 401, { error: { message: 'Unauthorized. Provide Authorization: Bearer <SUBSTATION_API_KEY> header.' } });
+        return;
+      }
+    }
 
     // --- GET routes ---
     if (req.method === 'GET') {
@@ -2148,6 +2232,19 @@ function startProxy() {
     const status = getPoolStatus();
     log(`SubStation v${VERSION} on http://127.0.0.1:${PORT} (pool=${status.total}, anthropic=${status.byProvider.anthropic}, openai=${status.byProvider.openai}, cc=${VERSION})`);
   });
+
+  function gracefulShutdown() {
+    log('shutting down gracefully...');
+    proxyServer.close(() => {
+      process.exit(0);
+    });
+    setTimeout(() => {
+      log('forcing exit after 10s timeout');
+      process.exit(0);
+    }, 10000).unref();
+  }
+  process.on('SIGTERM', gracefulShutdown);
+  process.on('SIGINT', gracefulShutdown);
 }
 
 // ---------------------------------------------------------------------------

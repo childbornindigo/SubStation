@@ -12,3 +12,13 @@ auth-profiles.json
 .substation/
 data/
 .vercel
+
+# Non-SubStation artifacts (prevent backup drift)
+video-test/
+Wiki/
+demo-board*
+*.mp4
+*.wav
+*.vtt
+*.jpg
+~

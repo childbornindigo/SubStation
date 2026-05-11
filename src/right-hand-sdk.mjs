@@ -29,9 +29,9 @@ const PORT = parseInt(process.env.RIGHT_HAND_PORT || '8450', 10);
 const MAX_TURNS = parseInt(process.env.RIGHT_HAND_MAX_TURNS || '30', 10);
 const SESSION_MAX_AGE_MS = 6 * 60 * 60 * 1000; // 6 hours
 const AUTH_FAIL_TTL_MS = 24 * 60 * 60 * 1000;  // 24h before retrying a dead token
-const WORKSPACE = join(homedir(), '.openclaw', 'agents', 'right-hand', 'workspace');
+const WORKSPACE = join(homedir(), '.hermes', 'agents', 'right-hand', 'workspace');
 const SUBSTATION_URL = 'http://127.0.0.1:8403';
-const AUTH_FAIL_FILE = join(homedir(), '.openclaw', 'agents', 'right-hand', 'sdk', 'auth-failures.json');
+const AUTH_FAIL_FILE = join(homedir(), '.hermes', 'agents', 'right-hand', 'sdk', 'auth-failures.json');
 
 const SYSTEM_PROMPT = `You are Right Hand — the persistent builder agent for Indigo OS, responding via Telegram.
 
@@ -63,7 +63,7 @@ function loadOAuthTokens() {
   }
 
   // Source 1: Right Hand's own auth-profiles
-  const rhPath = join(homedir(), '.openclaw', 'agents', 'right-hand', 'agent', 'auth-profiles.json');
+  const rhPath = join(homedir(), '.hermes', 'agents', 'right-hand', 'agent', 'auth-profiles.json');
   try {
     const data = JSON.parse(readFileSync(rhPath, 'utf8'));
     for (const [pid, profile] of Object.entries(data.profiles || {})) {
@@ -74,7 +74,7 @@ function loadOAuthTokens() {
   } catch {}
 
   // Source 2: Main agent auth-profiles
-  const mainPath = join(homedir(), '.openclaw', 'agents', 'main', 'agent', 'auth-profiles.json');
+  const mainPath = join(homedir(), '.hermes', 'agents', 'main', 'agent', 'auth-profiles.json');
   try {
     const data = JSON.parse(readFileSync(mainPath, 'utf8'));
     for (const [pid, profile] of Object.entries(data.profiles || {})) {
@@ -85,7 +85,7 @@ function loadOAuthTokens() {
   } catch {}
 
   // Source 3: OAuth pool file
-  const poolPath = join(homedir(), '.openclaw', 'workspace', 'scripts', 'oauth-pool.json');
+  const poolPath = join(homedir(), '.hermes', 'workspace', 'scripts', 'oauth-pool.json');
   try {
     const data = JSON.parse(readFileSync(poolPath, 'utf8'));
     for (const cred of (data.credentials || [])) {

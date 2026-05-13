@@ -32,6 +32,20 @@ Build and launch LuxuryLaneTires.ca — tire sales + installation in Vaughan, ON
 - [ ] Auto-response bot for marketplace inquiries
 - [ ] Booking flow (consultation/appointment setter)
 
+### UX Reference (saved May 12)
+- Site design assets saved to `market-intelligence/site-assets/`
+- **Flow page**: `flow-icons/full-flow-as-easy-as-123.jpg` — "As Easy as 1, 2, 3" section
+  - Step 1: FIND YOUR MATCH — search by vehicle, size, or brand
+  - Step 2: FREE DELIVERY — sourced from brand partners, delivered to Vaughan facility
+  - Step 3: EASY INSTALLATION — book online, $40/tire mounting + balancing
+- **Step icons**: `step1-search.jpg`, `step2-delivery.jpg` (gold accents, dark tire imagery)
+- **Top-Rated Tires grid**: `flow-icons/top-rated-tires-grid.jpg` — product cards with category badges (All-Season/All-Terrain), brand logo, model name, size, speed/load specs, star ratings + review counts
+- **Google Reviews badges**: 4.6 stars version + 5.0 stars version (dark + light variants)
+- **Brand logo strip**: `flow-icons/brand-logo-strip.jpg` — Pirelli, Continental, Ironman, General, Toyo, Falken in colored circles
+- **Individual brand logos** (8): Hankook, Bridgestone, Michelin, Falken, Toyo, General Tire, Ironman, Pirelli
+- **Nav bar**: Premium Brands | Expert Installation | Free Consultation | TIRES | DEALS | HELP & ADVICE | SERVICES | (905) 555-TIRE | BOOK NOW
+- Build this flow once site design is approved by Jun
+
 ### Future
 - [ ] Facebook/Meta ads once initial clientele established
 - [ ] LuxuryLane Detailing (mobile + dealership targeting)

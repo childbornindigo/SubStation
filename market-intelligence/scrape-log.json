@@ -1,0 +1,53 @@
+{
+  "scraped_at": "2026-05-13T01:00:08+00:00",
+  "total_requests": 5,
+  "successful": 5,
+  "failed": 0,
+  "entries": [
+    {
+      "url": "https://www.bing.com/shop?q=195/65R15+tires+canada",
+      "source": "bing_shopping",
+      "size": "195/65R15",
+      "phase": "retail",
+      "success": true,
+      "engine": "scrapling",
+      "error": null
+    },
+    {
+      "url": "https://www.bing.com/shop?q=205/55R16+tires+canada",
+      "source": "bing_shopping",
+      "size": "205/55R16",
+      "phase": "retail",
+      "success": true,
+      "engine": "scrapling",
+      "error": null
+    },
+    {
+      "url": "https://www.bing.com/shop?q=215/60R16+tires+canada",
+      "source": "bing_shopping",
+      "size": "215/60R16",
+      "phase": "retail",
+      "success": true,
+      "engine": "scrapling",
+      "error": null
+    },
+    {
+      "url": "https://www.bing.com/shop?q=225/65R17+tires+canada",
+      "source": "bing_shopping",
+      "size": "225/65R17",
+      "phase": "retail",
+      "success": true,
+      "engine": "scrapling",
+      "error": null
+    },
+    {
+      "url": "https://www.bing.com/shop?q=235/65R18+tires+canada",
+      "source": "bing_shopping",
+      "size": "235/65R18",
+      "phase": "retail",
+      "success": true,
+      "engine": "scrapling",
+      "error": null
+    }
+  ]
+}

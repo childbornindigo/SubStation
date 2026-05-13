@@ -1,0 +1,574 @@
+{
+  "generated_at": "2026-05-13T01:17:20+00:00",
+  "data_quality": {
+    "total_listings": 2383,
+    "listings_with_price": 2383,
+    "listings_with_type": 1888,
+    "sizes_scraped": 65,
+    "sources_found": [
+      "bing_shopping"
+    ],
+    "has_trends_data": false,
+    "has_marketplace_data": false,
+    "confidence": "high"
+  },
+  "top_10_overall": [
+    {
+      "brand": "Continental",
+      "composite_score": 91.2,
+      "popularity": 100.0,
+      "coverage": 94.9,
+      "value": 75.9,
+      "avg_price": 324.58,
+      "tier": "premium",
+      "sizes_available": 56,
+      "retailers": 1,
+      "rank": 1
+    },
+    {
+      "brand": "Toyo",
+      "composite_score": 81.4,
+      "popularity": 74.1,
+      "coverage": 98.3,
+      "value": 74.2,
+      "avg_price": 326.9,
+      "tier": "premium",
+      "sizes_available": 58,
+      "retailers": 1,
+      "rank": 2
+    },
+    {
+      "brand": "Michelin",
+      "composite_score": 78.7,
+      "popularity": 54.6,
+      "coverage": 100.0,
+      "value": 89.4,
+      "avg_price": 394.86,
+      "tier": "premium",
+      "sizes_available": 59,
+      "retailers": 1,
+      "rank": 3
+    },
+    {
+      "brand": "General",
+      "composite_score": 76.1,
+      "popularity": 71.0,
+      "coverage": 94.9,
+      "value": 64.0,
+      "avg_price": 293.0,
+      "tier": "premium",
+      "sizes_available": 56,
+      "retailers": 1,
+      "rank": 4
+    },
+    {
+      "brand": "Bridgestone",
+      "composite_score": 73.2,
+      "popularity": 56.0,
+      "coverage": 88.1,
+      "value": 81.4,
+      "avg_price": 343.12,
+      "tier": "premium",
+      "sizes_available": 52,
+      "retailers": 1,
+      "rank": 5
+    },
+    {
+      "brand": "Goodyear",
+      "composite_score": 70.4,
+      "popularity": 56.0,
+      "coverage": 94.9,
+      "value": 65.0,
+      "avg_price": 320.1,
+      "tier": "premium",
+      "sizes_available": 56,
+      "retailers": 1,
+      "rank": 6
+    },
+    {
+      "brand": "Yokohama",
+      "composite_score": 65.3,
+      "popularity": 46.4,
+      "coverage": 93.2,
+      "value": 62.6,
+      "avg_price": 283.58,
+      "tier": "premium",
+      "sizes_available": 55,
+      "retailers": 1,
+      "rank": 7
+    },
+    {
+      "brand": "Firestone",
+      "composite_score": 62.7,
+      "popularity": 42.7,
+      "coverage": 88.1,
+      "value": 64.0,
+      "avg_price": 274.73,
+      "tier": "premium",
+      "sizes_available": 52,
+      "retailers": 1,
+      "rank": 8
+    },
+    {
+      "brand": "Cooper",
+      "composite_score": 62.1,
+      "popularity": 50.2,
+      "coverage": 79.7,
+      "value": 60.3,
+      "avg_price": 275.57,
+      "tier": "premium",
+      "sizes_available": 47,
+      "retailers": 1,
+      "rank": 9
+    },
+    {
+      "brand": "Pirelli",
+      "composite_score": 53.2,
+      "popularity": 26.6,
+      "coverage": 59.3,
+      "value": 82.7,
+      "avg_price": 354.71,
+      "tier": "premium",
+      "sizes_available": 35,
+      "retailers": 1,
+      "rank": 10
+    }
+  ],
+  "by_demand": [
+    {
+      "brand": "Continental",
+      "score": 100.0
+    },
+    {
+      "brand": "Toyo",
+      "score": 74.1
+    },
+    {
+      "brand": "General",
+      "score": 71.0
+    },
+    {
+      "brand": "Goodyear",
+      "score": 56.0
+    },
+    {
+      "brand": "Bridgestone",
+      "score": 56.0
+    },
+    {
+      "brand": "Michelin",
+      "score": 54.6
+    },
+    {
+      "brand": "Cooper",
+      "score": 50.2
+    },
+    {
+      "brand": "Yokohama",
+      "score": 46.4
+    },
+    {
+      "brand": "Firestone",
+      "score": 42.7
+    },
+    {
+      "brand": "Westlake",
+      "score": 31.1
+    },
+    {
+      "brand": "Maxxis",
+      "score": 28.0
+    },
+    {
+      "brand": "Sailun",
+      "score": 27.6
+    },
+    {
+      "brand": "Pirelli",
+      "score": 26.6
+    },
+    {
+      "brand": "Uniroyal",
+      "score": 22.5
+    },
+    {
+      "brand": "Kumho",
+      "score": 21.2
+    }
+  ],
+  "by_coverage": [
+    {
+      "brand": "Michelin",
+      "score": 100.0,
+      "sizes": 59,
+      "retailers": 1
+    },
+    {
+      "brand": "Toyo",
+      "score": 98.3,
+      "sizes": 58,
+      "retailers": 1
+    },
+    {
+      "brand": "Continental",
+      "score": 94.9,
+      "sizes": 56,
+      "retailers": 1
+    },
+    {
+      "brand": "Goodyear",
+      "score": 94.9,
+      "sizes": 56,
+      "retailers": 1
+    },
+    {
+      "brand": "General",
+      "score": 94.9,
+      "sizes": 56,
+      "retailers": 1
+    },
+    {
+      "brand": "Yokohama",
+      "score": 93.2,
+      "sizes": 55,
+      "retailers": 1
+    },
+    {
+      "brand": "Firestone",
+      "score": 88.1,
+      "sizes": 52,
+      "retailers": 1
+    },
+    {
+      "brand": "Bridgestone",
+      "score": 88.1,
+      "sizes": 52,
+      "retailers": 1
+    },
+    {
+      "brand": "Cooper",
+      "score": 79.7,
+      "sizes": 47,
+      "retailers": 1
+    },
+    {
+      "brand": "Hankook",
+      "score": 71.2,
+      "sizes": 42,
+      "retailers": 1
+    },
+    {
+      "brand": "Uniroyal",
+      "score": 67.8,
+      "sizes": 40,
+      "retailers": 1
+    },
+    {
+      "brand": "Westlake",
+      "score": 62.7,
+      "sizes": 37,
+      "retailers": 1
+    },
+    {
+      "brand": "Maxxis",
+      "score": 61.0,
+      "sizes": 36,
+      "retailers": 1
+    },
+    {
+      "brand": "Pirelli",
+      "score": 59.3,
+      "sizes": 35,
+      "retailers": 1
+    },
+    {
+      "brand": "Sailun",
+      "score": 55.9,
+      "sizes": 33,
+      "retailers": 1
+    }
+  ],
+  "by_value_tier": {
+    "premium": [
+      {
+        "brand": "Nitto",
+        "avg_price": 370.59,
+        "score": 100.0,
+        "consistency": 0.8
+      },
+      {
+        "brand": "Michelin",
+        "avg_price": 394.86,
+        "score": 89.4,
+        "consistency": 0.67
+      },
+      {
+        "brand": "Pirelli",
+        "avg_price": 354.71,
+        "score": 82.7,
+        "consistency": 0.7
+      },
+      {
+        "brand": "Bridgestone",
+        "avg_price": 343.12,
+        "score": 81.4,
+        "consistency": 0.71
+      },
+      {
+        "brand": "Kenda",
+        "avg_price": 259.85,
+        "score": 79.0,
+        "consistency": 0.91
+      },
+      {
+        "brand": "Continental",
+        "avg_price": 324.58,
+        "score": 75.9,
+        "consistency": 0.7
+      },
+      {
+        "brand": "Toyo",
+        "avg_price": 326.9,
+        "score": 74.2,
+        "consistency": 0.68
+      },
+      {
+        "brand": "BFGoodrich",
+        "avg_price": 324.01,
+        "score": 72.2,
+        "consistency": 0.66
+      },
+      {
+        "brand": "GT Radial",
+        "avg_price": 249.34,
+        "score": 70.8,
+        "consistency": 0.85
+      },
+      {
+        "brand": "Kumho",
+        "avg_price": 289.57,
+        "score": 69.0,
+        "consistency": 0.71
+      }
+    ],
+    "midrange": [
+      {
+        "brand": "Ironman",
+        "avg_price": 181.72,
+        "score": 38.2,
+        "consistency": 0.63
+      },
+      {
+        "brand": "Westlake",
+        "avg_price": 149.21,
+        "score": 35.9,
+        "consistency": 0.72
+      }
+    ],
+    "budget": []
+  },
+  "by_category": {
+    "all_season": [
+      {
+        "brand": "Goodyear",
+        "listings": 59
+      },
+      {
+        "brand": "Michelin",
+        "listings": 58
+      },
+      {
+        "brand": "Yokohama",
+        "listings": 44
+      },
+      {
+        "brand": "Continental",
+        "listings": 42
+      },
+      {
+        "brand": "Toyo",
+        "listings": 42
+      }
+    ],
+    "winter": [
+      {
+        "brand": "Continental",
+        "listings": 147
+      },
+      {
+        "brand": "Toyo",
+        "listings": 135
+      },
+      {
+        "brand": "General",
+        "listings": 123
+      },
+      {
+        "brand": "Bridgestone",
+        "listings": 96
+      },
+      {
+        "brand": "Michelin",
+        "listings": 93
+      }
+    ],
+    "performance": [
+      {
+        "brand": "Continental",
+        "listings": 4
+      },
+      {
+        "brand": "Michelin",
+        "listings": 3
+      },
+      {
+        "brand": "Westlake",
+        "listings": 2
+      },
+      {
+        "brand": "Bridgestone",
+        "listings": 2
+      },
+      {
+        "brand": "Toyo",
+        "listings": 1
+      }
+    ]
+  },
+  "size_opportunities": {
+    "highest_demand_sizes": [
+      {
+        "size": "225/40R18",
+        "demand_score": 50,
+        "avg_price": 258.89,
+        "brand_count": 15
+      },
+      {
+        "size": "255/65R18",
+        "demand_score": 48,
+        "avg_price": 311.13,
+        "brand_count": 16
+      },
+      {
+        "size": "235/55R18",
+        "demand_score": 48,
+        "avg_price": 270.82,
+        "brand_count": 12
+      },
+      {
+        "size": "225/60R17",
+        "demand_score": 46,
+        "avg_price": 230.86,
+        "brand_count": 15
+      },
+      {
+        "size": "275/55R19",
+        "demand_score": 46,
+        "avg_price": 425.13,
+        "brand_count": 11
+      },
+      {
+        "size": "225/45R17",
+        "demand_score": 46,
+        "avg_price": 219.25,
+        "brand_count": 16
+      },
+      {
+        "size": "175/65R15",
+        "demand_score": 46,
+        "avg_price": 155.21,
+        "brand_count": 15
+      },
+      {
+        "size": "255/55R18",
+        "demand_score": 45,
+        "avg_price": 352.32,
+        "brand_count": 12
+      },
+      {
+        "size": "275/40R20",
+        "demand_score": 45,
+        "avg_price": 441.69,
+        "brand_count": 12
+      },
+      {
+        "size": "245/75R16",
+        "demand_score": 45,
+        "avg_price": 269.87,
+        "brand_count": 9
+      }
+    ],
+    "best_margin_sizes": [
+      {
+        "size": "275/40R20",
+        "margin_score": 2963.0,
+        "avg_price": 441.69,
+        "price_range": "$248-$710",
+        "brand_count": 12
+      },
+      {
+        "size": "275/55R19",
+        "margin_score": 2883.3,
+        "avg_price": 425.13,
+        "price_range": "$261-$673",
+        "brand_count": 11
+      },
+      {
+        "size": "265/60R20",
+        "margin_score": 2782.0,
+        "avg_price": 451.3,
+        "price_range": "$100-$643",
+        "brand_count": 15
+      },
+      {
+        "size": "285/45R22",
+        "margin_score": 2769.3,
+        "avg_price": 455.27,
+        "price_range": "$289-$775",
+        "brand_count": 16
+      },
+      {
+        "size": "275/70R18",
+        "margin_score": 2756.1,
+        "avg_price": 425.27,
+        "price_range": "$265-$800",
+        "brand_count": 17
+      },
+      {
+        "size": "285/65R18",
+        "margin_score": 2682.9,
+        "avg_price": 481.86,
+        "price_range": "$360-$598",
+        "brand_count": 11
+      },
+      {
+        "size": "255/35R19",
+        "margin_score": 2550.6,
+        "avg_price": 398.33,
+        "price_range": "$184-$665",
+        "brand_count": 12
+      },
+      {
+        "size": "275/45R20",
+        "margin_score": 2514.3,
+        "avg_price": 413.34,
+        "price_range": "$228-$677",
+        "brand_count": 13
+      },
+      {
+        "size": "275/55R20",
+        "margin_score": 2501.3,
+        "avg_price": 411.22,
+        "price_range": "$100-$552",
+        "brand_count": 14
+      },
+      {
+        "size": "255/45R19",
+        "margin_score": 2497.1,
+        "avg_price": 399.85,
+        "price_range": "$170-$579",
+        "brand_count": 14
+      }
+    ]
+  }
+}

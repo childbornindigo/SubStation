@@ -11,7 +11,7 @@ import { readFileSync, writeFileSync, mkdirSync, renameSync, statSync, watch } f
 // ---------------------------------------------------------------------------
 
 const VERSION = '0.6.4';
-const TIMEOUT = 300000; // 5 min
+const TIMEOUT = 600000; // 10 min — large context prefills (400K+) need time
 
 // Operator system prompt — replaces Claude Code's default system prompt
 const OPERATOR_SYSTEM_PROMPT = `You are an AI assistant powered by SubStation.
@@ -1417,7 +1417,7 @@ async function invokeClaudeSDK(openaiMessages, modelInfo, onDelta, tokenAffinity
       let toolRunning = false;
       let hadToolUse = false;
       const IDLE_TIMEOUT = 120000;         // 120s for text/thinking (Opus needs >30s for deep reasoning)
-      const TOOL_IDLE_TIMEOUT = 300000;    // 5min for tool execution (commands can take a while)
+      const TOOL_IDLE_TIMEOUT = 900000;    // 15min for tool execution (deploys, builds, long commands)
       const resetIdleTimer = () => {
         if (idleTimer) clearTimeout(idleTimer);
         const timeout = toolRunning ? TOOL_IDLE_TIMEOUT : IDLE_TIMEOUT;
@@ -1982,7 +1982,7 @@ function startProxy() {
           }
         } catch (e) {
           log(`Error: ${e.message}`);
-          const status = (e.statusCode === 429 || e.message.includes('tokens exhausted') || e.message.includes('EXHAUSTED') || e.message.includes('usage limit') || e.message.includes('cooldown') || e.message.includes('Agent SDK timeout')) ? 429 : 502;
+          const status = (e.statusCode === 429 || e.message.includes('tokens exhausted') || e.message.includes('EXHAUSTED') || e.message.includes('usage limit') || e.message.includes('cooldown')) ? 429 : e.message.includes('Agent SDK timeout') ? 504 : 502;
           if (!res.headersSent) {
             if (status === 429 && e.retryAfterSec) {
               res.setHeader('Retry-After', String(e.retryAfterSec));

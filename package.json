@@ -27,5 +27,8 @@
   "repository": {
     "type": "git",
     "url": "https://github.com/childbornindigo/substation.git"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.106.0"
   }
 }

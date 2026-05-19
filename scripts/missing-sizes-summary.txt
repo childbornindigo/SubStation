@@ -1,0 +1,251 @@
+======================================================================
+LUXURYLANETIRES.CA — MISSING SIZES AUDIT
+Date: 2026-05-18
+Models checked: 23
+Total missing sizes (in stock on TDG, not in our DB): 135
+======================================================================
+
+SUMMARY BY BRAND
+----------------------------------------------------------------------
+Brand                Models     With Gaps    Missing Sizes  
+----------------------------------------------------------------------
+Bridgestone          5          4            9              
+Continental          4          3            52             
+Falken               1          1            2              
+Firestone            4          3            15             
+Hankook              3          2            9              
+Pirelli              2          1            13             
+Toyo                 2          1            2              
+Yokohama             2          2            33             
+----------------------------------------------------------------------
+TOTAL                23         17           135            
+
+
+TOP PRIORITY GAPS (models with most missing sizes)
+======================================================================
+
+Continental ExtremeContact DWS06 PLUS
+  DB sizes: 73 | TDG in-stock sizes: 109 | Missing: 49
+  Missing sizes:
+    + 205/45R17
+    + 205/55R16
+    + 215/50R17
+    + 225/40R18
+    + 225/40R19
+    + 225/45R17
+    + 225/45R18
+    + 225/45R19
+    + 225/50R17
+    + 225/50R18
+    + 225/55R17
+    + 235/35R19
+    + 235/40R18
+    + 235/40R19
+    + 235/45R18
+    + 235/50R18
+    + 235/55R18
+    + 245/35R20
+    + 245/40R18
+    + 245/40R19
+    + 245/45R18
+    + 245/45R19
+    + 245/50R19
+    + 255/35R18
+    + 255/35R21
+    + 255/40R18
+    + 255/40R19
+    + 255/40R20
+    + 255/40R21
+    + 255/45R18
+    + 255/45R19
+    + 255/50R19
+    + 255/50R20
+    + 255/55R18
+    + 255/55R20
+    + 265/35R20
+    + 265/40R20
+    + 265/40R21
+    + 265/40R22
+    + 265/50R19
+    + 275/35R19
+    + 275/35R21
+    + 275/40R19
+    + 275/40R22
+    + 285/40R19
+    + 285/40R21
+    + 285/40R22
+    + 315/30R22
+    + 315/35R21
+
+Yokohama Geolandar X-CV
+  DB sizes: 32 | TDG in-stock sizes: 32 | Missing: 29
+  Missing sizes:
+    + 235/45R19
+    + 235/45R20
+    + 235/45R21
+    + 235/55R19
+    + 235/60R19
+    + 255/40R21
+    + 255/45R19
+    + 255/45R20
+    + 255/50R19
+    + 255/50R20
+    + 255/55R18
+    + 255/55R19
+    + 255/55R20
+    + 265/35R22
+    + 265/40R22
+    + 265/45R20
+    + 265/45R21
+    + 265/50R19
+    + 265/50R20
+    + 265/55R19
+    + 265/60R20
+    + 265/70R18
+    + 275/40R20
+    + 275/40R22
+    + 275/45R20
+    + 275/45R21
+    + 275/50R20
+    + 295/35R21
+    + 295/40R21
+
+Pirelli P Zero AS Plus 3
+  DB sizes: 147 | TDG in-stock sizes: 46 | Missing: 13
+  Missing sizes:
+    + 225/55R19
+    + 225/60R18
+    + 235/40R19
+    + 235/60R18
+    + 235/65R17
+    + 245/50R20
+    + 255/50R19
+    + 255/60R19
+    + 255/65R18
+    + 265/50R20
+    + 265/65R18
+    + 275/50R22
+    + 275/60R20
+
+Firestone Destination LE3
+  DB sizes: 68 | TDG in-stock sizes: 58 | Missing: 11
+  Missing sizes:
+    + 215/60R17
+    + 215/65R16
+    + 215/70R16
+    + 225/55R18
+    + 225/60R17
+    + 225/60R18
+    + 235/50R18
+    + 235/55R18
+    + 235/60R18
+    + 235/65R17
+    + 245/60R18
+
+Hankook Ventus S1 noble2
+  DB sizes: 42 | TDG in-stock sizes: 9 | Missing: 7
+  Missing sizes:
+    + 225/45R18
+    + 225/55R17
+    + 235/55R17
+    + 245/50R20
+    + 245/55R19
+    + 255/45R19
+    + 255/50R20
+
+Bridgestone UltraWeather
+  DB sizes: 194 | TDG in-stock sizes: 37 | Missing: 5
+  Missing sizes:
+    + 215/65R16
+    + 215/65R17
+    + 225/45R17
+    + 235/65R18
+    + 255/55R20
+
+Yokohama Geolandar X-AT G016
+  DB sizes: 94 | TDG in-stock sizes: 14 | Missing: 4
+  Missing sizes:
+    + 235/85R16
+    + 35x13.50R20LT LRF
+    + 37x12.50R20LT LRF
+    + 37x13.50R20LT LRF
+
+Firestone Destination LE 2
+  DB sizes: 54 | TDG in-stock sizes: 4 | Missing: 3
+  Missing sizes:
+    + 225/60R17
+    + 225/65R17
+    + 265/65R17
+
+Bridgestone Alenza Sport AS
+  DB sizes: 20 | TDG in-stock sizes: 22 | Missing: 2
+  Missing sizes:
+    + 255/55R19
+    + 285/45R20
+
+Continental ProContact RX
+  DB sizes: 82 | TDG in-stock sizes: 21 | Missing: 2
+  Missing sizes:
+    + 255/45R19
+    + 285/40R19
+
+Falken Azenis FK460 AS
+  DB sizes: 73 | TDG in-stock sizes: 56 | Missing: 2
+  Missing sizes:
+    + 265/35R22
+    + 265/45R20
+
+Hankook Dynapro evo AS
+  DB sizes: 63 | TDG in-stock sizes: 4 | Missing: 2
+  Missing sizes:
+    + 235/50R21
+    + 295/35R21
+
+Toyo Extensa AS II
+  DB sizes: 149 | TDG in-stock sizes: 63 | Missing: 2
+  Missing sizes:
+    + 215/65R15
+    + 315/35R17
+
+Bridgestone Turanza Everdrive
+  DB sizes: 70 | TDG in-stock sizes: 29 | Missing: 1
+  Missing sizes:
+    + 235/65R16
+
+Bridgestone WeatherPeak
+  DB sizes: 31 | TDG in-stock sizes: 32 | Missing: 1
+  Missing sizes:
+    + 215/65R16
+
+Continental CrossContact LX Sport
+  DB sizes: 30 | TDG in-stock sizes: 31 | Missing: 1
+  Missing sizes:
+    + 215/65R16
+
+Firestone Weathergrip
+  DB sizes: 31 | TDG in-stock sizes: 32 | Missing: 1
+  Missing sizes:
+    + 215/65R17
+
+
+MODELS WITH COMPLETE COVERAGE (no gaps)
+======================================================================
+  Bridgestone Dueler HL Alenza Plus OWL (22 sizes in DB, 3 on TDG)
+  Continental CrossContact RX (89 sizes in DB, 17 on TDG)
+  Firestone FR710 All Season (52 sizes in DB, 3 on TDG)
+  Hankook Kinergy GT (20 sizes in DB, 20 on TDG)
+  Pirelli Scorpion Zero All Season (39 sizes in DB, 36 on TDG)
+  Toyo Open Country A50 (1 sizes in DB, 0 on TDG)
+
+
+NOTES
+======================================================================
+- 'Missing' means the size is IN STOCK on TDG but NOT in our Supabase DB
+- Stock on TDG = local warehouse + network warehouse quantities
+- TDG stock of '-' or '0' was excluded (only in-stock sizes counted)
+- Continental ExtremeContact DWS06 PLUS: Only the PLUS variant was matched
+  (the older DWS06 without PLUS was excluded as a different product)
+- Hankook Ventus S1 noble2: RunFlat variants were excluded
+- Pirelli P Zero AS Plus 3: Includes both P Zero and Scorpion AS Plus 3
+  variants (our DB stores both under the same model name)
+- Some LT sizes for Yokohama Geolandar X-AT use the '35x12.50R20LT' format

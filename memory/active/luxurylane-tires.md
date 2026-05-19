@@ -9,6 +9,13 @@ created: 2026-05-11
 ## Goal
 Build and launch LuxuryLaneTires.ca — tire sales + installation in Vaughan, ON. Automated sales pipeline.
 
+## Deployment
+- Site: https://luxurylanetires.ca/
+- Hosting: Vercel under Jun's account (LuxuryLaneTires project)
+- Access: Need 1Password for Jun's Vercel credentials
+- Wholesale: TDG Access (tdgaccess.ca) — READ ONLY, never order/modify
+- Payment: Stripe recommended (fastest Next.js integration)
+
 ## Business Model
 - Buy wholesale tires, mark up ~$80/tire
 - Installation: costs $20/tire, charge $40 → $20 profit/tire

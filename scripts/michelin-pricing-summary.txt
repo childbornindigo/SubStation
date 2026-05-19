@@ -1,0 +1,1294 @@
+================================================================================
+MICHELIN MARKET-DRIVEN PRICING ANALYSIS -- LuxuryLaneTires.ca
+Generated: 2026-05-18 20:12
+Rules: 20% floor, 60% cap, 30% default (no data)
+================================================================================
+
+OVERVIEW
+----------------------------------------
+Total Michelin tires analyzed: 426
+Tires with local data:        215
+Tires with no data:           211
+Coverage:                     50.5%
+
+RECOMMENDATIONS
+----------------------------------------
+RAISE  (local avg > our 30%):   10
+DROP   (local avg < our 30%):   161
+KEEP   (within $10 of 30%):     41
+DELIST (wholesale >= local avg): 3
+NO DATA (default 30%):          211
+
+REVENUE IMPACT (per-unit, active catalog only)
+----------------------------------------
+Active tires (not delisted):          423
+Total current revenue (per unit):     $174,307.44
+Total recommended revenue (per unit): $170,638.02
+Delta:                                $-3,669.42
+Change:                               -2.1%
+
+================================================================================
+DELISTED TIRES (3) -- wholesale >= local retail avg
+================================================================================
+Model                        Size           Wholesale    Local Avg    Gap        Src
+------------------------------------------------------------------------------------
+Pilot Sport AS 4             245/40R21      $735.38      $601.99      $133.39    2
+Pilot Sport AS 4             255/50R20      $482.20      $442.99      $39.21     2
+Pilot Sport AS 4             315/35R20      $608.00      $535.99      $72.01     2
+
+================================================================================
+MODEL-LEVEL SUMMARY
+================================================================================
+Model                        Avg Markup%   With Data   Total    Raises   Drops    Keeps    Delist
+-------------------------------------------------------------------------------------------------
+Defender LTX M/S2            26.1%        69          104      5        58       6        0
+Pilot Sport AS 4             26.7%        108         143      0        72       33       3
+Primacy Tour AS              29.4%        38          179      5        31       2        0
+
+================================================================================
+TOP 20 BIGGEST RAISES (by % above 30% markup)
+================================================================================
+Model                        Size           Markup%   Change    Rec$       Local Avg    Src
+-------------------------------------------------------------------------------------------
+Defender LTX M/S2            235/70R16      60.0%    +30.0%    $276.03    $309.20      1
+Primacy Tour AS              215/45R17      60.0%    +30.0%    $243.26    $325.00      1
+Primacy Tour AS              225/50R17      60.0%    +30.0%    $248.64    $307.99      1
+Primacy Tour AS              255/40R19      58.1%    +28.1%    $439.72    $444.72      1
+Primacy Tour AS              235/55R17      56.1%    +26.1%    $298.99    $303.99      1
+Primacy Tour AS              225/45R18      53.1%    +23.1%    $251.99    $256.99      1
+Defender LTX M/S2            255/65R18      50.2%    +20.2%    $408.84    $413.84      1
+Defender LTX M/S2            205/55R16      35.0%    +5.0%     $246.00    $251.00      1
+Defender LTX M/S2            225/60R17      33.7%    +3.7%     $275.00    $280.00      1
+Defender LTX M/S2            225/50R17      33.4%    +3.4%     $294.00    $299.00      1
+
+================================================================================
+TOP 20 BIGGEST DROPS (by % below 30% markup)
+================================================================================
+Model                        Size           Markup%   Change    Rec$       Local Avg    Src
+-------------------------------------------------------------------------------------------
+Defender LTX M/S2            205/50R17      20.0%    -10.0%    $272.16    $270.00      1
+Defender LTX M/S2            215/60R17      20.0%    -10.0%    $258.55    $258.00      1
+Defender LTX M/S2            215/65R17      20.0%    -10.0%    $264.38    $265.00      1
+Defender LTX M/S2            225/55R18      20.0%    -10.0%    $294.38    $288.00      1
+Defender LTX M/S2            225/55R19      20.0%    -10.0%    $342.14    $320.00      1
+Defender LTX M/S2            225/60R18      20.0%    -10.0%    $267.97    $270.00      1
+Defender LTX M/S2            235/50R17      20.0%    -10.0%    $337.28    $319.00      1
+Defender LTX M/S2            235/50R19      20.0%    -10.0%    $362.56    $336.00      1
+Defender LTX M/S2            235/55R17      20.0%    -10.0%    $311.00    $295.00      1
+Defender LTX M/S2            235/55R18      20.0%    -10.0%    $343.28    $333.00      1
+Defender LTX M/S2            245/50R20      20.0%    -10.0%    $394.13    $365.00      1
+Defender LTX M/S2            255/55R18      20.0%    -10.0%    $382.97    $370.05      1
+Defender LTX M/S2            265/70R17      20.0%    -10.0%    $381.02    $359.49      2
+Defender LTX M/S2            265/70R18      20.0%    -10.0%    $406.69    $397.49      2
+Pilot Sport AS 4             205/55R16      20.0%    -10.0%    $273.13    $267.03      2
+Pilot Sport AS 4             215/55R17      20.0%    -10.0%    $257.58    $262.30      4
+Pilot Sport AS 4             225/50R16      20.0%    -10.0%    $312.98    $286.06      2
+Pilot Sport AS 4             235/45R18      20.0%    -10.0%    $299.38    $303.17      4
+Pilot Sport AS 4             235/55R18      20.0%    -10.0%    $314.93    $317.55      4
+Pilot Sport AS 4             245/35R19      20.0%    -10.0%    $430.84    $400.99      3
+
+================================================================================
+LOCAL SHOP SOURCE COUNTS
+================================================================================
+  Michelin (aggregated)          186 matched sizes
+  Point S                        175 matched sizes
+  ZRacing Mississauga            53 matched sizes
+  Noble Tire Brampton            6 matched sizes
+  Canadian Tire                  5 matched sizes
+
+================================================================================
+MATCHED TIRES DETAIL (raises and drops)
+================================================================================
+
+  Michelin Defender LTX M/S2 -- 205/50R17
+    Wholesale: $226.80  |  30% price: $294.84  |  Local avg: $270.00
+    Current: $294.84 (30.0%)  -->  Recommended: $272.16 (20.0%)
+    Direction: DROP  |  Change from 30%: -10.0%
+      - ZRacing Mississauga: $270.00
+
+  Michelin Defender LTX M/S2 -- 205/55R16
+    Wholesale: $182.25  |  30% price: $236.93  |  Local avg: $251.00
+    Current: $236.93 (30.0%)  -->  Recommended: $246.00 (35.0%)
+    Direction: RAISE  |  Change from 30%: +5.0%
+      - ZRacing Mississauga: $251.00
+
+  Michelin Defender LTX M/S2 -- 205/65R16
+    Wholesale: $197.64  |  30% price: $256.93  |  Local avg: $243.00
+    Current: $256.93 (30.0%)  -->  Recommended: $238.00 (20.4%)
+    Direction: DROP  |  Change from 30%: -9.6%
+      - ZRacing Mississauga: $243.00
+
+  Michelin Defender LTX M/S2 -- 215/45R17
+    Wholesale: $221.13  |  30% price: $287.47  |  Local avg: $272.00
+    Current: $287.47 (30.0%)  -->  Recommended: $267.00 (20.7%)
+    Direction: DROP  |  Change from 30%: -9.3%
+      - ZRacing Mississauga: $272.00
+
+  Michelin Defender LTX M/S2 -- 215/55R18
+    Wholesale: $219.51  |  30% price: $285.36  |  Local avg: $272.00
+    Current: $285.36 (30.0%)  -->  Recommended: $267.00 (21.6%)
+    Direction: DROP  |  Change from 30%: -8.4%
+      - ZRacing Mississauga: $272.00
+
+  Michelin Defender LTX M/S2 -- 215/60R16
+    Wholesale: $200.88  |  30% price: $261.14  |  Local avg: $251.00
+    Current: $261.14 (30.0%)  -->  Recommended: $246.00 (22.5%)
+    Direction: DROP  |  Change from 30%: -7.5%
+      - ZRacing Mississauga: $251.00
+
+  Michelin Defender LTX M/S2 -- 215/60R17
+    Wholesale: $215.46  |  30% price: $280.10  |  Local avg: $258.00
+    Current: $280.10 (30.0%)  -->  Recommended: $258.55 (20.0%)
+    Direction: DROP  |  Change from 30%: -10.0%
+      - ZRacing Mississauga: $258.00
+
+  Michelin Defender LTX M/S2 -- 215/65R17
+    Wholesale: $220.32  |  30% price: $286.42  |  Local avg: $265.00
+    Current: $286.42 (30.0%)  -->  Recommended: $264.38 (20.0%)
+    Direction: DROP  |  Change from 30%: -10.0%
+      - ZRacing Mississauga: $265.00
+
+  Michelin Defender LTX M/S2 -- 225/50R17
+    Wholesale: $220.32  |  30% price: $286.42  |  Local avg: $299.00
+    Current: $286.42 (30.0%)  -->  Recommended: $294.00 (33.4%)
+    Direction: RAISE  |  Change from 30%: +3.4%
+      - ZRacing Mississauga: $299.00
+
+  Michelin Defender LTX M/S2 -- 225/55R17
+    Wholesale: $231.66  |  30% price: $301.16  |  Local avg: $290.00
+    Current: $301.16 (30.0%)  -->  Recommended: $285.00 (23.0%)
+    Direction: DROP  |  Change from 30%: -7.0%
+      - ZRacing Mississauga: $290.00
+
+  Michelin Defender LTX M/S2 -- 225/55R18
+    Wholesale: $245.32  |  30% price: $318.92  |  Local avg: $288.00
+    Current: $318.92 (30.0%)  -->  Recommended: $294.38 (20.0%)
+    Direction: DROP  |  Change from 30%: -10.0%
+      - ZRacing Mississauga: $288.00
+
+  Michelin Defender LTX M/S2 -- 225/55R19
+    Wholesale: $285.12  |  30% price: $370.66  |  Local avg: $320.00
+    Current: $370.66 (30.0%)  -->  Recommended: $342.14 (20.0%)
+    Direction: DROP  |  Change from 30%: -10.0%
+      - ZRacing Mississauga: $320.00
+
+  Michelin Defender LTX M/S2 -- 225/60R17
+    Wholesale: $205.74  |  30% price: $267.46  |  Local avg: $280.00
+    Current: $267.46 (30.0%)  -->  Recommended: $275.00 (33.7%)
+    Direction: RAISE  |  Change from 30%: +3.7%
+      - ZRacing Mississauga: $280.00
+
+  Michelin Defender LTX M/S2 -- 225/60R18
+    Wholesale: $223.31  |  30% price: $290.30  |  Local avg: $270.00
+    Current: $290.30 (30.0%)  -->  Recommended: $267.97 (20.0%)
+    Direction: DROP  |  Change from 30%: -10.0%
+      - ZRacing Mississauga: $270.00
+
+  Michelin Defender LTX M/S2 -- 235/45R18
+    Wholesale: $264.87  |  30% price: $344.33  |  Local avg: $329.00
+    Current: $344.33 (30.0%)  -->  Recommended: $324.00 (22.3%)
+    Direction: DROP  |  Change from 30%: -7.7%
+      - ZRacing Mississauga: $329.00
+
+  Michelin Defender LTX M/S2 -- 235/50R17
+    Wholesale: $281.07  |  30% price: $365.39  |  Local avg: $319.00
+    Current: $365.39 (30.0%)  -->  Recommended: $337.28 (20.0%)
+    Direction: DROP  |  Change from 30%: -10.0%
+      - ZRacing Mississauga: $319.00
+
+  Michelin Defender LTX M/S2 -- 235/50R18
+    Wholesale: $268.11  |  30% price: $348.54  |  Local avg: $332.00
+    Current: $348.54 (30.0%)  -->  Recommended: $327.00 (22.0%)
+    Direction: DROP  |  Change from 30%: -8.0%
+      - ZRacing Mississauga: $332.00
+
+  Michelin Defender LTX M/S2 -- 235/50R19
+    Wholesale: $302.13  |  30% price: $392.77  |  Local avg: $336.00
+    Current: $392.77 (30.0%)  -->  Recommended: $362.56 (20.0%)
+    Direction: DROP  |  Change from 30%: -10.0%
+      - ZRacing Mississauga: $336.00
+
+  Michelin Defender LTX M/S2 -- 235/55R17
+    Wholesale: $259.17  |  30% price: $336.92  |  Local avg: $295.00
+    Current: $336.92 (30.0%)  -->  Recommended: $311.00 (20.0%)
+    Direction: DROP  |  Change from 30%: -10.0%
+      - ZRacing Mississauga: $295.00
+
+  Michelin Defender LTX M/S2 -- 235/55R18
+    Wholesale: $286.07  |  30% price: $371.89  |  Local avg: $333.00
+    Current: $371.89 (30.0%)  -->  Recommended: $343.28 (20.0%)
+    Direction: DROP  |  Change from 30%: -10.0%
+      - ZRacing Mississauga: $333.00
+
+  Michelin Defender LTX M/S2 -- 235/60R17
+    Wholesale: $235.71  |  30% price: $306.42  |  Local avg: $289.00
+    Current: $306.42 (30.0%)  -->  Recommended: $284.00 (20.5%)
+    Direction: DROP  |  Change from 30%: -9.5%
+      - ZRacing Mississauga: $289.00
+
+  Michelin Defender LTX M/S2 -- 235/70R16
+    Wholesale: $172.52  |  30% price: $224.28  |  Local avg: $309.20
+    Current: $224.28 (30.0%)  -->  Recommended: $276.03 (60.0%)
+    Direction: RAISE  |  Change from 30%: +30.0%
+      - Michelin (aggregated): $309.20
+
+  Michelin Defender LTX M/S2 -- 245/50R20
+    Wholesale: $328.44  |  30% price: $426.97  |  Local avg: $365.00
+    Current: $426.97 (30.0%)  -->  Recommended: $394.13 (20.0%)
+    Direction: DROP  |  Change from 30%: -10.0%
+      - ZRacing Mississauga: $365.00
+
+  Michelin Defender LTX M/S2 -- 245/60R20
+    Wholesale: $311.04  |  30% price: $404.35  |  Local avg: $383.99
+    Current: $404.35 (30.0%)  -->  Recommended: $378.99 (21.9%)
+    Direction: DROP  |  Change from 30%: -8.1%
+      - Point S: $383.99
+      - Michelin (aggregated): $383.99
+
+  Michelin Defender LTX M/S2 -- 245/70R17
+    Wholesale: $275.40  |  30% price: $358.02  |  Local avg: $339.99
+    Current: $358.02 (30.0%)  -->  Recommended: $334.99 (21.6%)
+    Direction: DROP  |  Change from 30%: -8.4%
+      - Point S: $339.99
+      - Michelin (aggregated): $339.99
+
+  Michelin Defender LTX M/S2 -- 245/75R18
+    Wholesale: $319.14  |  30% price: $414.88  |  Local avg: $393.99
+    Current: $414.88 (30.0%)  -->  Recommended: $388.99 (21.9%)
+    Direction: DROP  |  Change from 30%: -8.1%
+      - Point S: $393.99
+      - Michelin (aggregated): $393.99
+
+  Michelin Defender LTX M/S2 -- 255/55R18
+    Wholesale: $319.14  |  30% price: $414.88  |  Local avg: $370.05
+    Current: $414.88 (30.0%)  -->  Recommended: $382.97 (20.0%)
+    Direction: DROP  |  Change from 30%: -10.0%
+      - Michelin (aggregated): $370.05
+
+  Michelin Defender LTX M/S2 -- 255/60R20
+    Wholesale: $340.52  |  30% price: $442.68  |  Local avg: $426.32
+    Current: $442.68 (30.0%)  -->  Recommended: $421.32 (23.7%)
+    Direction: DROP  |  Change from 30%: -6.3%
+      - Point S: $422.99
+      - Michelin (aggregated): $422.99
+      - Canadian Tire: $432.99
+
+  Michelin Defender LTX M/S2 -- 255/65R17
+    Wholesale: $298.89  |  30% price: $388.56  |  Local avg: $368.99
+    Current: $388.56 (30.0%)  -->  Recommended: $363.99 (21.8%)
+    Direction: DROP  |  Change from 30%: -8.2%
+      - Point S: $368.99
+      - Michelin (aggregated): $368.99
+
+  Michelin Defender LTX M/S2 -- 255/65R18
+    Wholesale: $272.16  |  30% price: $353.81  |  Local avg: $413.84
+    Current: $353.81 (30.0%)  -->  Recommended: $408.84 (50.2%)
+    Direction: RAISE  |  Change from 30%: +20.2%
+      - Michelin (aggregated): $413.84
+
+  Michelin Defender LTX M/S2 -- 255/65R19
+    Wholesale: $418.60  |  30% price: $544.18  |  Local avg: $519.99
+    Current: $544.18 (30.0%)  -->  Recommended: $514.99 (23.0%)
+    Direction: DROP  |  Change from 30%: -7.0%
+      - Point S: $519.99
+      - Michelin (aggregated): $519.99
+
+  Michelin Defender LTX M/S2 -- 255/70R16
+    Wholesale: $283.50  |  30% price: $368.55  |  Local avg: $349.99
+    Current: $368.55 (30.0%)  -->  Recommended: $344.99 (21.7%)
+    Direction: DROP  |  Change from 30%: -8.3%
+      - Point S: $349.99
+      - Michelin (aggregated): $349.99
+
+  Michelin Defender LTX M/S2 -- 255/70R17
+    Wholesale: $301.32  |  30% price: $391.72  |  Local avg: $371.99
+    Current: $391.72 (30.0%)  -->  Recommended: $366.99 (21.8%)
+    Direction: DROP  |  Change from 30%: -8.2%
+      - Point S: $371.99
+      - Michelin (aggregated): $371.99
+
+  Michelin Defender LTX M/S2 -- 255/70R18
+    Wholesale: $309.42  |  30% price: $402.25  |  Local avg: $381.99
+    Current: $402.25 (30.0%)  -->  Recommended: $376.99 (21.8%)
+    Direction: DROP  |  Change from 30%: -8.2%
+      - Point S: $381.99
+      - Michelin (aggregated): $381.99
+
+  Michelin Defender LTX M/S2 -- 255/75R17
+    Wholesale: $333.27  |  30% price: $433.25  |  Local avg: $422.99
+    Current: $433.25 (30.0%)  -->  Recommended: $417.99 (25.4%)
+    Direction: DROP  |  Change from 30%: -4.6%
+      - Point S: $413.99
+      - Michelin (aggregated): $413.99
+      - Canadian Tire: $440.99
+
+  Michelin Defender LTX M/S2 -- 265/50R20
+    Wholesale: $321.57  |  30% price: $418.04  |  Local avg: $398.32
+    Current: $418.04 (30.0%)  -->  Recommended: $393.32 (22.3%)
+    Direction: DROP  |  Change from 30%: -7.7%
+      - Point S: $396.99
+      - Michelin (aggregated): $396.99
+      - Canadian Tire: $400.99
+
+  Michelin Defender LTX M/S2 -- 265/50R22
+    Wholesale: $440.34  |  30% price: $572.44  |  Local avg: $546.99
+    Current: $572.44 (30.0%)  -->  Recommended: $541.99 (23.1%)
+    Direction: DROP  |  Change from 30%: -6.9%
+      - Point S: $546.99
+      - Michelin (aggregated): $546.99
+
+  Michelin Defender LTX M/S2 -- 265/55R20
+    Wholesale: $362.25  |  30% price: $470.93  |  Local avg: $449.99
+    Current: $470.93 (30.0%)  -->  Recommended: $444.99 (22.8%)
+    Direction: DROP  |  Change from 30%: -7.2%
+      - Point S: $449.99
+      - Michelin (aggregated): $449.99
+
+  Michelin Defender LTX M/S2 -- 265/60R18
+    Wholesale: $294.84  |  30% price: $383.29  |  Local avg: $363.99
+    Current: $383.29 (30.0%)  -->  Recommended: $358.99 (21.8%)
+    Direction: DROP  |  Change from 30%: -8.2%
+      - Point S: $363.99
+      - Michelin (aggregated): $363.99
+
+  Michelin Defender LTX M/S2 -- 265/65R17
+    Wholesale: $281.88  |  30% price: $366.44  |  Local avg: $347.99
+    Current: $366.44 (30.0%)  -->  Recommended: $342.99 (21.7%)
+    Direction: DROP  |  Change from 30%: -8.3%
+      - Point S: $347.99
+      - Michelin (aggregated): $347.99
+
+  Michelin Defender LTX M/S2 -- 265/65R18
+    Wholesale: $310.23  |  30% price: $403.30  |  Local avg: $379.49
+    Current: $403.30 (30.0%)  -->  Recommended: $374.49 (20.7%)
+    Direction: DROP  |  Change from 30%: -9.3%
+      - Michelin (aggregated): $375.99
+      - Point S: $382.99
+
+  Michelin Defender LTX M/S2 -- 265/70R16
+    Wholesale: $291.60  |  30% price: $379.08  |  Local avg: $367.99
+    Current: $379.08 (30.0%)  -->  Recommended: $362.99 (24.5%)
+    Direction: DROP  |  Change from 30%: -5.5%
+      - Point S: $359.99
+      - Michelin (aggregated): $359.99
+      - Canadian Tire: $383.99
+
+  Michelin Defender LTX M/S2 -- 265/70R17
+    Wholesale: $317.52  |  30% price: $412.78  |  Local avg: $359.49
+    Current: $412.78 (30.0%)  -->  Recommended: $381.02 (20.0%)
+    Direction: DROP  |  Change from 30%: -10.0%
+      - Point S: $358.99
+      - Michelin (aggregated): $359.99
+
+  Michelin Defender LTX M/S2 -- 265/70R18
+    Wholesale: $338.91  |  30% price: $440.58  |  Local avg: $397.49
+    Current: $440.58 (30.0%)  -->  Recommended: $406.69 (20.0%)
+    Direction: DROP  |  Change from 30%: -10.0%
+      - Point S: $373.99
+      - Michelin (aggregated): $420.99
+
+  Michelin Defender LTX M/S2 -- 265/75R16
+    Wholesale: $319.14  |  30% price: $414.88  |  Local avg: $389.78
+    Current: $414.88 (30.0%)  -->  Recommended: $384.78 (20.6%)
+    Direction: DROP  |  Change from 30%: -9.4%
+      - Michelin (aggregated): $389.78
+
+  Michelin Defender LTX M/S2 -- 275/45R22
+    Wholesale: $396.87  |  30% price: $515.93  |  Local avg: $492.99
+    Current: $515.93 (30.0%)  -->  Recommended: $487.99 (23.0%)
+    Direction: DROP  |  Change from 30%: -7.0%
+      - Point S: $492.99
+      - Michelin (aggregated): $492.99
+
+  Michelin Defender LTX M/S2 -- 275/50R22
+    Wholesale: $401.70  |  30% price: $522.21  |  Local avg: $508.99
+    Current: $522.21 (30.0%)  -->  Recommended: $503.99 (25.5%)
+    Direction: DROP  |  Change from 30%: -4.5%
+      - Point S: $498.99
+      - Michelin (aggregated): $518.99
+
+  Michelin Defender LTX M/S2 -- 275/50R24
+    Wholesale: $638.39  |  30% price: $829.91  |  Local avg: $802.99
+    Current: $829.91 (30.0%)  -->  Recommended: $797.99 (25.0%)
+    Direction: DROP  |  Change from 30%: -5.0%
+      - Point S: $802.99
+      - Michelin (aggregated): $802.99
+
+  Michelin Defender LTX M/S2 -- 275/55R20
+    Wholesale: $330.86  |  30% price: $430.12  |  Local avg: $410.99
+    Current: $430.12 (30.0%)  -->  Recommended: $405.99 (22.7%)
+    Direction: DROP  |  Change from 30%: -7.3%
+      - Point S: $410.99
+      - Michelin (aggregated): $410.99
+
+  Michelin Defender LTX M/S2 -- 275/55R21
+    Wholesale: $518.40  |  30% price: $673.92  |  Local avg: $647.99
+    Current: $673.92 (30.0%)  -->  Recommended: $642.99 (24.0%)
+    Direction: DROP  |  Change from 30%: -6.0%
+      - Point S: $647.99
+      - Michelin (aggregated): $647.99
+
+  Michelin Defender LTX M/S2 -- 275/60R20
+    Wholesale: $339.71  |  30% price: $441.62  |  Local avg: $421.99
+    Current: $441.62 (30.0%)  -->  Recommended: $416.99 (22.8%)
+    Direction: DROP  |  Change from 30%: -7.2%
+      - Point S: $421.99
+      - Michelin (aggregated): $421.99
+
+  Michelin Defender LTX M/S2 -- 275/60R22
+    Wholesale: $547.20  |  30% price: $711.36  |  Local avg: $683.99
+    Current: $711.36 (30.0%)  -->  Recommended: $678.99 (24.1%)
+    Direction: DROP  |  Change from 30%: -5.9%
+      - Point S: $683.99
+      - Michelin (aggregated): $683.99
+
+  Michelin Defender LTX M/S2 -- 275/65R18
+    Wholesale: $289.98  |  30% price: $376.97  |  Local avg: $357.99
+    Current: $376.97 (30.0%)  -->  Recommended: $352.99 (21.7%)
+    Direction: DROP  |  Change from 30%: -8.3%
+      - Point S: $357.99
+      - Michelin (aggregated): $357.99
+
+  Michelin Defender LTX M/S2 -- 275/65R20
+    Wholesale: $383.99  |  30% price: $499.19  |  Local avg: $476.99
+    Current: $499.19 (30.0%)  -->  Recommended: $471.99 (22.9%)
+    Direction: DROP  |  Change from 30%: -7.1%
+      - Point S: $476.99
+      - Michelin (aggregated): $476.99
+
+  Michelin Defender LTX M/S2 -- 275/70R18
+    Wholesale: $335.69  |  30% price: $436.40  |  Local avg: $416.99
+    Current: $436.40 (30.0%)  -->  Recommended: $411.99 (22.7%)
+    Direction: DROP  |  Change from 30%: -7.3%
+      - Point S: $416.99
+      - Michelin (aggregated): $416.99
+
+  Michelin Defender LTX M/S2 -- 285/40R24
+    Wholesale: $434.70  |  30% price: $565.11  |  Local avg: $539.99
+    Current: $565.11 (30.0%)  -->  Recommended: $534.99 (23.1%)
+    Direction: DROP  |  Change from 30%: -6.9%
+      - Point S: $539.99
+      - Michelin (aggregated): $539.99
+
+  Michelin Defender LTX M/S2 -- 285/45R22
+    Wholesale: $387.21  |  30% price: $503.37  |  Local avg: $480.99
+    Current: $503.37 (30.0%)  -->  Recommended: $475.99 (22.9%)
+    Direction: DROP  |  Change from 30%: -7.1%
+      - Point S: $480.99
+      - Michelin (aggregated): $480.99
+
+  Michelin Defender LTX M/S2 -- 285/55R20
+    Wholesale: $379.96  |  30% price: $493.95  |  Local avg: $471.99
+    Current: $493.95 (30.0%)  -->  Recommended: $466.99 (22.9%)
+    Direction: DROP  |  Change from 30%: -7.1%
+      - Point S: $471.99
+      - Michelin (aggregated): $471.99
+
+  Michelin Defender LTX M/S2 -- 285/60R18
+    Wholesale: $318.33  |  30% price: $413.83  |  Local avg: $392.99
+    Current: $413.83 (30.0%)  -->  Recommended: $387.99 (21.9%)
+    Direction: DROP  |  Change from 30%: -8.1%
+      - Point S: $392.99
+      - Michelin (aggregated): $392.99
+
+  Michelin Defender LTX M/S2 -- 285/65R18
+    Wholesale: $441.14  |  30% price: $573.48  |  Local avg: $551.99
+    Current: $573.48 (30.0%)  -->  Recommended: $546.99 (24.0%)
+    Direction: DROP  |  Change from 30%: -6.0%
+      - Point S: $547.99
+      - Michelin (aggregated): $555.99
+
+  Michelin Defender LTX M/S2 -- 285/70R17
+    Wholesale: $386.40  |  30% price: $502.32  |  Local avg: $479.99
+    Current: $502.32 (30.0%)  -->  Recommended: $474.99 (22.9%)
+    Direction: DROP  |  Change from 30%: -7.1%
+      - Point S: $479.99
+      - Michelin (aggregated): $479.99
+
+  Michelin Defender LTX M/S2 -- 295/50R22
+    Wholesale: $463.68  |  30% price: $602.78  |  Local avg: $575.99
+    Current: $602.78 (30.0%)  -->  Recommended: $570.99 (23.1%)
+    Direction: DROP  |  Change from 30%: -6.9%
+      - Point S: $575.99
+      - Michelin (aggregated): $575.99
+
+  Michelin Defender LTX M/S2 -- 305/50R20
+    Wholesale: $413.77  |  30% price: $537.90  |  Local avg: $513.99
+    Current: $537.90 (30.0%)  -->  Recommended: $508.99 (23.0%)
+    Direction: DROP  |  Change from 30%: -7.0%
+      - Point S: $513.99
+      - Michelin (aggregated): $513.99
+
+  Michelin Pilot Sport AS 4 -- 205/45R17
+    Wholesale: $200.07  |  30% price: $260.09  |  Local avg: $249.99
+    Current: $260.09 (30.0%)  -->  Recommended: $244.99 (22.4%)
+    Direction: DROP  |  Change from 30%: -7.6%
+      - Point S: $249.99
+      - Michelin (aggregated): $249.99
+
+  Michelin Pilot Sport AS 4 -- 205/55R16
+    Wholesale: $227.61  |  30% price: $295.89  |  Local avg: $267.03
+    Current: $295.89 (30.0%)  -->  Recommended: $273.13 (20.0%)
+    Direction: DROP  |  Change from 30%: -10.0%
+      - Michelin (aggregated): $247.07
+      - Point S: $286.99
+
+  Michelin Pilot Sport AS 4 -- 215/55R17
+    Wholesale: $214.65  |  30% price: $279.05  |  Local avg: $262.30
+    Current: $279.05 (30.0%)  -->  Recommended: $257.58 (20.0%)
+    Direction: DROP  |  Change from 30%: -10.0%
+      - Noble Tire Brampton: $256.10
+      - Michelin (aggregated): $256.10
+      - ZRacing Mississauga: $268.00
+      - Point S: $268.99
+
+  Michelin Pilot Sport AS 4 -- 225/45R17
+    Wholesale: $219.51  |  30% price: $285.36  |  Local avg: $274.99
+    Current: $285.36 (30.0%)  -->  Recommended: $269.99 (23.0%)
+    Direction: DROP  |  Change from 30%: -7.0%
+      - Point S: $273.99
+      - Michelin (aggregated): $273.99
+      - ZRacing Mississauga: $277.00
+
+  Michelin Pilot Sport AS 4 -- 225/45R18
+    Wholesale: $229.23  |  30% price: $298.00  |  Local avg: $281.55
+    Current: $298.00 (30.0%)  -->  Recommended: $276.55 (20.6%)
+    Direction: DROP  |  Change from 30%: -9.4%
+      - Noble Tire Brampton: $271.60
+      - Michelin (aggregated): $271.60
+      - Point S: $290.99
+      - ZRacing Mississauga: $292.00
+
+  Michelin Pilot Sport AS 4 -- 225/45R19
+    Wholesale: $256.77  |  30% price: $333.80  |  Local avg: $319.99
+    Current: $333.80 (30.0%)  -->  Recommended: $314.99 (22.7%)
+    Direction: DROP  |  Change from 30%: -7.3%
+      - ZRacing Mississauga: $308.00
+      - Point S: $325.99
+      - Michelin (aggregated): $325.99
+
+  Michelin Pilot Sport AS 4 -- 225/50R16
+    Wholesale: $260.82  |  30% price: $339.07  |  Local avg: $286.06
+    Current: $339.07 (30.0%)  -->  Recommended: $312.98 (20.0%)
+    Direction: DROP  |  Change from 30%: -10.0%
+      - Michelin (aggregated): $245.12
+      - Point S: $326.99
+
+  Michelin Pilot Sport AS 4 -- 225/50R18
+    Wholesale: $226.80  |  30% price: $294.84  |  Local avg: $284.66
+    Current: $294.84 (30.0%)  -->  Recommended: $279.66 (23.3%)
+    Direction: DROP  |  Change from 30%: -6.7%
+      - ZRacing Mississauga: $280.00
+      - Point S: $286.99
+      - Michelin (aggregated): $286.99
+
+  Michelin Pilot Sport AS 4 -- 225/55R17
+    Wholesale: $222.75  |  30% price: $289.57  |  Local avg: $278.99
+    Current: $289.58 (30.0%)  -->  Recommended: $273.99 (23.0%)
+    Direction: DROP  |  Change from 30%: -7.0%
+      - Point S: $278.99
+      - Michelin (aggregated): $278.99
+
+  Michelin Pilot Sport AS 4 -- 225/55R19
+    Wholesale: $293.22  |  30% price: $381.19  |  Local avg: $370.99
+    Current: $381.19 (30.0%)  -->  Recommended: $365.99 (24.8%)
+    Direction: DROP  |  Change from 30%: -5.2%
+      - Point S: $370.99
+      - Michelin (aggregated): $370.99
+
+  Michelin Pilot Sport AS 4 -- 235/45R17
+    Wholesale: $221.13  |  30% price: $287.47  |  Local avg: $275.99
+    Current: $287.47 (30.0%)  -->  Recommended: $270.99 (22.6%)
+    Direction: DROP  |  Change from 30%: -7.4%
+      - Point S: $275.99
+      - Michelin (aggregated): $275.99
+
+  Michelin Pilot Sport AS 4 -- 235/45R18
+    Wholesale: $249.48  |  30% price: $324.32  |  Local avg: $303.17
+    Current: $324.32 (30.0%)  -->  Recommended: $299.38 (20.0%)
+    Direction: DROP  |  Change from 30%: -10.0%
+      - ZRacing Mississauga: $297.00
+      - Noble Tire Brampton: $300.35
+      - Michelin (aggregated): $300.35
+      - Point S: $314.99
+
+  Michelin Pilot Sport AS 4 -- 235/45R20
+    Wholesale: $462.88  |  30% price: $601.74  |  Local avg: $589.99
+    Current: $601.74 (30.0%)  -->  Recommended: $584.99 (26.4%)
+    Direction: DROP  |  Change from 30%: -3.6%
+      - Point S: $589.99
+      - Michelin (aggregated): $589.99
+
+  Michelin Pilot Sport AS 4 -- 235/50R18
+    Wholesale: $243.00  |  30% price: $315.90  |  Local avg: $304.99
+    Current: $315.90 (30.0%)  -->  Recommended: $299.99 (23.4%)
+    Direction: DROP  |  Change from 30%: -6.6%
+      - ZRacing Mississauga: $299.00
+      - Point S: $307.99
+      - Michelin (aggregated): $307.99
+
+  Michelin Pilot Sport AS 4 -- 235/55R17
+    Wholesale: $238.95  |  30% price: $310.63  |  Local avg: $299.99
+    Current: $310.64 (30.0%)  -->  Recommended: $294.99 (23.4%)
+    Direction: DROP  |  Change from 30%: -6.6%
+      - Point S: $299.99
+      - Michelin (aggregated): $299.99
+
+  Michelin Pilot Sport AS 4 -- 235/55R18
+    Wholesale: $262.44  |  30% price: $341.17  |  Local avg: $317.55
+    Current: $341.17 (30.0%)  -->  Recommended: $314.93 (20.0%)
+    Direction: DROP  |  Change from 30%: -10.0%
+      - ZRacing Mississauga: $310.00
+      - Noble Tire Brampton: $313.60
+      - Michelin (aggregated): $313.60
+      - Point S: $332.99
+
+  Michelin Pilot Sport AS 4 -- 235/55R20
+    Wholesale: $327.64  |  30% price: $425.93  |  Local avg: $406.99
+    Current: $425.93 (30.0%)  -->  Recommended: $401.99 (22.7%)
+    Direction: DROP  |  Change from 30%: -7.3%
+      - Point S: $406.99
+      - Michelin (aggregated): $406.99
+
+  Michelin Pilot Sport AS 4 -- 245/35R18
+    Wholesale: $260.01  |  30% price: $338.01  |  Local avg: $327.99
+    Current: $338.01 (30.0%)  -->  Recommended: $322.99 (24.2%)
+    Direction: DROP  |  Change from 30%: -5.8%
+      - Point S: $327.99
+      - Michelin (aggregated): $327.99
+
+  Michelin Pilot Sport AS 4 -- 245/35R19
+    Wholesale: $359.03  |  30% price: $466.74  |  Local avg: $400.99
+    Current: $466.74 (30.0%)  -->  Recommended: $430.84 (20.0%)
+    Direction: DROP  |  Change from 30%: -10.0%
+      - ZRacing Mississauga: $387.00
+      - Point S: $407.99
+      - Michelin (aggregated): $407.99
+
+  Michelin Pilot Sport AS 4 -- 245/35R21
+    Wholesale: $409.75  |  30% price: $532.68  |  Local avg: $521.99
+    Current: $532.68 (30.0%)  -->  Recommended: $516.99 (26.2%)
+    Direction: DROP  |  Change from 30%: -3.8%
+      - Point S: $521.99
+      - Michelin (aggregated): $521.99
+
+  Michelin Pilot Sport AS 4 -- 245/40R17
+    Wholesale: $238.95  |  30% price: $310.63  |  Local avg: $299.99
+    Current: $310.64 (30.0%)  -->  Recommended: $294.99 (23.4%)
+    Direction: DROP  |  Change from 30%: -6.6%
+      - Point S: $299.99
+      - Michelin (aggregated): $299.99
+
+  Michelin Pilot Sport AS 4 -- 245/40R18
+    Wholesale: $248.67  |  30% price: $323.27  |  Local avg: $311.50
+    Current: $323.27 (30.0%)  -->  Recommended: $306.50 (23.3%)
+    Direction: DROP  |  Change from 30%: -6.7%
+      - ZRacing Mississauga: $308.00
+      - Michelin (aggregated): $314.99
+
+  Michelin Pilot Sport AS 4 -- 245/40R19
+    Wholesale: $281.88  |  30% price: $366.44  |  Local avg: $349.66
+    Current: $366.44 (30.0%)  -->  Recommended: $344.66 (22.3%)
+    Direction: DROP  |  Change from 30%: -7.7%
+      - ZRacing Mississauga: $335.00
+      - Point S: $356.99
+      - Michelin (aggregated): $356.99
+
+  Michelin Pilot Sport AS 4 -- 245/45R17
+    Wholesale: $224.37  |  30% price: $291.68  |  Local avg: $279.99
+    Current: $291.68 (30.0%)  -->  Recommended: $274.99 (22.6%)
+    Direction: DROP  |  Change from 30%: -7.4%
+      - Point S: $279.99
+      - Michelin (aggregated): $279.99
+
+  Michelin Pilot Sport AS 4 -- 245/45R18
+    Wholesale: $238.14  |  30% price: $309.58  |  Local avg: $295.27
+    Current: $309.58 (30.0%)  -->  Recommended: $290.27 (21.9%)
+    Direction: DROP  |  Change from 30%: -8.1%
+      - Noble Tire Brampton: $285.05
+      - Michelin (aggregated): $285.05
+      - Point S: $301.99
+      - ZRacing Mississauga: $309.00
+
+  Michelin Pilot Sport AS 4 -- 245/45R20
+    Wholesale: $321.57  |  30% price: $418.04  |  Local avg: $406.99
+    Current: $418.04 (30.0%)  -->  Recommended: $401.99 (25.0%)
+    Direction: DROP  |  Change from 30%: -5.0%
+      - Point S: $406.99
+      - Michelin (aggregated): $406.99
+
+  Michelin Pilot Sport AS 4 -- 245/50R17
+    Wholesale: $303.75  |  30% price: $394.88  |  Local avg: $379.99
+    Current: $394.88 (30.0%)  -->  Recommended: $374.99 (23.4%)
+    Direction: DROP  |  Change from 30%: -6.6%
+      - Point S: $379.99
+      - Michelin (aggregated): $379.99
+
+  Michelin Pilot Sport AS 4 -- 245/50R18
+    Wholesale: $264.87  |  30% price: $344.33  |  Local avg: $333.99
+    Current: $344.33 (30.0%)  -->  Recommended: $328.99 (24.2%)
+    Direction: DROP  |  Change from 30%: -5.8%
+      - Point S: $333.99
+      - Michelin (aggregated): $333.99
+
+  Michelin Pilot Sport AS 4 -- 255/30R19
+    Wholesale: $381.57  |  30% price: $496.04  |  Local avg: $484.99
+    Current: $496.04 (30.0%)  -->  Recommended: $479.99 (25.8%)
+    Direction: DROP  |  Change from 30%: -4.2%
+      - Point S: $484.99
+      - Michelin (aggregated): $484.99
+
+  Michelin Pilot Sport AS 4 -- 255/35R18
+    Wholesale: $269.73  |  30% price: $350.65  |  Local avg: $324.92
+    Current: $350.65 (30.0%)  -->  Recommended: $323.68 (20.0%)
+    Direction: DROP  |  Change from 30%: -10.0%
+      - Noble Tire Brampton: $315.85
+      - Michelin (aggregated): $315.85
+      - ZRacing Mississauga: $326.00
+      - Point S: $341.99
+
+  Michelin Pilot Sport AS 4 -- 255/35R19
+    Wholesale: $283.50  |  30% price: $368.55  |  Local avg: $353.99
+    Current: $368.55 (30.0%)  -->  Recommended: $348.99 (23.1%)
+    Direction: DROP  |  Change from 30%: -6.9%
+      - ZRacing Mississauga: $342.00
+      - Point S: $359.99
+      - Michelin (aggregated): $359.99
+
+  Michelin Pilot Sport AS 4 -- 255/35R20
+    Wholesale: $307.80  |  30% price: $400.14  |  Local avg: $390.00
+    Current: $400.14 (30.0%)  -->  Recommended: $385.00 (25.1%)
+    Direction: DROP  |  Change from 30%: -4.9%
+      - ZRacing Mississauga: $390.00
+
+  Michelin Pilot Sport AS 4 -- 255/35R21
+    Wholesale: $374.33  |  30% price: $486.63  |  Local avg: $475.99
+    Current: $486.63 (30.0%)  -->  Recommended: $470.99 (25.8%)
+    Direction: DROP  |  Change from 30%: -4.2%
+      - Point S: $475.99
+      - Michelin (aggregated): $475.99
+
+  Michelin Pilot Sport AS 4 -- 255/40R19
+    Wholesale: $298.08  |  30% price: $387.50  |  Local avg: $365.66
+    Current: $387.50 (30.0%)  -->  Recommended: $360.66 (21.0%)
+    Direction: DROP  |  Change from 30%: -9.0%
+      - ZRacing Mississauga: $345.00
+      - Point S: $375.99
+      - Michelin (aggregated): $375.99
+
+  Michelin Pilot Sport AS 4 -- 255/40R21
+    Wholesale: $509.60  |  30% price: $662.48  |  Local avg: $615.33
+    Current: $662.48 (30.0%)  -->  Recommended: $611.52 (20.0%)
+    Direction: DROP  |  Change from 30%: -10.0%
+      - ZRacing Mississauga: $540.00
+      - Point S: $652.99
+      - Michelin (aggregated): $652.99
+
+  Michelin Pilot Sport AS 4 -- 255/45R17
+    Wholesale: $267.30  |  30% price: $347.49  |  Local avg: $334.99
+    Current: $347.49 (30.0%)  -->  Recommended: $329.99 (23.4%)
+    Direction: DROP  |  Change from 30%: -6.6%
+      - Point S: $334.99
+      - Michelin (aggregated): $334.99
+
+  Michelin Pilot Sport AS 4 -- 255/45R20
+    Wholesale: $319.95  |  30% price: $415.94  |  Local avg: $388.33
+    Current: $415.94 (30.0%)  -->  Recommended: $383.94 (20.0%)
+    Direction: DROP  |  Change from 30%: -10.0%
+      - ZRacing Mississauga: $355.00
+      - Point S: $404.99
+      - Michelin (aggregated): $404.99
+
+  Michelin Pilot Sport AS 4 -- 255/55R20
+    Wholesale: $338.10  |  30% price: $439.53  |  Local avg: $428.99
+    Current: $439.53 (30.0%)  -->  Recommended: $423.99 (25.4%)
+    Direction: DROP  |  Change from 30%: -4.6%
+      - Point S: $428.99
+      - Michelin (aggregated): $428.99
+
+  Michelin Pilot Sport AS 4 -- 265/30R20
+    Wholesale: $548.80  |  30% price: $713.44  |  Local avg: $688.91
+    Current: $713.44 (30.0%)  -->  Recommended: $683.91 (24.6%)
+    Direction: DROP  |  Change from 30%: -5.4%
+      - Michelin (aggregated): $674.84
+      - Point S: $702.99
+
+  Michelin Pilot Sport AS 4 -- 265/35R18
+    Wholesale: $310.23  |  30% price: $403.30  |  Local avg: $391.99
+    Current: $403.30 (30.0%)  -->  Recommended: $386.99 (24.7%)
+    Direction: DROP  |  Change from 30%: -5.3%
+      - Point S: $391.99
+      - Michelin (aggregated): $391.99
+
+  Michelin Pilot Sport AS 4 -- 265/35R21
+    Wholesale: $410.55  |  30% price: $533.72  |  Local avg: $521.99
+    Current: $533.72 (30.0%)  -->  Recommended: $516.99 (25.9%)
+    Direction: DROP  |  Change from 30%: -4.1%
+      - Point S: $521.99
+      - Michelin (aggregated): $521.99
+
+  Michelin Pilot Sport AS 4 -- 265/35R22
+    Wholesale: $370.30  |  30% price: $481.39  |  Local avg: $470.99
+    Current: $481.39 (30.0%)  -->  Recommended: $465.99 (25.8%)
+    Direction: DROP  |  Change from 30%: -4.2%
+      - Point S: $470.99
+      - Michelin (aggregated): $470.99
+
+  Michelin Pilot Sport AS 4 -- 265/40R18
+    Wholesale: $322.38  |  30% price: $419.09  |  Local avg: $407.99
+    Current: $419.09 (30.0%)  -->  Recommended: $402.99 (25.0%)
+    Direction: DROP  |  Change from 30%: -5.0%
+      - Point S: $407.99
+      - Michelin (aggregated): $407.99
+
+  Michelin Pilot Sport AS 4 -- 265/40R20
+    Wholesale: $451.61  |  30% price: $587.09  |  Local avg: $573.99
+    Current: $587.09 (30.0%)  -->  Recommended: $568.99 (26.0%)
+    Direction: DROP  |  Change from 30%: -4.0%
+      - Point S: $573.99
+      - Michelin (aggregated): $573.99
+
+  Michelin Pilot Sport AS 4 -- 265/40R21
+    Wholesale: $407.33  |  30% price: $529.53  |  Local avg: $507.66
+    Current: $529.53 (30.0%)  -->  Recommended: $502.66 (23.4%)
+    Direction: DROP  |  Change from 30%: -6.6%
+      - ZRacing Mississauga: $485.00
+      - Point S: $518.99
+      - Michelin (aggregated): $518.99
+
+  Michelin Pilot Sport AS 4 -- 265/45R20
+    Wholesale: $392.04  |  30% price: $509.65  |  Local avg: $497.99
+    Current: $509.65 (30.0%)  -->  Recommended: $492.99 (25.8%)
+    Direction: DROP  |  Change from 30%: -4.2%
+      - Point S: $497.99
+      - Michelin (aggregated): $497.99
+
+  Michelin Pilot Sport AS 4 -- 265/45R21
+    Wholesale: $562.40  |  30% price: $731.12  |  Local avg: $590.99
+    Current: $731.12 (30.0%)  -->  Recommended: $674.88 (20.0%)
+    Direction: DROP  |  Change from 30%: -10.0%
+      - Point S: $590.99
+      - Michelin (aggregated): $590.99
+
+  Michelin Pilot Sport AS 4 -- 275/30R20
+    Wholesale: $458.85  |  30% price: $596.50  |  Local avg: $477.99
+    Current: $596.51 (30.0%)  -->  Recommended: $550.62 (20.0%)
+    Direction: DROP  |  Change from 30%: -10.0%
+      - Point S: $477.99
+      - Michelin (aggregated): $477.99
+
+  Michelin Pilot Sport AS 4 -- 275/35R18
+    Wholesale: $315.90  |  30% price: $410.67  |  Local avg: $398.99
+    Current: $410.67 (30.0%)  -->  Recommended: $393.99 (24.7%)
+    Direction: DROP  |  Change from 30%: -5.3%
+      - Point S: $398.99
+      - Michelin (aggregated): $398.99
+
+  Michelin Pilot Sport AS 4 -- 275/35R21
+    Wholesale: $518.40  |  30% price: $673.92  |  Local avg: $654.49
+    Current: $673.92 (30.0%)  -->  Recommended: $649.49 (25.3%)
+    Direction: DROP  |  Change from 30%: -4.7%
+      - Point S: $644.99
+      - Michelin (aggregated): $663.99
+
+  Michelin Pilot Sport AS 4 -- 275/35R22
+    Wholesale: $643.16  |  30% price: $836.11  |  Local avg: $819.49
+    Current: $836.11 (30.0%)  -->  Recommended: $814.49 (26.6%)
+    Direction: DROP  |  Change from 30%: -3.4%
+      - Point S: $809.99
+      - Michelin (aggregated): $828.99
+
+  Michelin Pilot Sport AS 4 -- 275/40R17
+    Wholesale: $295.65  |  30% price: $384.34  |  Local avg: $370.99
+    Current: $384.35 (30.0%)  -->  Recommended: $365.99 (23.8%)
+    Direction: DROP  |  Change from 30%: -6.2%
+      - Point S: $370.99
+      - Michelin (aggregated): $370.99
+
+  Michelin Pilot Sport AS 4 -- 275/40R18
+    Wholesale: $332.47  |  30% price: $432.21  |  Local avg: $421.99
+    Current: $432.21 (30.0%)  -->  Recommended: $416.99 (25.4%)
+    Direction: DROP  |  Change from 30%: -4.6%
+      - Point S: $421.99
+      - Michelin (aggregated): $421.99
+
+  Michelin Pilot Sport AS 4 -- 275/40R21
+    Wholesale: $564.00  |  30% price: $733.20  |  Local avg: $722.99
+    Current: $733.20 (30.0%)  -->  Recommended: $717.99 (27.3%)
+    Direction: DROP  |  Change from 30%: -2.7%
+      - Point S: $722.99
+      - Michelin (aggregated): $722.99
+
+  Michelin Pilot Sport AS 4 -- 275/45R20
+    Wholesale: $520.00  |  30% price: $676.00  |  Local avg: $523.99
+    Current: $676.00 (30.0%)  -->  Recommended: $624.00 (20.0%)
+    Direction: DROP  |  Change from 30%: -10.0%
+      - Point S: $523.99
+      - Michelin (aggregated): $523.99
+
+  Michelin Pilot Sport AS 4 -- 275/45R21
+    Wholesale: $549.60  |  30% price: $714.48  |  Local avg: $689.99
+    Current: $714.48 (30.0%)  -->  Recommended: $684.99 (24.6%)
+    Direction: DROP  |  Change from 30%: -5.4%
+      - Point S: $675.99
+      - Michelin (aggregated): $703.99
+
+  Michelin Pilot Sport AS 4 -- 285/30R19
+    Wholesale: $403.31  |  30% price: $524.30  |  Local avg: $513.99
+    Current: $524.30 (30.0%)  -->  Recommended: $508.99 (26.2%)
+    Direction: DROP  |  Change from 30%: -3.8%
+      - Point S: $513.99
+      - Michelin (aggregated): $513.99
+
+  Michelin Pilot Sport AS 4 -- 285/30R20
+    Wholesale: $426.65  |  30% price: $554.64  |  Local avg: $491.99
+    Current: $554.65 (30.0%)  -->  Recommended: $511.98 (20.0%)
+    Direction: DROP  |  Change from 30%: -10.0%
+      - Point S: $491.99
+      - Michelin (aggregated): $491.99
+
+  Michelin Pilot Sport AS 4 -- 285/35R19
+    Wholesale: $398.48  |  30% price: $518.02  |  Local avg: $507.99
+    Current: $518.02 (30.0%)  -->  Recommended: $502.99 (26.2%)
+    Direction: DROP  |  Change from 30%: -3.8%
+      - Point S: $507.99
+      - Michelin (aggregated): $507.99
+
+  Michelin Pilot Sport AS 4 -- 285/35R20
+    Wholesale: $380.77  |  30% price: $495.00  |  Local avg: $484.99
+    Current: $495.00 (30.0%)  -->  Recommended: $479.99 (26.1%)
+    Direction: DROP  |  Change from 30%: -3.9%
+      - Point S: $484.99
+      - Michelin (aggregated): $484.99
+
+  Michelin Pilot Sport AS 4 -- 285/40R21
+    Wholesale: $604.80  |  30% price: $786.24  |  Local avg: $774.99
+    Current: $786.24 (30.0%)  -->  Recommended: $769.99 (27.3%)
+    Direction: DROP  |  Change from 30%: -2.7%
+      - Point S: $774.99
+      - Michelin (aggregated): $774.99
+
+  Michelin Pilot Sport AS 4 -- 285/40R22
+    Wholesale: $632.00  |  30% price: $821.60  |  Local avg: $809.99
+    Current: $821.60 (30.0%)  -->  Recommended: $804.99 (27.4%)
+    Direction: DROP  |  Change from 30%: -2.6%
+      - Point S: $809.99
+      - Michelin (aggregated): $809.99
+
+  Michelin Pilot Sport AS 4 -- 285/40R23
+    Wholesale: $686.88  |  30% price: $892.94  |  Local avg: $863.99
+    Current: $892.94 (30.0%)  -->  Recommended: $858.99 (25.1%)
+    Direction: DROP  |  Change from 30%: -4.9%
+      - Point S: $863.99
+      - Michelin (aggregated): $863.99
+
+  Michelin Pilot Sport AS 4 -- 285/45R20
+    Wholesale: $482.20  |  30% price: $626.86  |  Local avg: $585.99
+    Current: $626.86 (30.0%)  -->  Recommended: $580.99 (20.5%)
+    Direction: DROP  |  Change from 30%: -9.5%
+      - Point S: $556.99
+      - Michelin (aggregated): $614.99
+
+  Michelin Pilot Sport AS 4 -- 295/35R20
+    Wholesale: $474.95  |  30% price: $617.44  |  Local avg: $604.99
+    Current: $617.44 (30.0%)  -->  Recommended: $599.99 (26.3%)
+    Direction: DROP  |  Change from 30%: -3.7%
+      - Point S: $604.99
+      - Michelin (aggregated): $604.99
+
+  Michelin Pilot Sport AS 4 -- 295/35R22
+    Wholesale: $633.60  |  30% price: $823.68  |  Local avg: $791.99
+    Current: $823.68 (30.0%)  -->  Recommended: $786.99 (24.2%)
+    Direction: DROP  |  Change from 30%: -5.8%
+      - Point S: $791.99
+      - Michelin (aggregated): $791.99
+
+  Michelin Pilot Sport AS 4 -- 295/40R21
+    Wholesale: $502.40  |  30% price: $653.12  |  Local avg: $642.99
+    Current: $653.12 (30.0%)  -->  Recommended: $637.99 (27.0%)
+    Direction: DROP  |  Change from 30%: -3.0%
+      - Point S: $642.99
+      - Michelin (aggregated): $642.99
+
+  Michelin Pilot Sport AS 4 -- 295/45R20
+    Wholesale: $503.20  |  30% price: $654.16  |  Local avg: $643.99
+    Current: $654.16 (30.0%)  -->  Recommended: $638.99 (27.0%)
+    Direction: DROP  |  Change from 30%: -3.0%
+      - Point S: $643.99
+      - Michelin (aggregated): $643.99
+
+  Michelin Pilot Sport AS 4 -- 315/30R21
+    Wholesale: $561.60  |  30% price: $730.08  |  Local avg: $719.99
+    Current: $730.08 (30.0%)  -->  Recommended: $714.99 (27.3%)
+    Direction: DROP  |  Change from 30%: -2.7%
+      - Point S: $719.99
+      - Michelin (aggregated): $719.99
+
+  Michelin Pilot Sport AS 4 -- 315/35R21
+    Wholesale: $819.65  |  30% price: $1065.55  |  Local avg: $845.99
+    Current: $1065.55 (30.0%)  -->  Recommended: $983.58 (20.0%)
+    Direction: DROP  |  Change from 30%: -10.0%
+      - Point S: $845.99
+      - Michelin (aggregated): $845.99
+
+  Michelin Pilot Sport AS 4 -- 345/25R21
+    Wholesale: $602.40  |  30% price: $783.12  |  Local avg: $772.99
+    Current: $783.12 (30.0%)  -->  Recommended: $767.99 (27.5%)
+    Direction: DROP  |  Change from 30%: -2.5%
+      - Point S: $772.99
+      - Michelin (aggregated): $772.99
+
+  Michelin Pilot Sport AS 4 -- 345/30R20
+    Wholesale: $985.80  |  30% price: $1281.54  |  Local avg: $1064.49
+    Current: $1281.54 (30.0%)  -->  Recommended: $1182.96 (20.0%)
+    Direction: DROP  |  Change from 30%: -10.0%
+      - Michelin (aggregated): $1064.49
+
+  Michelin Primacy Tour AS -- 215/45R17
+    Wholesale: $152.04  |  30% price: $197.65  |  Local avg: $325.00
+    Current: $197.65 (30.0%)  -->  Recommended: $243.26 (60.0%)
+    Direction: RAISE  |  Change from 30%: +30.0%
+      - ZRacing Mississauga: $325.00
+
+  Michelin Primacy Tour AS -- 215/55R17
+    Wholesale: $258.39  |  30% price: $335.91  |  Local avg: $318.99
+    Current: $335.91 (30.0%)  -->  Recommended: $313.99 (21.5%)
+    Direction: DROP  |  Change from 30%: -8.5%
+      - Point S: $318.99
+      - Michelin (aggregated): $318.99
+
+  Michelin Primacy Tour AS -- 225/40R19
+    Wholesale: $299.70  |  30% price: $389.61  |  Local avg: $369.99
+    Current: $389.61 (30.0%)  -->  Recommended: $364.99 (21.8%)
+    Direction: DROP  |  Change from 30%: -8.2%
+      - Point S: $369.99
+      - Michelin (aggregated): $369.99
+
+  Michelin Primacy Tour AS -- 225/45R18
+    Wholesale: $164.64  |  30% price: $214.03  |  Local avg: $256.99
+    Current: $214.03 (30.0%)  -->  Recommended: $251.99 (53.1%)
+    Direction: RAISE  |  Change from 30%: +23.1%
+      - Michelin (aggregated): $256.99
+
+  Michelin Primacy Tour AS -- 225/45R21
+    Wholesale: $346.96  |  30% price: $451.05  |  Local avg: $423.99
+    Current: $451.05 (30.0%)  -->  Recommended: $418.99 (20.8%)
+    Direction: DROP  |  Change from 30%: -9.2%
+      - Michelin (aggregated): $416.99
+      - Point S: $430.99
+
+  Michelin Primacy Tour AS -- 225/50R17
+    Wholesale: $155.40  |  30% price: $202.02  |  Local avg: $307.99
+    Current: $202.02 (30.0%)  -->  Recommended: $248.64 (60.0%)
+    Direction: RAISE  |  Change from 30%: +30.0%
+      - Michelin (aggregated): $307.99
+
+  Michelin Primacy Tour AS -- 225/55R18
+    Wholesale: $252.72  |  30% price: $328.54  |  Local avg: $281.49
+    Current: $328.54 (30.0%)  -->  Recommended: $303.26 (20.0%)
+    Direction: DROP  |  Change from 30%: -10.0%
+      - Michelin (aggregated): $250.99
+      - Point S: $311.99
+
+  Michelin Primacy Tour AS -- 225/55R19
+    Wholesale: $306.18  |  30% price: $398.03  |  Local avg: $377.99
+    Current: $398.03 (30.0%)  -->  Recommended: $372.99 (21.8%)
+    Direction: DROP  |  Change from 30%: -8.2%
+      - Point S: $377.99
+      - Michelin (aggregated): $377.99
+
+  Michelin Primacy Tour AS -- 235/45R18
+    Wholesale: $290.79  |  30% price: $378.03  |  Local avg: $346.49
+    Current: $378.03 (30.0%)  -->  Recommended: $348.95 (20.0%)
+    Direction: DROP  |  Change from 30%: -10.0%
+      - Point S: $333.99
+      - Michelin (aggregated): $358.99
+
+  Michelin Primacy Tour AS -- 235/50R18
+    Wholesale: $327.64  |  30% price: $425.93  |  Local avg: $406.99
+    Current: $425.93 (30.0%)  -->  Recommended: $401.99 (22.7%)
+    Direction: DROP  |  Change from 30%: -7.3%
+      - Point S: $406.99
+      - Michelin (aggregated): $406.99
+
+  Michelin Primacy Tour AS -- 235/50R19
+    Wholesale: $331.66  |  30% price: $431.16  |  Local avg: $399.66
+    Current: $431.16 (30.0%)  -->  Recommended: $397.99 (20.0%)
+    Direction: DROP  |  Change from 30%: -10.0%
+      - ZRacing Mississauga: $375.00
+      - Point S: $411.99
+      - Michelin (aggregated): $411.99
+
+  Michelin Primacy Tour AS -- 235/55R17
+    Wholesale: $191.52  |  30% price: $248.98  |  Local avg: $303.99
+    Current: $248.98 (30.0%)  -->  Recommended: $298.99 (56.1%)
+    Direction: RAISE  |  Change from 30%: +26.1%
+      - Michelin (aggregated): $303.99
+
+  Michelin Primacy Tour AS -- 235/55R20
+    Wholesale: $302.94  |  30% price: $393.82  |  Local avg: $346.99
+    Current: $393.82 (30.0%)  -->  Recommended: $363.53 (20.0%)
+    Direction: DROP  |  Change from 30%: -10.0%
+      - Michelin (aggregated): $319.99
+      - Point S: $373.99
+
+  Michelin Primacy Tour AS -- 235/60R18
+    Wholesale: $318.33  |  30% price: $413.83  |  Local avg: $396.25
+    Current: $413.83 (30.0%)  -->  Recommended: $391.25 (22.9%)
+    Direction: DROP  |  Change from 30%: -7.1%
+      - Michelin (aggregated): $396.25
+
+  Michelin Primacy Tour AS -- 235/65R18
+    Wholesale: $275.40  |  30% price: $358.02  |  Local avg: $339.99
+    Current: $358.02 (30.0%)  -->  Recommended: $334.99 (21.6%)
+    Direction: DROP  |  Change from 30%: -8.4%
+      - Point S: $339.99
+      - Michelin (aggregated): $339.99
+
+  Michelin Primacy Tour AS -- 245/40R20
+    Wholesale: $375.94  |  30% price: $488.72  |  Local avg: $466.99
+    Current: $488.72 (30.0%)  -->  Recommended: $461.99 (22.9%)
+    Direction: DROP  |  Change from 30%: -7.1%
+      - Point S: $466.99
+      - Michelin (aggregated): $466.99
+
+  Michelin Primacy Tour AS -- 245/40R21
+    Wholesale: $344.54  |  30% price: $447.90  |  Local avg: $427.99
+    Current: $447.90 (30.0%)  -->  Recommended: $422.99 (22.8%)
+    Direction: DROP  |  Change from 30%: -7.2%
+      - Point S: $427.99
+      - Michelin (aggregated): $427.99
+
+  Michelin Primacy Tour AS -- 245/45R19
+    Wholesale: $350.98  |  30% price: $456.27  |  Local avg: $435.99
+    Current: $456.27 (30.0%)  -->  Recommended: $430.99 (22.8%)
+    Direction: DROP  |  Change from 30%: -7.2%
+      - Point S: $435.99
+      - Michelin (aggregated): $435.99
+
+  Michelin Primacy Tour AS -- 245/45R20
+    Wholesale: $373.52  |  30% price: $485.58  |  Local avg: $454.36
+    Current: $485.58 (30.0%)  -->  Recommended: $449.36 (20.3%)
+    Direction: DROP  |  Change from 30%: -9.7%
+      - Michelin (aggregated): $444.72
+      - Point S: $463.99
+
+  Michelin Primacy Tour AS -- 245/50R18
+    Wholesale: $346.15  |  30% price: $450.00  |  Local avg: $429.99
+    Current: $450.00 (30.0%)  -->  Recommended: $424.99 (22.8%)
+    Direction: DROP  |  Change from 30%: -7.2%
+      - Point S: $429.99
+      - Michelin (aggregated): $429.99
+
+  Michelin Primacy Tour AS -- 245/50R20
+    Wholesale: $325.22  |  30% price: $422.79  |  Local avg: $403.99
+    Current: $422.79 (30.0%)  -->  Recommended: $398.99 (22.7%)
+    Direction: DROP  |  Change from 30%: -7.3%
+      - Point S: $403.99
+      - Michelin (aggregated): $403.99
+
+  Michelin Primacy Tour AS -- 245/60R18
+    Wholesale: $284.31  |  30% price: $369.60  |  Local avg: $350.99
+    Current: $369.60 (30.0%)  -->  Recommended: $345.99 (21.7%)
+    Direction: DROP  |  Change from 30%: -8.3%
+      - Point S: $350.99
+      - Michelin (aggregated): $350.99
+
+  Michelin Primacy Tour AS -- 255/35R19
+    Wholesale: $322.38  |  30% price: $419.09  |  Local avg: $397.99
+    Current: $419.09 (30.0%)  -->  Recommended: $392.99 (21.9%)
+    Direction: DROP  |  Change from 30%: -8.1%
+      - Point S: $397.99
+      - Michelin (aggregated): $397.99
+
+  Michelin Primacy Tour AS -- 255/40R19
+    Wholesale: $278.04  |  30% price: $361.45  |  Local avg: $444.72
+    Current: $361.45 (30.0%)  -->  Recommended: $439.72 (58.1%)
+    Direction: RAISE  |  Change from 30%: +28.1%
+      - Michelin (aggregated): $444.72
+
+  Michelin Primacy Tour AS -- 255/45R18
+    Wholesale: $285.12  |  30% price: $370.66  |  Local avg: $351.99
+    Current: $370.66 (30.0%)  -->  Recommended: $346.99 (21.7%)
+    Direction: DROP  |  Change from 30%: -8.3%
+      - Point S: $351.99
+      - Michelin (aggregated): $351.99
+
+  Michelin Primacy Tour AS -- 255/45R20
+    Wholesale: $374.33  |  30% price: $486.63  |  Local avg: $463.94
+    Current: $486.63 (30.0%)  -->  Recommended: $458.94 (22.6%)
+    Direction: DROP  |  Change from 30%: -7.4%
+      - Michelin (aggregated): $462.89
+      - Point S: $464.99
+
+  Michelin Primacy Tour AS -- 255/50R19
+    Wholesale: $409.75  |  30% price: $532.68  |  Local avg: $508.99
+    Current: $532.68 (30.0%)  -->  Recommended: $503.99 (23.0%)
+    Direction: DROP  |  Change from 30%: -7.0%
+      - Point S: $508.99
+      - Michelin (aggregated): $508.99
+
+  Michelin Primacy Tour AS -- 255/50R21
+    Wholesale: $425.04  |  30% price: $552.55  |  Local avg: $524.60
+    Current: $552.55 (30.0%)  -->  Recommended: $519.60 (22.2%)
+    Direction: DROP  |  Change from 30%: -7.8%
+      - Michelin (aggregated): $521.20
+      - Point S: $527.99
+
+  Michelin Primacy Tour AS -- 265/45R20
+    Wholesale: $401.70  |  30% price: $522.21  |  Local avg: $498.99
+    Current: $522.21 (30.0%)  -->  Recommended: $493.99 (23.0%)
+    Direction: DROP  |  Change from 30%: -7.0%
+      - Point S: $498.99
+      - Michelin (aggregated): $498.99
+
+  Michelin Primacy Tour AS -- 265/50R20
+    Wholesale: $348.57  |  30% price: $453.14  |  Local avg: $432.99
+    Current: $453.14 (30.0%)  -->  Recommended: $427.99 (22.8%)
+    Direction: DROP  |  Change from 30%: -7.2%
+      - Point S: $432.99
+      - Michelin (aggregated): $432.99
+
+  Michelin Primacy Tour AS -- 275/35R21
+    Wholesale: $357.42  |  30% price: $464.65  |  Local avg: $443.99
+    Current: $464.65 (30.0%)  -->  Recommended: $438.99 (22.8%)
+    Direction: DROP  |  Change from 30%: -7.2%
+      - Point S: $443.99
+      - Michelin (aggregated): $443.99
+
+  Michelin Primacy Tour AS -- 275/40R19
+    Wholesale: $441.95  |  30% price: $574.53  |  Local avg: $523.99
+    Current: $574.54 (30.0%)  -->  Recommended: $530.34 (20.0%)
+    Direction: DROP  |  Change from 30%: -10.0%
+      - Point S: $523.99
+      - Michelin (aggregated): $523.99
+
+  Michelin Primacy Tour AS -- 275/40R20
+    Wholesale: $395.26  |  30% price: $513.84  |  Local avg: $487.59
+    Current: $513.84 (30.0%)  -->  Recommended: $482.59 (22.1%)
+    Direction: DROP  |  Change from 30%: -7.9%
+      - Michelin (aggregated): $484.18
+      - Point S: $490.99
+
+  Michelin Primacy Tour AS -- 275/50R20
+    Wholesale: $398.48  |  30% price: $518.02  |  Local avg: $491.99
+    Current: $518.02 (30.0%)  -->  Recommended: $486.99 (22.2%)
+    Direction: DROP  |  Change from 30%: -7.8%
+      - Point S: $491.99
+      - Michelin (aggregated): $491.99
+
+  Michelin Primacy Tour AS -- 285/40R22
+    Wholesale: $626.40  |  30% price: $814.32  |  Local avg: $782.99
+    Current: $814.32 (30.0%)  -->  Recommended: $777.99 (24.2%)
+    Direction: DROP  |  Change from 30%: -5.8%
+      - Point S: $782.99
+      - Michelin (aggregated): $782.99
+
+  Michelin Primacy Tour AS -- 295/40R21
+    Wholesale: $474.95  |  30% price: $617.44  |  Local avg: $589.99
+    Current: $617.44 (30.0%)  -->  Recommended: $584.99 (23.2%)
+    Direction: DROP  |  Change from 30%: -6.8%
+      - Point S: $589.99
+      - Michelin (aggregated): $589.99
+
+-- End of Michelin Pricing Report --

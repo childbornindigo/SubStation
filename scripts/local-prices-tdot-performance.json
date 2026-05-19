@@ -1,0 +1,2074 @@
+[
+  {
+    "brand": "Michelin",
+    "model": "Pilot Alpin PA5 SUV Winter",
+    "size": "255/45R20",
+    "price": 476.78,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Michelin",
+    "model": "275/70R18 125R Agilis CrossClimate 2",
+    "size": "275/70R18",
+    "price": 623.53,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Michelin",
+    "model": "Pilot Sport 4 S Summer",
+    "size": "265/35R19",
+    "price": 622.93,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Michelin",
+    "model": "CrossClimate 2 All Weather",
+    "size": "275/50R20",
+    "price": 576.73,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Michelin",
+    "model": "Energy Saver A/S All Season",
+    "size": "205/55R16",
+    "price": 279.21,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Michelin",
+    "model": "Latitude Tour HP All Season",
+    "size": "255/55R19",
+    "price": 477.69,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Michelin",
+    "model": "Latitude Tour HP All Season",
+    "size": "295/40R20",
+    "price": 554.52,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Michelin",
+    "model": "Latitude Tour HP All Season",
+    "size": "265/45R20",
+    "price": 450.86,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Michelin",
+    "model": "Latitude Tour HP All Season",
+    "size": "255/50R20",
+    "price": 445.31,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Michelin",
+    "model": "Latitude Tour HP All Season",
+    "size": "265/45R21",
+    "price": 585.06,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Michelin",
+    "model": "Latitude Alpin LA2 Winter",
+    "size": "275/45R20",
+    "price": 474.85,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Michelin",
+    "model": "Latitude Sport Summer",
+    "size": "255/55R18",
+    "price": 596.16,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Michelin",
+    "model": "Latitude Sport 3 Summer",
+    "size": "235/60R18",
+    "price": 497.62,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Michelin",
+    "model": "Latitude Sport 3 Summer",
+    "size": "245/50R19",
+    "price": 615.6,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Michelin",
+    "model": "Defender LTX M/S All Season",
+    "size": "275/60R18",
+    "price": 399.95,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Michelin",
+    "model": "Defender T + H All Season",
+    "size": "195/65R15",
+    "price": 235.21,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Michelin",
+    "model": "Energy Saver A/S All Season",
+    "size": "175/65R15",
+    "price": 263.89,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Michelin",
+    "model": "Energy Saver A/S All Season",
+    "size": "215/50R17",
+    "price": 370.34,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Michelin",
+    "model": "LTX A/T2 All Season",
+    "size": "245/75R17",
+    "price": 440.67,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Michelin",
+    "model": "LTX A/T2 All Season",
+    "size": "275/65R18",
+    "price": 509.16,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Michelin",
+    "model": "LTX A/T2 All Season",
+    "size": "275/55R20",
+    "price": 491.58,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Michelin",
+    "model": "Latitude Sport 3 Summer",
+    "size": "265/50R19",
+    "price": 509.41,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Michelin",
+    "model": "Latitude Sport 3 Summer",
+    "size": "275/40R20",
+    "price": 627.64,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Michelin",
+    "model": "Latitude Sport 3 Summer",
+    "size": "285/40R20",
+    "price": 680.39,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Michelin",
+    "model": "Defender LTX M/S All Season",
+    "size": "245/70R16",
+    "price": 361.08,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Michelin",
+    "model": "Defender LTX M/S All Season",
+    "size": "285/70R17",
+    "price": 428.21,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Michelin",
+    "model": "Defender LTX M/S All Season",
+    "size": "225/75R17",
+    "price": 436.99,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Michelin",
+    "model": "Energy Saver A/S All Season",
+    "size": "225/50R17",
+    "price": 349.99,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Michelin",
+    "model": "Energy Saver A/S All Season",
+    "size": "235/45R18",
+    "price": 333.32,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Michelin",
+    "model": "Latitude Tour HP All Season",
+    "size": "255/55R18",
+    "price": 392.94,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Michelin",
+    "model": "Latitude Tour HP All Season",
+    "size": "245/60R18",
+    "price": 374.96,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Michelin",
+    "model": "Defender LTX M/S All Season",
+    "size": "255/65R16",
+    "price": 338.84,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Michelin",
+    "model": "Pilot Sport 4 S Summer",
+    "size": "265/35R18",
+    "price": 541.55,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Michelin",
+    "model": "Pilot Sport 4 S Summer",
+    "size": "285/35R18",
+    "price": 594.32,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Michelin",
+    "model": "Pilot Sport 4 S Summer",
+    "size": "235/40R18",
+    "price": 444.99,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Bridgestone",
+    "model": "Alenza AS Ultra All Season",
+    "size": "235/65R17",
+    "price": 235.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Bridgestone",
+    "model": "Turanza QuietTrack All Season",
+    "size": "245/50R17",
+    "price": 306.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Bridgestone",
+    "model": "Blizzak WS90 Winter",
+    "size": "205/55R16",
+    "price": 212.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Bridgestone",
+    "model": "Blizzak LT Winter",
+    "size": "265/60R20",
+    "price": 371.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Bridgestone",
+    "model": "Blizzak LT Winter",
+    "size": "245/75R16",
+    "price": 292.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Bridgestone",
+    "model": "Alenza 001 RFT (Run Flat)",
+    "size": "275/35R21",
+    "price": 703.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Bridgestone",
+    "model": "Blizzak WS90 Winter",
+    "size": "215/50R17",
+    "price": 263.44,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Bridgestone",
+    "model": "Turanza QuietTrack All Season",
+    "size": "215/55R17",
+    "price": 257.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Bridgestone",
+    "model": "Alenza Sport A/S All Season",
+    "size": "235/55R20",
+    "price": 338.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Bridgestone",
+    "model": "Dueler A/T RH-S All Terrain",
+    "size": "275/60R20",
+    "price": 391.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Bridgestone",
+    "model": "Blizzak DM-V2 Winter",
+    "size": "255/50R19",
+    "price": 300.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Bridgestone",
+    "model": "Blizzak DM-V2 Winter",
+    "size": "235/55R19",
+    "price": 284.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Bridgestone",
+    "model": "Blizzak DM-V2 Winter",
+    "size": "245/55R19",
+    "price": 311.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Bridgestone",
+    "model": "Blizzak DM-V2 Winter",
+    "size": "255/60R19",
+    "price": 294.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Bridgestone",
+    "model": "Blizzak DM-V2 Winter",
+    "size": "275/40R20",
+    "price": 372.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Bridgestone",
+    "model": "Blizzak LM001 RFT (Run Flat) Winter",
+    "size": "225/55R17",
+    "price": 297.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Bridgestone",
+    "model": "Blizzak LM001 RFT (Run Flat) Winter",
+    "size": "245/50R19",
+    "price": 410.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Bridgestone",
+    "model": "Blizzak LM-25 RFT (Run Flat) Winter",
+    "size": "285/35R20",
+    "price": 548.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Bridgestone",
+    "model": "Blizzak LM-32 Winter",
+    "size": "295/35R20",
+    "price": 570.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Bridgestone",
+    "model": "Blizzak DM-V2 Winter",
+    "size": "235/45R19",
+    "price": 343.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Bridgestone",
+    "model": "Blizzak DM-V2 Winter",
+    "size": "265/45R20",
+    "price": 356.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Bridgestone",
+    "model": "Blizzak LM001 Winter",
+    "size": "205/65R16",
+    "price": 203.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Bridgestone",
+    "model": "Blizzak LM-32 Winter",
+    "size": "215/45R20",
+    "price": 449.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Bridgestone",
+    "model": "Blizzak LT Winter",
+    "size": "225/75R16",
+    "price": 261.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Bridgestone",
+    "model": "Blizzak DM-V2 Winter",
+    "size": "285/45R22",
+    "price": 418.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Bridgestone",
+    "model": "Blizzak DM-V2 Winter",
+    "size": "265/70R16",
+    "price": 258.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Bridgestone",
+    "model": "Blizzak DM-V2 Winter",
+    "size": "245/75R16",
+    "price": 232.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Bridgestone",
+    "model": "Blizzak DM-V2 Winter",
+    "size": "235/55R18",
+    "price": 263.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Bridgestone",
+    "model": "Blizzak DM-V2 Winter",
+    "size": "255/55R18",
+    "price": 295.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Bridgestone",
+    "model": "Blizzak DM-V2 Winter",
+    "size": "225/60R17",
+    "price": 231.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Bridgestone",
+    "model": "Blizzak DM-V2 Winter",
+    "size": "235/65R18",
+    "price": 273.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Bridgestone",
+    "model": "Blizzak DM-V2 Winter",
+    "size": "255/50R20",
+    "price": 315.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Bridgestone",
+    "model": "Blizzak LT Winter",
+    "size": "265/70R18",
+    "price": 342.27,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Bridgestone",
+    "model": "Blizzak LT Winter",
+    "size": "275/65R18",
+    "price": 349.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Bridgestone",
+    "model": "Blizzak WS90 Winter",
+    "size": "205/60R16",
+    "price": 188.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Bridgestone",
+    "model": "Blizzak WS90 Winter",
+    "size": "185/60R15",
+    "price": 171.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Bridgestone",
+    "model": "DriveGuard DriveGuard All Season",
+    "size": "255/40R17",
+    "price": 314.15,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Bridgestone",
+    "model": "DriveGuard DriveGuard All Season",
+    "size": "235/45R17",
+    "price": 284.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Bridgestone",
+    "model": "DriveGuard DriveGuard All Season",
+    "size": "225/60R18",
+    "price": 261.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Bridgestone",
+    "model": "Dueler H/L 422 Ecopia All Season",
+    "size": "245/55R19",
+    "price": 365.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Continental",
+    "model": "ContiCrossContact LX25 All Season",
+    "size": "225/55R18",
+    "price": 295.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Continental",
+    "model": "IceContact XTRM Studded Winter",
+    "size": "205/55R16",
+    "price": 236.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Continental",
+    "model": "PureContact LS All Season",
+    "size": "225/45R17",
+    "price": 250.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Continental",
+    "model": "ContiProContact All Season",
+    "size": "235/45R19",
+    "price": 390.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Continental",
+    "model": "IceContact XTRM Winter",
+    "size": "275/60R20",
+    "price": 403.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Continental",
+    "model": "ContiCrossContact UHP Summer",
+    "size": "275/40R20",
+    "price": 494.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Continental",
+    "model": "ContiCrossContact UHP Summer",
+    "size": "295/35R21",
+    "price": 576.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Continental",
+    "model": "Conti4x4Contact All Season",
+    "size": "265/50R19",
+    "price": 472.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Continental",
+    "model": "Conti4x4Contact All Season",
+    "size": "235/50R19",
+    "price": 367.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Continental",
+    "model": "ContiCrossContact LX All Season",
+    "size": "225/65R17",
+    "price": 290.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Continental",
+    "model": "ContiSportContact 5 Summer",
+    "size": "275/40R20",
+    "price": 636.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Continental",
+    "model": "ContiSportContact 5 Summer",
+    "size": "315/35R20",
+    "price": 729.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Continental",
+    "model": "PureContact LS All Season",
+    "size": "225/40R18",
+    "price": 296.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Continental",
+    "model": "PureContact LS All Season",
+    "size": "235/45R17",
+    "price": 268.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Continental",
+    "model": "Conti4x4Contact All Season",
+    "size": "235/60R18",
+    "price": 321.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Continental",
+    "model": "TerrainContact A/T All Season",
+    "size": "255/75R17",
+    "price": 353.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Continental",
+    "model": "TerrainContact A/T All Season",
+    "size": "265/70R17",
+    "price": 366.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Continental",
+    "model": "TerrainContact A/T All Season",
+    "size": "255/70R18",
+    "price": 378.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Continental",
+    "model": "TerrainContact A/T All Season",
+    "size": "265/70R18",
+    "price": 384.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Continental",
+    "model": "TerrainContact A/T All Season",
+    "size": "275/65R18",
+    "price": 410.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Continental",
+    "model": "TerrainContact A/T All Season",
+    "size": "265/50R20",
+    "price": 425.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Continental",
+    "model": "TerrainContact A/T All Season",
+    "size": "275/55R20",
+    "price": 437.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Continental",
+    "model": "TerrainContact H/T All Season",
+    "size": "275/55R20",
+    "price": 409.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Continental",
+    "model": "EcoContact EP All Season",
+    "size": "145/65R15",
+    "price": 176.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Continental",
+    "model": "ContiSportContact 5 Summer",
+    "size": "225/40R18",
+    "price": 306.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Continental",
+    "model": "ContiSportContact 5 Summer",
+    "size": "225/45R17",
+    "price": 287.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Continental",
+    "model": "ContiSportContact 5P Summer",
+    "size": "255/35R20",
+    "price": 544.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Continental",
+    "model": "ContiSportContact 5P Summer",
+    "size": "265/30R20",
+    "price": 617.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Pirelli",
+    "model": "Ice Zero Asimmetrico Winter",
+    "size": "225/50R17",
+    "price": 263.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Firestone",
+    "model": "Firestone Firehawk Indy 500 Summer",
+    "size": "255/40R18",
+    "price": 291.79,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Firestone",
+    "model": "Firestone Firehawk Indy 500 Summer",
+    "size": "235/35R19",
+    "price": 283.86,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Firestone",
+    "model": "Firestone Destination M/T2 All Season",
+    "size": "315/75R16",
+    "price": 443.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Firestone",
+    "model": "Firestone All Season",
+    "size": "235/65R17",
+    "price": 199.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Firestone",
+    "model": "Firestone Firehawk Indy 500 Summer",
+    "size": "245/45R18",
+    "price": 270.5,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Firestone",
+    "model": "Firestone Destination M/T2 All Season",
+    "size": "37X12.5R17",
+    "price": 585.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Firestone",
+    "model": "Firestone Firehawk Indy 500 Summer",
+    "size": "205/45R17",
+    "price": 205.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Firestone",
+    "model": "Firestone Destination M/T2 All Season",
+    "size": "275/70R18",
+    "price": 419.1,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Firestone",
+    "model": "Firestone Firehawk Indy 500 Summer",
+    "size": "225/50R18",
+    "price": 213.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Firestone",
+    "model": "Firestone Firehawk Indy 500 Summer",
+    "size": "245/40R20",
+    "price": 301.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Firestone",
+    "model": "Destination LE3 All Season",
+    "size": "225/65R17",
+    "price": 223.24,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Firestone",
+    "model": "Firestone Destination A/T2 All Season",
+    "size": "275/65R18",
+    "price": 316.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Firestone",
+    "model": "Firestone Firehawk Indy 500 Summer",
+    "size": "255/35R20",
+    "price": 260.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Firestone",
+    "model": "Firestone Firehawk Indy 500 Summer",
+    "size": "255/45R18",
+    "price": 264.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Firestone",
+    "model": "Firestone Firehawk Indy 500 Summer",
+    "size": "235/40R18",
+    "price": 259.82,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Firestone",
+    "model": "Firestone Firehawk Indy 500 Summer",
+    "size": "245/40R19",
+    "price": 317.71,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Firestone",
+    "model": "Firestone Firehawk Indy 500 Summer",
+    "size": "255/35R19",
+    "price": 307.64,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Firestone",
+    "model": "Firestone WeatherGrip All Weather",
+    "size": "235/50R18",
+    "price": 264.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Firestone",
+    "model": "Firestone Firehawk Indy 500 Summer",
+    "size": "245/45R17",
+    "price": 236.51,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Firestone",
+    "model": "Firestone Firehawk Indy 500 Summer",
+    "size": "275/35R18",
+    "price": 318.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Firestone",
+    "model": "Firestone Firehawk Indy 500 Summer",
+    "size": "305/35R20",
+    "price": 389.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Firestone",
+    "model": "Firestone Firehawk Indy 500 Summer",
+    "size": "245/35R18",
+    "price": 267.8,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Firestone",
+    "model": "Firestone Firehawk Indy 500 Summer",
+    "size": "225/40R19",
+    "price": 255.44,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Firestone",
+    "model": "Firestone Destination LE2 All Season",
+    "size": "265/65R17",
+    "price": 264.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Firestone",
+    "model": "WeatherGrip All Weather",
+    "size": "225/45R18",
+    "price": 252.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Firestone",
+    "model": "Firestone Winterforce LT",
+    "size": "275/70R18",
+    "price": 301.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Firestone",
+    "model": "Firestone Destination A/T2 All Season",
+    "size": "235/75R16",
+    "price": 269.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Firestone",
+    "model": "Firestone Destination A/T2 All Season",
+    "size": "235/70R16",
+    "price": 267.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Firestone",
+    "model": "Firestone Destination A/T2 All Season",
+    "size": "265/65R18",
+    "price": 320.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Firestone",
+    "model": "Firestone Destination LE2 All Season",
+    "size": "245/75R16",
+    "price": 230.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Firestone",
+    "model": "Firestone Destination LE2 All Season",
+    "size": "225/60R17",
+    "price": 245.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Firestone",
+    "model": "Firestone Destination A/T2 All Season",
+    "size": "255/75R17",
+    "price": 298.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Firestone",
+    "model": "Firestone Destination A/T2 All Season",
+    "size": "255/70R17",
+    "price": 299.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Firestone",
+    "model": "Firestone Destination A/T2 All Season",
+    "size": "255/65R17",
+    "price": 299.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Firestone",
+    "model": "Firestone Destination A/T2 All Season",
+    "size": "235/75R17",
+    "price": 291.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Firestone",
+    "model": "Firestone Destination A/T2 All Season",
+    "size": "235/75R15",
+    "price": 249.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Firestone",
+    "model": "Firestone Destination LE2 All Season",
+    "size": "225/65R17",
+    "price": 226.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Firestone",
+    "model": "Firestone All Season",
+    "size": "215/70R15",
+    "price": 161.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Firestone",
+    "model": "Firestone All Season",
+    "size": "225/60R17",
+    "price": 195.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Hankook",
+    "model": "iON Evo AS All Season",
+    "size": "235/45R18",
+    "price": 273.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Hankook",
+    "model": "Kinergy GT (HT436) All Season",
+    "size": "215/55R17",
+    "price": 219.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Hankook",
+    "model": "Kinergy PT (H737) All Season",
+    "size": "235/60R18",
+    "price": 220.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Hankook",
+    "model": "Dynapro AT M (RF10) All Terrain",
+    "size": "275/55R20",
+    "price": 370.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Hankook",
+    "model": "Ventus S1 AS (H125) All Season",
+    "size": "235/40R18",
+    "price": 275.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Hankook",
+    "model": "Kinergy GT (HT436) All Season",
+    "size": "215/60R17",
+    "price": 209.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Hankook",
+    "model": "Kinergy GT (HT436) All Season",
+    "size": "225/45R17",
+    "price": 225.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Hankook",
+    "model": "Dynapro HT (RH12) All Season",
+    "size": "275/65R18",
+    "price": 275.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Hankook",
+    "model": "Dynapro MT2 (RT05) All Terrain",
+    "size": "315/70R17",
+    "price": 394.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Hankook",
+    "model": "Dynapro MT2 (RT05) All Terrain",
+    "size": "275/65R18",
+    "price": 346.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Hankook",
+    "model": "i\\*Pike (RW11) Winter",
+    "size": "275/65R20",
+    "price": 404.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Hankook",
+    "model": "Kinergy GT (HT436) All Season",
+    "size": "225/60R17",
+    "price": 208.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Hankook",
+    "model": "Kinergy GT (HT436) All Season",
+    "size": "245/45R19",
+    "price": 309.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Hankook",
+    "model": "Dynapro HT (RH12) All Season",
+    "size": "235/75R15",
+    "price": 174.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Hankook",
+    "model": "Dynapro HT (RH12) All Season",
+    "size": "235/85R16",
+    "price": 236.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Hankook",
+    "model": "Dynapro HT (RH12) All Season",
+    "size": "275/55R20",
+    "price": 296.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Hankook",
+    "model": "Dynapro HT (RH12) All Season",
+    "size": "255/70R18",
+    "price": 259.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Hankook",
+    "model": "Dynapro HT (RH12) All Season",
+    "size": "245/75R16",
+    "price": 220.33,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Hankook",
+    "model": "Dynapro AT2 (RF11) All Terrain",
+    "size": "33X12.5R15",
+    "price": 334.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Hankook",
+    "model": "Dynapro AT M (RF10) All Terrain",
+    "size": "325/60R20",
+    "price": 327.06,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Hankook",
+    "model": "Dynapro AT M (RF10) All Terrain",
+    "size": "265/65R17",
+    "price": 275.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Hankook",
+    "model": "Dynapro HP2 (RA33) All Season",
+    "size": "235/60R18",
+    "price": 238.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Hankook",
+    "model": "Dynapro AT2 (RF11) All Terrain",
+    "size": "265/70R17",
+    "price": 263.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Hankook",
+    "model": "Dynapro AT2 (RF11) All Terrain",
+    "size": "265/65R18",
+    "price": 286.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Hankook",
+    "model": "Ventus S1 evo3 (K127) Summer",
+    "size": "225/45R18",
+    "price": 362.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Hankook",
+    "model": "Ventus S1 noble2 (H452) All Season",
+    "size": "245/50R20",
+    "price": 299.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Hankook",
+    "model": "Optimo (H426) All Season",
+    "size": "175/65R15",
+    "price": 141.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Hankook",
+    "model": "Optimo (H428) All Season",
+    "size": "195/65R15",
+    "price": 168.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Hankook",
+    "model": "Ventus Prime3 (K125) Summer",
+    "size": "235/60R17",
+    "price": 374.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Hankook",
+    "model": "Ventus S1 evo2 (K117) Summer",
+    "size": "275/40R19",
+    "price": 450.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Hankook",
+    "model": "Ventus S1 evo2 (K117) Summer",
+    "size": "255/55R18",
+    "price": 344.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Hankook",
+    "model": "Kinergy ST (H735) All Season",
+    "size": "215/60R16",
+    "price": 161.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Hankook",
+    "model": "Kinergy ST (H735) All Season",
+    "size": "205/70R15",
+    "price": 144.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Hankook",
+    "model": "Kinergy ST (H735) All Season",
+    "size": "235/65R16",
+    "price": 166.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Hankook",
+    "model": "Optimo (H426) All Season",
+    "size": "255/50R20",
+    "price": 339.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Falken",
+    "model": "WILDPEAK A/T4W All Weather",
+    "size": "265/70R16",
+    "price": 305.92,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Falken",
+    "model": "WILDPEAK A/T4W All Weather",
+    "size": "LT35X12.5R20",
+    "price": 712.49,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Falken",
+    "model": "ZIEX ZE960 All Season",
+    "size": "205/45R17",
+    "price": 188.99,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Falken",
+    "model": "WILDPEAK MT All Season",
+    "size": "37X13.5R20",
+    "price": 850.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Falken",
+    "model": "WILDPEAK MT All Season",
+    "size": "235/85R16",
+    "price": 421.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Falken",
+    "model": "ZIEX CT60 All Season",
+    "size": "225/55R19",
+    "price": 326.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Falken",
+    "model": "ZIEX CT60 All Season",
+    "size": "235/60R18",
+    "price": 280.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Falken",
+    "model": "ZIEX CT60 All Season",
+    "size": "255/50R20",
+    "price": 343.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Falken",
+    "model": "ZIEX CT60 All Season",
+    "size": "265/50R20",
+    "price": 338.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Falken",
+    "model": "ZIEX CT60 All Season",
+    "size": "235/55R20",
+    "price": 302.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Falken",
+    "model": "SINCERA SN250 All Season",
+    "size": "205/50R16",
+    "price": 188.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Falken",
+    "model": "SINCERA SN250 All Season",
+    "size": "215/60R17",
+    "price": 205.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Falken",
+    "model": "SINCERA SN250 All Season",
+    "size": "215/65R17",
+    "price": 205.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Falken",
+    "model": "SINCERA SN250 All Season",
+    "size": "235/65R17",
+    "price": 229.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Falken",
+    "model": "ZIEX CT60 All Season",
+    "size": "225/60R17",
+    "price": 235.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Falken",
+    "model": "ZIEX STZ-05 All Season",
+    "size": "275/40R20",
+    "price": 357.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Falken",
+    "model": "SINCERA SN250 All Season",
+    "size": "225/45R18",
+    "price": 241.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Falken",
+    "model": "SINCERA SN250 All Season",
+    "size": "235/55R18",
+    "price": 264.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Falken",
+    "model": "WILDPEAK MT All Season",
+    "size": "265/75R16",
+    "price": 466.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Falken",
+    "model": "WILDPEAK MT All Season",
+    "size": "35X12.5R20",
+    "price": 722.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Falken",
+    "model": "AZENIS FK510 Summer",
+    "size": "225/45R18",
+    "price": 287.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Falken",
+    "model": "AZENIS FK510 Summer",
+    "size": "275/30R20",
+    "price": 404.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Falken",
+    "model": "AZENIS FK510 Summer",
+    "size": "245/45R19",
+    "price": 335.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Falken",
+    "model": "AZENIS FK510 Summer",
+    "size": "245/40R18",
+    "price": 301.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Falken",
+    "model": "AZENIS FK510 Summer",
+    "size": "245/35R18",
+    "price": 328.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Falken",
+    "model": "AZENIS FK510 Summer",
+    "size": "245/35R21",
+    "price": 387.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Falken",
+    "model": "AZENIS FK510 Summer",
+    "size": "275/35R20",
+    "price": 395.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Falken",
+    "model": "ZIEX CT60 All Season",
+    "size": "235/55R17",
+    "price": 248.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Falken",
+    "model": "ZIEX CT60 All Season",
+    "size": "255/55R19",
+    "price": 377.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Falken",
+    "model": "ZIEX CT60 All Season",
+    "size": "255/55R20",
+    "price": 313.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Falken",
+    "model": "ZIEX CT60 All Season",
+    "size": "235/55R19",
+    "price": 341.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Falken",
+    "model": "AZENIS FK510 Summer",
+    "size": "265/40R21",
+    "price": 476.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Falken",
+    "model": "AZENIS RT660 Summer",
+    "size": "255/40R18",
+    "price": 443.69,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Falken",
+    "model": "WILDPEAK HT02 All Season",
+    "size": "275/65R20",
+    "price": 413.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Falken",
+    "model": "WILDPEAK HT02 All Season",
+    "size": "275/65R18",
+    "price": 357.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Falken",
+    "model": "WILDPEAK HT02 All Season",
+    "size": "285/45R22",
+    "price": 367.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Falken",
+    "model": "WILDPEAK HT02 All Season",
+    "size": "265/70R17",
+    "price": 280.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Falken",
+    "model": "WILDPEAK HT02 All Season",
+    "size": "265/70R18",
+    "price": 312.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Falken",
+    "model": "ZIEX ZE960 All Season",
+    "size": "205/55R16",
+    "price": 184.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Falken",
+    "model": "ZIEX ZE960 All Season",
+    "size": "225/55R17",
+    "price": 209.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Toyo",
+    "model": "Open Country A/T III All Terrain",
+    "size": "275/70R18",
+    "price": 390.75,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Toyo",
+    "model": "Open Country A/T III All Terrain",
+    "size": "285/65R18",
+    "price": 438.99,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Toyo",
+    "model": "Open Country A/T III All Terrain",
+    "size": "265/75R15",
+    "price": 291.76,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Toyo",
+    "model": "Open Country A/T III All Terrain",
+    "size": "255/60R19",
+    "price": 375.08,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Toyo",
+    "model": "Open Country M/T All Season",
+    "size": "385/70R16",
+    "price": 539.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Toyo",
+    "model": "Proxes ST III All Season",
+    "size": "265/50R20",
+    "price": 350.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Toyo",
+    "model": "Open Country Q/T All Season",
+    "size": "255/55R20",
+    "price": 319.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Toyo",
+    "model": "Open Country M/T All Season",
+    "size": "37X12.5R17",
+    "price": 515.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Toyo",
+    "model": "Open Country A/T III All Terrain",
+    "size": "275/55R20",
+    "price": 404.53,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Toyo",
+    "model": "Open Country A/T III All Terrain",
+    "size": "265/70R18",
+    "price": 370.07,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Toyo",
+    "model": "Open Country A/T III All Terrain",
+    "size": "255/70R18",
+    "price": 341.25,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Toyo",
+    "model": "Open Country A/T III All Terrain",
+    "size": "275/60R20",
+    "price": 386.36,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Toyo",
+    "model": "Open Country A/T III All Terrain",
+    "size": "255/80R17",
+    "price": 380.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Toyo",
+    "model": "Open Country A/T III All Terrain",
+    "size": "305/45R22",
+    "price": 500.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Toyo",
+    "model": "Observe G3-Ice Studded Winter",
+    "size": "215/65R16",
+    "price": 202.51,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Toyo",
+    "model": "Open Country AT II All Terrain",
+    "size": "245/65R17",
+    "price": 224.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Toyo",
+    "model": "Open Country M/T All Season",
+    "size": "265/70R17",
+    "price": 445.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Toyo",
+    "model": "Observe GSi-6 HP Winter",
+    "size": "215/45R18",
+    "price": 299.91,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Toyo",
+    "model": "Open Country A/T III All Terrain",
+    "size": "37X12.5R18",
+    "price": 560.53,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Toyo",
+    "model": "Open Country A/T III All Terrain",
+    "size": "275/65R18",
+    "price": 352.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Toyo",
+    "model": "Open Country A/T III All Terrain",
+    "size": "245/75R16",
+    "price": 283.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Toyo",
+    "model": "Open Country A/T III All Terrain",
+    "size": "255/65R16",
+    "price": 291.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Toyo",
+    "model": "Open Country A/T III All Terrain",
+    "size": "35X11.5R17",
+    "price": 464.05,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Toyo",
+    "model": "Open Country A/T III All Terrain",
+    "size": "235/65R17",
+    "price": 284.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Toyo",
+    "model": "Open Country A/T III All Terrain",
+    "size": "255/55R20",
+    "price": 380.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Toyo",
+    "model": "Open Country A/T III All Terrain",
+    "size": "275/65R20",
+    "price": 438.36,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Toyo",
+    "model": "Open Country A/T III All Terrain",
+    "size": "265/70R17",
+    "price": 379.47,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Toyo",
+    "model": "Open Country A/T III All Terrain",
+    "size": "285/75R18",
+    "price": 436.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Toyo",
+    "model": "Open Country A/T III All Terrain",
+    "size": "35X12.5R20",
+    "price": 568.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Toyo",
+    "model": "Celsius All Weather",
+    "size": "255/35R19",
+    "price": 379.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Toyo",
+    "model": "Proxes ST III All Season",
+    "size": "295/45R18",
+    "price": 387.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Toyo",
+    "model": "Open Country A/T III All Terrain",
+    "size": "285/45R22",
+    "price": 469.69,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Toyo",
+    "model": "Proxes ST III All Season",
+    "size": "295/30R22",
+    "price": 529.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Toyo",
+    "model": "Observe G3-Ice Winter",
+    "size": "225/45R18",
+    "price": 280.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Toyo",
+    "model": "Observe GSi-6 HP Winter",
+    "size": "195/50R16",
+    "price": 223.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Toyo",
+    "model": "Observe GSi-6 Winter",
+    "size": "195/70R14",
+    "price": 170.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Toyo",
+    "model": "Proxes A37 All Season",
+    "size": "205/60R16",
+    "price": 232.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Toyo",
+    "model": "Extensa HP II All Season",
+    "size": "275/30R20",
+    "price": 384.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Toyo",
+    "model": "Celsius All Weather",
+    "size": "205/65R15",
+    "price": 183.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Yokohama",
+    "model": "Geolandar CV G058 All Season",
+    "size": "225/55R18",
+    "price": 256.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Yokohama",
+    "model": "Geolandar CV G058 All Season",
+    "size": "235/55R20",
+    "price": 310.0,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Yokohama",
+    "model": "Advan Apex Summer",
+    "size": "255/35R18",
+    "price": 305.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Yokohama",
+    "model": "iceGuard iG53 Winter",
+    "size": "175/70R14",
+    "price": 152.9,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Yokohama",
+    "model": "Advan Fleva V701 Summer",
+    "size": "205/55R15",
+    "price": 227.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Yokohama",
+    "model": "Advan Apex Summer",
+    "size": "225/40R19",
+    "price": 291.97,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Yokohama",
+    "model": "Advan Apex Summer",
+    "size": "255/35R19",
+    "price": 337.7,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Yokohama",
+    "model": "Avid S34 All Season",
+    "size": "215/50R18",
+    "price": 274.25,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Yokohama",
+    "model": "Geolandar X-MT All Season",
+    "size": "37X12.5R17",
+    "price": 571.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Yokohama",
+    "model": "Advan Sport A/S+ All Season",
+    "size": "275/30R20",
+    "price": 435.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Yokohama",
+    "model": "Geolandar CV G058 All Season",
+    "size": "255/55R18",
+    "price": 314.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Yokohama",
+    "model": "Geolandar I/T G072 Winter",
+    "size": "245/60R20",
+    "price": 336.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Yokohama",
+    "model": "Avid Touring-S All Season",
+    "size": "195/65R15",
+    "price": 171.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Yokohama",
+    "model": "Avid Ascend GT All Season",
+    "size": "185/55R15",
+    "price": 207.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Yokohama",
+    "model": "Avid Ascend GT All Season",
+    "size": "185/65R15",
+    "price": 178.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Yokohama",
+    "model": "Avid Ascend GT All Season",
+    "size": "195/60R15",
+    "price": 176.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Yokohama",
+    "model": "Avid Ascend GT All Season",
+    "size": "195/65R15",
+    "price": 178.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Yokohama",
+    "model": "Avid Ascend GT All Season",
+    "size": "205/65R15",
+    "price": 187.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Yokohama",
+    "model": "Avid Ascend GT All Season",
+    "size": "195/55R16",
+    "price": 195.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Yokohama",
+    "model": "Avid Ascend GT All Season",
+    "size": "205/55R16",
+    "price": 193.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Yokohama",
+    "model": "Avid Touring-S All Season",
+    "size": "225/60R17",
+    "price": 224.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Yokohama",
+    "model": "Avid Touring-S All Season",
+    "size": "215/60R17",
+    "price": 217.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Yokohama",
+    "model": "Avid Touring-S All Season",
+    "size": "215/65R17",
+    "price": 212.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Yokohama",
+    "model": "Avid Touring-S All Season",
+    "size": "235/65R17",
+    "price": 245.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Yokohama",
+    "model": "Geolandar X-CV All Season",
+    "size": "275/40R21",
+    "price": 402.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Yokohama",
+    "model": "Geolandar X-CV All Season",
+    "size": "275/45R21",
+    "price": 409.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Yokohama",
+    "model": "Geolandar X-CV All Season",
+    "size": "295/40R21",
+    "price": 421.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Yokohama",
+    "model": "Geolandar X-CV All Season",
+    "size": "265/40R22",
+    "price": 465.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Yokohama",
+    "model": "Geolandar X-CV All Season",
+    "size": "275/40R22",
+    "price": 443.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Yokohama",
+    "model": "Geolandar X-MT All Season",
+    "size": "35X12.5R17",
+    "price": 554.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Yokohama",
+    "model": "Avid Ascend LX All Season",
+    "size": "225/65R17",
+    "price": 243.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Yokohama",
+    "model": "Avid Ascend LX All Season",
+    "size": "235/60R17",
+    "price": 265.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Yokohama",
+    "model": "Avid Ascend LX All Season",
+    "size": "225/55R18",
+    "price": 265.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Yokohama",
+    "model": "Avid Ascend LX All Season",
+    "size": "225/60R18",
+    "price": 265.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Yokohama",
+    "model": "Geolandar G95A All Season",
+    "size": "225/55R17",
+    "price": 270.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Yokohama",
+    "model": "Avid Ascend LX All Season",
+    "size": "205/70R16",
+    "price": 230.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Yokohama",
+    "model": "Avid Ascend LX All Season",
+    "size": "215/55R16",
+    "price": 219.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Yokohama",
+    "model": "Avid Ascend LX All Season",
+    "size": "215/60R16",
+    "price": 223.98,
+    "shop": "TDot Performance"
+  },
+  {
+    "brand": "Yokohama",
+    "model": "Avid Ascend LX All Season",
+    "size": "225/55R17",
+    "price": 258.98,
+    "shop": "TDot Performance"
+  }
+]

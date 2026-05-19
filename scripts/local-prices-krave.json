@@ -1,0 +1,401 @@
+[
+  {
+    "brand": "Toyo",
+    "model": "Open Country A/T III",
+    "size": "265/70R17",
+    "price": 362.0,
+    "shop": "KRAVE"
+  },
+  {
+    "brand": "Toyo",
+    "model": "Open Country A/T III",
+    "size": "285/70R17",
+    "price": 461.0,
+    "shop": "KRAVE"
+  },
+  {
+    "brand": "Toyo",
+    "model": "Open Country A/T III",
+    "size": "285/75R17",
+    "price": 454.0,
+    "shop": "KRAVE"
+  },
+  {
+    "brand": "Toyo",
+    "model": "Open Country A/T III",
+    "size": "35x12.50R17",
+    "price": 586.0,
+    "shop": "KRAVE"
+  },
+  {
+    "brand": "Toyo",
+    "model": "Open Country A/T III",
+    "size": "37x12.50R17",
+    "price": 616.0,
+    "shop": "KRAVE"
+  },
+  {
+    "brand": "Toyo",
+    "model": "Open Country A/T III",
+    "size": "275/65R18",
+    "price": 477.0,
+    "shop": "KRAVE"
+  },
+  {
+    "brand": "Toyo",
+    "model": "Open Country A/T III",
+    "size": "275/70R18",
+    "price": 459.0,
+    "shop": "KRAVE"
+  },
+  {
+    "brand": "Toyo",
+    "model": "Open Country A/T III",
+    "size": "295/70R18",
+    "price": 518.0,
+    "shop": "KRAVE"
+  },
+  {
+    "brand": "Toyo",
+    "model": "Open Country A/T III",
+    "size": "35x12.50R18",
+    "price": 628.0,
+    "shop": "KRAVE"
+  },
+  {
+    "brand": "Toyo",
+    "model": "Open Country A/T III",
+    "size": "37x12.50R18",
+    "price": 667.0,
+    "shop": "KRAVE"
+  },
+  {
+    "brand": "Falken",
+    "model": "Wildpeak A/T4W",
+    "size": "265/70R17",
+    "price": 422.0,
+    "shop": "KRAVE"
+  },
+  {
+    "brand": "Falken",
+    "model": "Wildpeak A/T4W",
+    "size": "285/70R17",
+    "price": 452.0,
+    "shop": "KRAVE"
+  },
+  {
+    "brand": "Falken",
+    "model": "Wildpeak A/T4W",
+    "size": "285/75R17",
+    "price": 487.0,
+    "shop": "KRAVE"
+  },
+  {
+    "brand": "Falken",
+    "model": "Wildpeak A/T4W",
+    "size": "35x12.50R17",
+    "price": 554.0,
+    "shop": "KRAVE"
+  },
+  {
+    "brand": "Falken",
+    "model": "Wildpeak A/T4W",
+    "size": "37x12.50R17",
+    "price": 626.0,
+    "shop": "KRAVE"
+  },
+  {
+    "brand": "Falken",
+    "model": "Wildpeak A/T4W",
+    "size": "275/65R18",
+    "price": 470.0,
+    "shop": "KRAVE"
+  },
+  {
+    "brand": "Falken",
+    "model": "Wildpeak A/T4W",
+    "size": "265/70R18",
+    "price": 428.0,
+    "shop": "KRAVE"
+  },
+  {
+    "brand": "Falken",
+    "model": "Wildpeak A/T4W",
+    "size": "295/70R18",
+    "price": 535.0,
+    "shop": "KRAVE"
+  },
+  {
+    "brand": "Falken",
+    "model": "Wildpeak A/T4W",
+    "size": "35x12.50R18",
+    "price": 613.0,
+    "shop": "KRAVE"
+  },
+  {
+    "brand": "Yokohama",
+    "model": "M/T G003",
+    "size": "285/70R17",
+    "price": 513.0,
+    "shop": "KRAVE"
+  },
+  {
+    "brand": "Yokohama",
+    "model": "M/T G003",
+    "size": "295/70R17",
+    "price": 561.6,
+    "shop": "KRAVE"
+  },
+  {
+    "brand": "Yokohama",
+    "model": "M/T G003",
+    "size": "315/75R16",
+    "price": 523.8,
+    "shop": "KRAVE"
+  },
+  {
+    "brand": "Yokohama",
+    "model": "M/T G003",
+    "size": "35x12.50R17",
+    "price": 594.0,
+    "shop": "KRAVE"
+  },
+  {
+    "brand": "Yokohama",
+    "model": "M/T G003",
+    "size": "35x12.50R18",
+    "price": 615.6,
+    "shop": "KRAVE"
+  },
+  {
+    "brand": "Yokohama",
+    "model": "M/T G003",
+    "size": "37x12.50R17",
+    "price": 594.0,
+    "shop": "KRAVE"
+  },
+  {
+    "brand": "Yokohama",
+    "model": "Geolandar A/T4 G018",
+    "size": "265/70R17",
+    "price": 339.97,
+    "shop": "KRAVE"
+  },
+  {
+    "brand": "Yokohama",
+    "model": "Geolandar A/T4 G018",
+    "size": "275/70R17",
+    "price": 439.97,
+    "shop": "KRAVE"
+  },
+  {
+    "brand": "Yokohama",
+    "model": "Geolandar A/T4 G018",
+    "size": "285/70R17",
+    "price": 439.97,
+    "shop": "KRAVE"
+  },
+  {
+    "brand": "Yokohama",
+    "model": "Geolandar A/T4 G018",
+    "size": "285/75R17",
+    "price": 429.97,
+    "shop": "KRAVE"
+  },
+  {
+    "brand": "Yokohama",
+    "model": "Geolandar A/T4 G018",
+    "size": "295/70R17",
+    "price": 529.97,
+    "shop": "KRAVE"
+  },
+  {
+    "brand": "Yokohama",
+    "model": "Geolandar A/T4 G018",
+    "size": "315/70R17",
+    "price": 509.97,
+    "shop": "KRAVE"
+  },
+  {
+    "brand": "Yokohama",
+    "model": "Geolandar A/T4 G018",
+    "size": "265/70R18",
+    "price": 407.97,
+    "shop": "KRAVE"
+  },
+  {
+    "brand": "Yokohama",
+    "model": "Geolandar A/T4 G018",
+    "size": "275/70R18",
+    "price": 439.97,
+    "shop": "KRAVE"
+  },
+  {
+    "brand": "Yokohama",
+    "model": "Geolandar A/T4 G018",
+    "size": "285/65R18",
+    "price": 489.97,
+    "shop": "KRAVE"
+  },
+  {
+    "brand": "Yokohama",
+    "model": "Geolandar A/T4 G018",
+    "size": "285/75R18",
+    "price": 519.97,
+    "shop": "KRAVE"
+  },
+  {
+    "brand": "Yokohama",
+    "model": "Geolandar A/T4 G018",
+    "size": "35x12.50R18",
+    "price": 569.97,
+    "shop": "KRAVE"
+  },
+  {
+    "brand": "Yokohama",
+    "model": "iceGUARD G075",
+    "size": "265/65R17",
+    "price": 285.12,
+    "shop": "KRAVE"
+  },
+  {
+    "brand": "Yokohama",
+    "model": "iceGUARD G075",
+    "size": "265/70R17",
+    "price": 263.52,
+    "shop": "KRAVE"
+  },
+  {
+    "brand": "Yokohama",
+    "model": "iceGUARD G075",
+    "size": "265/60R18",
+    "price": 303.48,
+    "shop": "KRAVE"
+  },
+  {
+    "brand": "Yokohama",
+    "model": "iceGUARD G075",
+    "size": "285/60R18",
+    "price": 376.92,
+    "shop": "KRAVE"
+  },
+  {
+    "brand": "Yokohama",
+    "model": "iceGUARD G075",
+    "size": "LT315/70R17",
+    "price": 470.88,
+    "shop": "KRAVE"
+  },
+  {
+    "brand": "Yokohama",
+    "model": "A/T XD G017",
+    "size": "LT35X12.50R17",
+    "price": 534.6,
+    "shop": "KRAVE"
+  },
+  {
+    "brand": "Yokohama",
+    "model": "A/T XD G017",
+    "size": "LT285/70R17",
+    "price": 453.6,
+    "shop": "KRAVE"
+  },
+  {
+    "brand": "Yokohama",
+    "model": "A/T XD G017",
+    "size": "LT265/70R17",
+    "price": 398.52,
+    "shop": "KRAVE"
+  },
+  {
+    "brand": "Yokohama",
+    "model": "A/T XD G017",
+    "size": "LT35X12.50R18",
+    "price": 583.2,
+    "shop": "KRAVE"
+  },
+  {
+    "brand": "Yokohama",
+    "model": "A/T XD G017",
+    "size": "LT295/70R18",
+    "price": 529.2,
+    "shop": "KRAVE"
+  },
+  {
+    "brand": "Yokohama",
+    "model": "A/T XD G017",
+    "size": "LT285/75R18",
+    "price": 465.48,
+    "shop": "KRAVE"
+  },
+  {
+    "brand": "Yokohama",
+    "model": "A/T XD G017",
+    "size": "LT285/65R18",
+    "price": 488.16,
+    "shop": "KRAVE"
+  },
+  {
+    "brand": "Yokohama",
+    "model": "A/T XD G017",
+    "size": "LT275/70R18",
+    "price": 414.72,
+    "shop": "KRAVE"
+  },
+  {
+    "brand": "Yokohama",
+    "model": "A/T XD G017",
+    "size": "LT275/65R18",
+    "price": 442.8,
+    "shop": "KRAVE"
+  },
+  {
+    "brand": "Yokohama",
+    "model": "A/T XD G017",
+    "size": "LT265/65R18",
+    "price": 430.92,
+    "shop": "KRAVE"
+  },
+  {
+    "brand": "Yokohama",
+    "model": "A/T XD G017",
+    "size": "LT265/70R18",
+    "price": 416.88,
+    "shop": "KRAVE"
+  },
+  {
+    "brand": "Yokohama",
+    "model": "Geolandar X-AT",
+    "size": "285/70R17",
+    "price": 432.0,
+    "shop": "KRAVE"
+  },
+  {
+    "brand": "Yokohama",
+    "model": "Geolandar X-AT",
+    "size": "295/70R17",
+    "price": 491.4,
+    "shop": "KRAVE"
+  },
+  {
+    "brand": "Yokohama",
+    "model": "Geolandar X-AT",
+    "size": "35x12.50R17",
+    "price": 496.8,
+    "shop": "KRAVE"
+  },
+  {
+    "brand": "Yokohama",
+    "model": "Geolandar X-AT",
+    "size": "37x12.5R17",
+    "price": 540.0,
+    "shop": "KRAVE"
+  },
+  {
+    "brand": "Yokohama",
+    "model": "Geolandar X-AT",
+    "size": "265/70R17",
+    "price": 351.0,
+    "shop": "KRAVE"
+  }
+]

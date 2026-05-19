@@ -12,6 +12,7 @@ import subprocess
 import tempfile
 import time
 import re
+from typing import Optional
 
 
 SCRAPLING_BIN = "/opt/homebrew/bin/scrapling"
@@ -21,7 +22,7 @@ def _log(msg: str):
     print(msg, file=sys.stderr)
 
 
-def _try_firecrawl(url: str, output_format: str = "md") -> dict | None:
+def _try_firecrawl(url: str, output_format: str = "md") -> Optional[dict]:
     """Attempt scrape via Firecrawl. Returns result dict or None on failure."""
     api_key = os.environ.get("FIRECRAWL_API_KEY")
     if not api_key:
@@ -29,8 +30,12 @@ def _try_firecrawl(url: str, output_format: str = "md") -> dict | None:
     try:
         from firecrawl import FirecrawlApp
         app = FirecrawlApp(api_key=api_key)
-        result = app.scrape_url(url, params={"formats": ["markdown"]})
-        content = result.get("markdown", "") if isinstance(result, dict) else str(result)
+        result = app.scrape(url, formats=["markdown"])
+        content = ""
+        if hasattr(result, "markdown"):
+            content = result.markdown or ""
+        elif isinstance(result, dict):
+            content = result.get("markdown", "")
         if not content:
             _log(f"[firecrawl] empty response for {url}")
             return None

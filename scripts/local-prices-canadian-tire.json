@@ -1,0 +1,767 @@
+[
+  {
+    "brand": "Bridgestone",
+    "model": "Alenza Sport AS",
+    "size": "235/55R19",
+    "price": 377.49,
+    "shop": "Canadian Tire",
+    "price_note": "per tire (sale price)",
+    "source_url": "https://www.canadiantire.ca/en/pdp/235-55r19-sport-3085959p.2081927.html"
+  },
+  {
+    "brand": "Bridgestone",
+    "model": "Alenza Sport AS",
+    "size": "255/50R20",
+    "price": 377.49,
+    "shop": "Canadian Tire",
+    "price_note": "per tire (sale price)",
+    "source_url": "https://www.canadiantire.ca/en/pdp/255-50r20-sport-a-s-3085959p.2081935.html"
+  },
+  {
+    "brand": "Bridgestone",
+    "model": "Alenza Sport AS",
+    "size": "275/55R19",
+    "price": 664.99,
+    "shop": "Canadian Tire",
+    "price_note": "per tire (sale price)",
+    "source_url": "https://www.canadiantire.ca/en/pdp/275-55r19-111h-3085959p.3085527.html"
+  },
+  {
+    "brand": "Bridgestone",
+    "model": "Alenza Sport AS",
+    "size": "275/50R19",
+    "price": 441.49,
+    "shop": "Canadian Tire",
+    "price_note": "per tire (sale price)",
+    "source_url": "https://www.canadiantire.ca/en/pdp/275-50r19-112v-asp-3085959p.3085962.html"
+  },
+  {
+    "brand": "Bridgestone",
+    "model": "Alenza Sport AS",
+    "size": "235/50R21",
+    "price": 363.49,
+    "shop": "Canadian Tire",
+    "price_note": "per tire (sale price)",
+    "source_url": "https://www.canadiantire.ca/en/pdp/235-50r21-101v-alenz-3085959p.5082083.html"
+  },
+  {
+    "brand": "Bridgestone",
+    "model": "Alenza Sport AS",
+    "size": "255/55R20",
+    "price": 329.49,
+    "shop": "Canadian Tire",
+    "price_note": "per tire (sale price)",
+    "source_url": "https://www.canadiantire.ca/en/pdp/255-55r20-107h-alenz-3085959p.5084536.html"
+  },
+  {
+    "brand": "Bridgestone",
+    "model": "WeatherPeak",
+    "size": "235/50R18",
+    "price": 327.49,
+    "shop": "Canadian Tire",
+    "price_note": "per tire (sale price)",
+    "source_url": "https://www.canadiantire.ca/en/pdp/-p235-50r18-bs-wthpk-5081209p.5081245.html"
+  },
+  {
+    "brand": "Bridgestone",
+    "model": "WeatherPeak",
+    "size": "235/55R18",
+    "price": 301.49,
+    "shop": "Canadian Tire",
+    "price_note": "per tire (sale price)",
+    "source_url": "https://www.canadiantire.ca/en/pdp/-p235-55r18-bs-wthpk-5081209p.5081261.html"
+  },
+  {
+    "brand": "Bridgestone",
+    "model": "WeatherPeak",
+    "size": "235/55R20",
+    "price": 301.49,
+    "shop": "Canadian Tire",
+    "price_note": "per tire (sale price)",
+    "source_url": "https://www.canadiantire.ca/en/pdp/-p235-55r20-bs-wthpk-5081209p.5081252.html"
+  },
+  {
+    "brand": "Bridgestone",
+    "model": "WeatherPeak",
+    "size": "245/40R18",
+    "price": 335.49,
+    "shop": "Canadian Tire",
+    "price_note": "per tire (sale price)",
+    "source_url": "https://www.canadiantire.ca/en/pdp/-p245-40r18-bs-wthpk-5081209p.5081234.html"
+  },
+  {
+    "brand": "Bridgestone",
+    "model": "WeatherPeak",
+    "size": "215/45R17",
+    "price": 247.49,
+    "shop": "Canadian Tire",
+    "price_note": "per tire (sale price)",
+    "source_url": "https://www.canadiantire.ca/en/pdp/-p215-45r17-bs-wthpk-5081209p.5081219.html"
+  },
+  {
+    "brand": "Bridgestone",
+    "model": "WeatherPeak",
+    "size": "235/40R19",
+    "price": 357.49,
+    "shop": "Canadian Tire",
+    "price_note": "per tire (sale price)",
+    "source_url": "https://www.canadiantire.ca/en/pdp/-p235-40r19-bs-wthpk-5081209p.5081227.html"
+  },
+  {
+    "brand": "Bridgestone",
+    "model": "WeatherPeak",
+    "size": "195/65R15",
+    "price": 175.49,
+    "shop": "Canadian Tire",
+    "price_note": "per tire (sale price)",
+    "source_url": "https://www.canadiantire.ca/en/pdp/-p195-65r15-bs-wthpk-5081209p.5081212.html"
+  },
+  {
+    "brand": "Bridgestone",
+    "model": "WeatherPeak",
+    "size": "245/45R19",
+    "price": 371.99,
+    "shop": "Canadian Tire",
+    "price_note": "per tire (uninstalled)",
+    "source_url": "https://www.canadiantire.ca/en/pdp/-245-45r19-98v-weath-5081209p.5084721.html"
+  },
+  {
+    "brand": "Continental",
+    "model": "ExtremeContact DWS06 Plus",
+    "size": "255/35R19",
+    "price": 410.99,
+    "shop": "Canadian Tire",
+    "price_note": "per tire (uninstalled)",
+    "source_url": "https://www.canadiantire.ca/en/pdp/p255-35r19-dws06plus-0063017p.3021040.html"
+  },
+  {
+    "brand": "Continental",
+    "model": "ExtremeContact DWS06 Plus",
+    "size": "235/45R18",
+    "price": 333.99,
+    "shop": "Canadian Tire",
+    "price_note": "per tire (uninstalled)",
+    "source_url": "https://www.canadiantire.ca/en/pdp/p235-45r18-dws06plus-0063017p.1080114.html"
+  },
+  {
+    "brand": "Continental",
+    "model": "CrossContact LX Sport",
+    "size": "275/45R21",
+    "price": 570.99,
+    "shop": "Canadian Tire",
+    "price_note": "per tire (uninstalled)",
+    "source_url": "https://www.canadiantire.ca/en/pdp/275-45r21-cc-lx-sp-3080035p.3080085.html"
+  },
+  {
+    "brand": "Continental",
+    "model": "CrossContact LX Sport",
+    "size": "255/45R20",
+    "price": 532.99,
+    "shop": "Canadian Tire",
+    "price_note": "per tire (uninstalled)",
+    "source_url": "https://www.canadiantire.ca/en/pdp/255-45r20-lx-sport-3080035p.2087215.html"
+  },
+  {
+    "brand": "Continental",
+    "model": "CrossContact LX Sport",
+    "size": "235/55R19",
+    "price": 367.97,
+    "shop": "Canadian Tire",
+    "price_note": "per tire (uninstalled)",
+    "source_url": "https://www.canadiantire.ca/en/pdp/235-55r19-101h-lxs-3080035p.4088764.html"
+  },
+  {
+    "brand": "Continental",
+    "model": "CrossContact LX Sport",
+    "size": "285/40R22",
+    "price": 809.99,
+    "shop": "Canadian Tire",
+    "price_note": "per tire (uninstalled)",
+    "source_url": "https://www.canadiantire.ca/en/pdp/285-40r22-110y-lxsp-3080035p.4089457.html"
+  },
+  {
+    "brand": "Continental",
+    "model": "CrossContact LX Sport",
+    "size": "285/45R21",
+    "price": 732.99,
+    "shop": "Canadian Tire",
+    "price_note": "per tire (uninstalled)",
+    "source_url": "https://www.canadiantire.ca/en/pdp/285-45r21-113h-3080035p.5080110.html"
+  },
+  {
+    "brand": "Continental",
+    "model": "CrossContact LX Sport",
+    "size": "235/65R17",
+    "price": 351.99,
+    "shop": "Canadian Tire",
+    "price_note": "per tire (uninstalled)",
+    "source_url": "https://www.canadiantire.ca/en/pdp/235-65r17-lx-sport-3080035p.2087201.html"
+  },
+  {
+    "brand": "Continental",
+    "model": "CrossContact RX",
+    "size": "245/45R20",
+    "price": 570.99,
+    "shop": "Canadian Tire",
+    "price_note": "per tire (uninstalled)",
+    "source_url": "https://www.canadiantire.ca/en/pdp/-evp245-45r20-cc-rx-3080097p.3080097.html"
+  },
+  {
+    "brand": "Continental",
+    "model": "CrossContact RX",
+    "size": "255/65R19",
+    "price": 503.99,
+    "shop": "Canadian Tire",
+    "price_note": "per tire (uninstalled)",
+    "source_url": "https://www.canadiantire.ca/en/pdp/255-65r19-114v-3080097p.3086119.html"
+  },
+  {
+    "brand": "Continental",
+    "model": "CrossContact RX",
+    "size": "275/45R22",
+    "price": 793.99,
+    "shop": "Canadian Tire",
+    "price_note": "per tire (uninstalled)",
+    "source_url": "https://www.canadiantire.ca/en/pdp/275-45r22-cr-con-rx-3080097p.4080472.html"
+  },
+  {
+    "brand": "Continental",
+    "model": "CrossContact RX",
+    "size": "275/40R21",
+    "price": 689.99,
+    "shop": "Canadian Tire",
+    "price_note": "per tire (uninstalled)",
+    "source_url": "https://www.canadiantire.ca/en/pdp/p275-40r21-107h-cros-3080097p.5081994.html"
+  },
+  {
+    "brand": "Continental",
+    "model": "CrossContact RX",
+    "size": "235/55R19",
+    "price": 379.99,
+    "shop": "Canadian Tire",
+    "price_note": "per tire (uninstalled)",
+    "source_url": "https://www.canadiantire.ca/en/pdp/235-55r19-101h-cross-3080097p.5085092.html"
+  },
+  {
+    "brand": "Continental",
+    "model": "CrossContact RX",
+    "size": "255/45R21",
+    "price": 649.99,
+    "shop": "Canadian Tire",
+    "price_note": "per tire (uninstalled)",
+    "source_url": "https://www.canadiantire.ca/en/pdp/255-45r21-106v-cross-3080097p.5085103.html"
+  },
+  {
+    "brand": "Continental",
+    "model": "CrossContact RX",
+    "size": "255/45R20",
+    "price": 566.99,
+    "shop": "Canadian Tire",
+    "price_note": "per tire (uninstalled)",
+    "source_url": "https://www.canadiantire.ca/en/pdp/-evp255-45r20-cc-rx-3080097p.5084820.html"
+  },
+  {
+    "brand": "Firestone",
+    "model": "Destination LE3",
+    "size": "225/55R19",
+    "price": 301.99,
+    "shop": "Canadian Tire",
+    "price_note": "per tire (uninstalled)",
+    "source_url": "https://www.canadiantire.ca/en/pdp/recoded-to-3022415-3085677p.3085726.html"
+  },
+  {
+    "brand": "Firestone",
+    "model": "Destination LE3",
+    "size": "275/55R20",
+    "price": 311.99,
+    "shop": "Canadian Tire",
+    "price_note": "per tire (uninstalled)",
+    "source_url": "https://www.canadiantire.ca/en/pdp/recoded-to-2022145-3085677p.3085737.html"
+  },
+  {
+    "brand": "Firestone",
+    "model": "Destination LE3",
+    "size": "225/75R16",
+    "price": 242.99,
+    "shop": "Canadian Tire",
+    "price_note": "per tire (uninstalled)",
+    "source_url": "https://www.canadiantire.ca/en/pdp/225-75r16-104t-le3-3085677p.3085682.html"
+  },
+  {
+    "brand": "Firestone",
+    "model": "Destination LE3",
+    "size": "215/65R16",
+    "price": 228.99,
+    "shop": "Canadian Tire",
+    "price_note": "per tire (uninstalled)",
+    "source_url": "https://www.canadiantire.ca/en/pdp/215-65r16-98h-le3-3085677p.3085693.html"
+  },
+  {
+    "brand": "Firestone",
+    "model": "Destination LE3",
+    "size": "255/65R17",
+    "price": 306.99,
+    "shop": "Canadian Tire",
+    "price_note": "per tire (uninstalled)",
+    "source_url": "https://www.canadiantire.ca/en/pdp/255-65r17-110t-le3-3085677p.3085704.html"
+  },
+  {
+    "brand": "Firestone",
+    "model": "Destination LE3",
+    "size": "255/65R18",
+    "price": 283.99,
+    "shop": "Canadian Tire",
+    "price_note": "per tire (uninstalled)",
+    "source_url": "https://www.canadiantire.ca/en/pdp/recode-to-1087660-3085677p.3085714.html"
+  },
+  {
+    "brand": "Firestone",
+    "model": "Destination LE3",
+    "size": "235/65R18",
+    "price": 274.99,
+    "shop": "Canadian Tire",
+    "price_note": "per tire (uninstalled)",
+    "source_url": "https://www.canadiantire.ca/en/pdp/recode-to-1087663-3085677p.5082090.html"
+  },
+  {
+    "brand": "Firestone",
+    "model": "Weathergrip",
+    "size": "225/50R17",
+    "price": 208.0,
+    "shop": "Canadian Tire",
+    "price_note": "per tire (uninstalled)",
+    "source_url": "https://www.canadiantire.ca/en/pdp/-225-50r17-94h-3085641p.3085660.html"
+  },
+  {
+    "brand": "Firestone",
+    "model": "Weathergrip",
+    "size": "225/50R18",
+    "price": 277.99,
+    "shop": "Canadian Tire",
+    "price_note": "per tire (uninstalled)",
+    "source_url": "https://www.canadiantire.ca/en/pdp/-225-50r18-fs-wg-3085641p.4087526.html"
+  },
+  {
+    "brand": "Firestone",
+    "model": "Weathergrip",
+    "size": "235/40R19",
+    "price": 338.99,
+    "shop": "Canadian Tire",
+    "price_note": "per tire (uninstalled)",
+    "source_url": "https://www.canadiantire.ca/en/pdp/-235-40r19-fs-wg-3085641p.4087534.html"
+  },
+  {
+    "brand": "Firestone",
+    "model": "Weathergrip",
+    "size": "225/45R18",
+    "price": 287.99,
+    "shop": "Canadian Tire",
+    "price_note": "per tire (uninstalled)",
+    "source_url": "https://www.canadiantire.ca/en/pdp/-225-45r18-fs-wg-3085641p.0081870.html"
+  },
+  {
+    "brand": "Firestone",
+    "model": "Weathergrip",
+    "size": "225/65R16",
+    "price": 224.99,
+    "shop": "Canadian Tire",
+    "price_note": "per tire (uninstalled)",
+    "source_url": "https://www.canadiantire.ca/en/pdp/-225-65r16-fs-wg-3085641p.0087769.html"
+  },
+  {
+    "brand": "Firestone",
+    "model": "Weathergrip",
+    "size": "235/55R18",
+    "price": 292.99,
+    "shop": "Canadian Tire",
+    "price_note": "per tire (uninstalled)",
+    "source_url": "https://www.canadiantire.ca/en/pdp/-p235-55r18-wthrgrip-3085641p.1080132.html"
+  },
+  {
+    "brand": "Firestone",
+    "model": "Weathergrip",
+    "size": "215/60R16",
+    "price": 190.99,
+    "shop": "Canadian Tire",
+    "price_note": "per tire (uninstalled)",
+    "source_url": "https://www.canadiantire.ca/en/pdp/-215-60r16-95h-3085641p.3085650.html"
+  },
+  {
+    "brand": "Firestone",
+    "model": "Weathergrip",
+    "size": "185/55R15",
+    "price": 191.99,
+    "shop": "Canadian Tire",
+    "price_note": "per tire (uninstalled)",
+    "source_url": "https://www.canadiantire.ca/en/pdp/-185-55r15-82vv-3085641p.5081207.html"
+  },
+  {
+    "brand": "Hankook",
+    "model": "Kinergy GT",
+    "size": "225/55R17",
+    "price": 299.99,
+    "shop": "Canadian Tire",
+    "price_note": "per tire (uninstalled)",
+    "source_url": "https://www.canadiantire.ca/en/pdp/225-55r17-kinergy-gt-4080100p.0087700.html"
+  },
+  {
+    "brand": "Hankook",
+    "model": "Kinergy GT",
+    "size": "215/65R16",
+    "price": 262.99,
+    "shop": "Canadian Tire",
+    "price_note": "per tire (uninstalled)",
+    "source_url": "https://www.canadiantire.ca/en/pdp/215-65r16-kin-gt-4080100p.2086915.html"
+  },
+  {
+    "brand": "Hankook",
+    "model": "Kinergy GT",
+    "size": "225/55R18",
+    "price": 297.99,
+    "shop": "Canadian Tire",
+    "price_note": "per tire (uninstalled)",
+    "source_url": "https://www.canadiantire.ca/en/pdp/225-55r18-kin-gt-4080100p.2086919.html"
+  },
+  {
+    "brand": "Hankook",
+    "model": "Kinergy GT",
+    "size": "225/60R17",
+    "price": 282.99,
+    "shop": "Canadian Tire",
+    "price_note": "per tire (uninstalled)",
+    "source_url": "https://www.canadiantire.ca/en/pdp/225-60r17-99h-h436-4080100p.4080102.html"
+  },
+  {
+    "brand": "Hankook",
+    "model": "Kinergy GT",
+    "size": "225/45R17",
+    "price": 309.99,
+    "shop": "Canadian Tire",
+    "price_note": "per tire (uninstalled)",
+    "source_url": "https://www.canadiantire.ca/en/pdp/225-45r17-91w-h436-4080100p.4080106.html"
+  },
+  {
+    "brand": "Hankook",
+    "model": "Kinergy GT",
+    "size": "215/55R17",
+    "price": 298.99,
+    "shop": "Canadian Tire",
+    "price_note": "per tire (uninstalled)",
+    "source_url": "https://www.canadiantire.ca/en/pdp/215-55r17v-h436-4080100p.4081596.html"
+  },
+  {
+    "brand": "Hankook",
+    "model": "Kinergy GT",
+    "size": "225/60R18",
+    "price": 361.99,
+    "shop": "Canadian Tire",
+    "price_note": "per tire (uninstalled)",
+    "source_url": "https://www.canadiantire.ca/en/pdp/225-60r18-xl-104h-h4-4080100p.4083894.html"
+  },
+  {
+    "brand": "Hankook",
+    "model": "Ventus S1 noble2",
+    "size": "225/40R18",
+    "price": 351.99,
+    "shop": "Canadian Tire",
+    "price_note": "per tire (uninstalled)",
+    "source_url": "https://www.canadiantire.ca/en/pdp/225-40r18h-xl-h452-4080109p.4082509.html"
+  },
+  {
+    "brand": "Hankook",
+    "model": "Ventus S1 noble2",
+    "size": "245/45R18",
+    "price": 428.99,
+    "shop": "Canadian Tire",
+    "price_note": "per tire (uninstalled)",
+    "source_url": "https://www.canadiantire.ca/en/pdp/245-45r18-100h-h452b-4080109p.4083901.html"
+  },
+  {
+    "brand": "Hankook",
+    "model": "Ventus S1 noble2",
+    "size": "255/45R19",
+    "price": 419.99,
+    "shop": "Canadian Tire",
+    "price_note": "per tire (uninstalled)",
+    "source_url": "https://www.canadiantire.ca/en/pdp/255-45r19h-4080109p.4086206.html"
+  },
+  {
+    "brand": "Hankook",
+    "model": "Ventus S1 noble2",
+    "size": "255/50R20",
+    "price": 512.99,
+    "shop": "Canadian Tire",
+    "price_note": "per tire (uninstalled)",
+    "source_url": "https://www.canadiantire.ca/en/pdp/255-50r20h-4080109p.4086651.html"
+  },
+  {
+    "brand": "Hankook",
+    "model": "Ventus S1 noble2",
+    "size": "225/45R18",
+    "price": 335.99,
+    "shop": "Canadian Tire",
+    "price_note": "per tire (uninstalled)",
+    "source_url": "https://www.canadiantire.ca/en/pdp/225-45r18-s1-noble2-4080109p.0087732.html"
+  },
+  {
+    "brand": "Michelin",
+    "model": "Defender LTX M/S2",
+    "size": "265/50R20",
+    "price": 400.99,
+    "shop": "Canadian Tire",
+    "price_note": "per tire (uninstalled)",
+    "source_url": "https://www.canadiantire.ca/en/pdp/p265-50r20-defltx-0074955p.2022117.html"
+  },
+  {
+    "brand": "Michelin",
+    "model": "Defender LTX M/S2",
+    "size": "245/75R17",
+    "price": 421.99,
+    "shop": "Canadian Tire",
+    "price_note": "per tire (uninstalled)",
+    "source_url": "https://www.canadiantire.ca/en/pdp/245-75r17-116t-defen-0074955p.5084412.html"
+  },
+  {
+    "brand": "Michelin",
+    "model": "Defender LTX M/S2",
+    "size": "255/75R17",
+    "price": 440.99,
+    "shop": "Canadian Tire",
+    "price_note": "per tire (uninstalled)",
+    "source_url": "https://www.canadiantire.ca/en/pdp/255-75r17-116t-defen-0074955p.5084418.html"
+  },
+  {
+    "brand": "Michelin",
+    "model": "Defender LTX M/S2",
+    "size": "265/70R16",
+    "price": 383.99,
+    "shop": "Canadian Tire",
+    "price_note": "per tire (uninstalled)",
+    "source_url": "https://www.canadiantire.ca/en/pdp/265-70r16-116t-defen-0074955p.5084424.html"
+  },
+  {
+    "brand": "Michelin",
+    "model": "Defender LTX M/S2",
+    "size": "305/45R22",
+    "price": 627.99,
+    "shop": "Canadian Tire",
+    "price_note": "per tire (uninstalled)",
+    "source_url": "https://www.canadiantire.ca/en/pdp/305-45r22-118h-defen-0074955p.5084431.html"
+  },
+  {
+    "brand": "Michelin",
+    "model": "Defender LTX M/S2",
+    "size": "255/60R20",
+    "price": 432.99,
+    "shop": "Canadian Tire",
+    "price_note": "per tire (uninstalled)",
+    "source_url": "https://www.canadiantire.ca/en/pdp/255-60r20-ltx-m-s-2-0074955p.5085014.html"
+  },
+  {
+    "brand": "Pirelli",
+    "model": "P Zero AS Plus 3",
+    "size": "215/45R18",
+    "price": 231.99,
+    "shop": "Canadian Tire",
+    "price_note": "per tire (sale price)",
+    "source_url": "https://www.canadiantire.ca/en/pdp/215-45r18-pzero-all-5082339p.5082341.html"
+  },
+  {
+    "brand": "Pirelli",
+    "model": "P Zero AS Plus 3",
+    "size": "225/45R19",
+    "price": 268.99,
+    "shop": "Canadian Tire",
+    "price_note": "per tire (sale price)",
+    "source_url": "https://www.canadiantire.ca/en/pdp/225-45r19-pzero-all-5082339p.5082363.html"
+  },
+  {
+    "brand": "Pirelli",
+    "model": "P Zero AS Plus 3",
+    "size": "235/35R19",
+    "price": 306.99,
+    "shop": "Canadian Tire",
+    "price_note": "per tire (sale price)",
+    "source_url": "https://www.canadiantire.ca/en/pdp/235-35r19-pzero-all-5082339p.5082351.html"
+  },
+  {
+    "brand": "Pirelli",
+    "model": "P Zero AS Plus 3",
+    "size": "235/50R18",
+    "price": 255.99,
+    "shop": "Canadian Tire",
+    "price_note": "per tire (sale price)",
+    "source_url": "https://www.canadiantire.ca/en/pdp/235-50r18-pzero-all-5082339p.5082349.html"
+  },
+  {
+    "brand": "Pirelli",
+    "model": "P Zero AS Plus 3",
+    "size": "245/40R20",
+    "price": 374.99,
+    "shop": "Canadian Tire",
+    "price_note": "per tire (sale price)",
+    "source_url": "https://www.canadiantire.ca/en/pdp/245-40r20-pzero-all-5082339p.5082367.html"
+  },
+  {
+    "brand": "Pirelli",
+    "model": "P Zero AS Plus 3",
+    "size": "245/55R18",
+    "price": 324.99,
+    "shop": "Canadian Tire",
+    "price_note": "per tire (sale price)",
+    "source_url": "https://www.canadiantire.ca/en/pdp/245-55r18-pzero-all-5082339p.5082361.html"
+  },
+  {
+    "brand": "Pirelli",
+    "model": "P Zero AS Plus 3",
+    "size": "255/40R19",
+    "price": 335.99,
+    "shop": "Canadian Tire",
+    "price_note": "per tire (sale price)",
+    "source_url": "https://www.canadiantire.ca/en/pdp/255-40r19-pzero-all-5082339p.5082358.html"
+  },
+  {
+    "brand": "Pirelli",
+    "model": "P Zero AS Plus 3",
+    "size": "275/35R20",
+    "price": 383.99,
+    "shop": "Canadian Tire",
+    "price_note": "per tire (sale price)",
+    "source_url": "https://www.canadiantire.ca/en/pdp/275-35r20-pzero-all-5082339p.5082366.html"
+  },
+  {
+    "brand": "Pirelli",
+    "model": "Scorpion Zero All Season",
+    "size": "275/45R21",
+    "price": 589.49,
+    "shop": "Canadian Tire",
+    "price_note": "per tire (sale price)",
+    "source_url": "https://www.canadiantire.ca/en/pdp/275-45r21-110w-slr-4082545p.4085198.html"
+  },
+  {
+    "brand": "Pirelli",
+    "model": "Scorpion Zero All Season",
+    "size": "245/60R18",
+    "price": 268.49,
+    "shop": "Canadian Tire",
+    "price_note": "per tire (sale price)",
+    "source_url": "https://www.canadiantire.ca/en/pdp/245-60r18-105h-4082545p.4087708.html"
+  },
+  {
+    "brand": "Pirelli",
+    "model": "Scorpion Zero All Season",
+    "size": "255/40R20",
+    "price": 431.49,
+    "shop": "Canadian Tire",
+    "price_note": "per tire (sale price)",
+    "source_url": "https://www.canadiantire.ca/en/pdp/-ev-255-40r20-sz-a-s-4082545p.2081256.html"
+  },
+  {
+    "brand": "Pirelli",
+    "model": "Scorpion Zero All Season",
+    "size": "235/50R19",
+    "price": 471.49,
+    "shop": "Canadian Tire",
+    "price_note": "per tire (sale price)",
+    "source_url": "https://www.canadiantire.ca/en/pdp/-ev-235-50r19-sp-zr-4082545p.4083606.html"
+  },
+  {
+    "brand": "Pirelli",
+    "model": "Scorpion Zero All Season",
+    "size": "255/50R19",
+    "price": 390.49,
+    "shop": "Canadian Tire",
+    "price_note": "per tire (sale price)",
+    "source_url": "https://www.canadiantire.ca/en/pdp/255-50r19-107h-zroas-4082545p.4085190.html"
+  },
+  {
+    "brand": "Pirelli",
+    "model": "Scorpion Zero All Season",
+    "size": "235/50R20",
+    "price": 601.49,
+    "shop": "Canadian Tire",
+    "price_note": "per tire (sale price)",
+    "source_url": "https://www.canadiantire.ca/en/pdp/-evp235-50r20-scorpi-4082545p.5084372.html"
+  },
+  {
+    "brand": "Pirelli",
+    "model": "Scorpion Zero All Season",
+    "size": "285/45R21",
+    "price": 921.49,
+    "shop": "Canadian Tire",
+    "price_note": "per tire (sale price)",
+    "source_url": "https://www.canadiantire.ca/en/pdp/285-45r21-113v-scorp-4082545p.5085517.html"
+  },
+  {
+    "brand": "Yokohama",
+    "model": "Geolandar X-CV",
+    "size": "245/45R21",
+    "price": 626.99,
+    "shop": "Canadian Tire",
+    "price_note": "per tire (uninstalled)",
+    "source_url": "https://www.canadiantire.ca/en/pdp/245-45r21-104w-geola-4087374p.5084105.html"
+  },
+  {
+    "brand": "Yokohama",
+    "model": "Geolandar X-CV",
+    "size": "235/45R19",
+    "price": 349.99,
+    "shop": "Canadian Tire",
+    "price_note": "per tire (uninstalled)",
+    "source_url": "https://www.canadiantire.ca/en/pdp/235-45r19-99w-xcv-4087374p.4087375.html"
+  },
+  {
+    "brand": "Yokohama",
+    "model": "Geolandar X-CV",
+    "size": "265/50R19",
+    "price": 398.99,
+    "shop": "Canadian Tire",
+    "price_note": "per tire (uninstalled)",
+    "source_url": "https://www.canadiantire.ca/en/pdp/265-50r19-110w-xcv-4087374p.4087379.html"
+  },
+  {
+    "brand": "Yokohama",
+    "model": "Geolandar X-CV",
+    "size": "255/50R20",
+    "price": 382.99,
+    "shop": "Canadian Tire",
+    "price_note": "per tire (uninstalled)",
+    "source_url": "https://www.canadiantire.ca/en/pdp/255-50r20-109w-xcv-4087374p.4087383.html"
+  },
+  {
+    "brand": "Yokohama",
+    "model": "Geolandar X-CV",
+    "size": "275/40R20",
+    "price": 437.99,
+    "shop": "Canadian Tire",
+    "price_note": "per tire (uninstalled)",
+    "source_url": "https://www.canadiantire.ca/en/pdp/275-40r20-106w-xcv-4087374p.4087387.html"
+  },
+  {
+    "brand": "Yokohama",
+    "model": "Geolandar X-CV",
+    "size": "275/40R21",
+    "price": 496.99,
+    "shop": "Canadian Tire",
+    "price_note": "per tire (uninstalled)",
+    "source_url": "https://www.canadiantire.ca/en/pdp/275-40r21-107w-xcv-4087374p.4087391.html"
+  },
+  {
+    "brand": "Yokohama",
+    "model": "Geolandar X-CV",
+    "size": "265/40R22",
+    "price": 516.99,
+    "shop": "Canadian Tire",
+    "price_note": "per tire (uninstalled)",
+    "source_url": "https://www.canadiantire.ca/en/pdp/265-40r22-106w-xcv-4087374p.4087395.html"
+  },
+  {
+    "brand": "Yokohama",
+    "model": "Geolandar X-CV",
+    "size": "285/45R20",
+    "price": 632.99,
+    "shop": "Canadian Tire",
+    "price_note": "per tire (uninstalled)",
+    "source_url": "https://www.canadiantire.ca/en/pdp/285-45r20-112-0w-4087374p.5080953.html"
+  }
+]

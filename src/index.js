@@ -4,7 +4,7 @@ import { execSync } from 'node:child_process';
 import { randomUUID, randomBytes, createHash } from 'node:crypto';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
-import { readFileSync, writeFileSync, mkdirSync, renameSync, statSync, watch } from 'node:fs';
+import { readFileSync, writeFileSync, mkdirSync, renameSync, statSync, existsSync, watch } from 'node:fs';
 
 // ---------------------------------------------------------------------------
 // Config
@@ -83,10 +83,10 @@ process.on('unhandledRejection', (reason) => {
 
 const MODEL_CONFIG = {
   // Anthropic
-  'claude-opus-4-7':           { maxTokens: 128000, adaptive: true,  provider: 'anthropic', contextWindow: 200000 },
-  'claude-opus-4-6':           { maxTokens: 128000, adaptive: true,  provider: 'anthropic', contextWindow: 200000 },
-  'claude-sonnet-4-6':         { maxTokens: 64000,  adaptive: true,  provider: 'anthropic', contextWindow: 200000 },
-  'claude-haiku-4-5-20251001': { maxTokens: 64000,  adaptive: false, provider: 'anthropic', contextWindow: 200000 },
+  'claude-opus-4-7':           { maxTokens: 128000, adaptive: true,  provider: 'anthropic', contextWindow: 1000000 },
+  'claude-opus-4-6':           { maxTokens: 128000, adaptive: true,  provider: 'anthropic', contextWindow: 1000000 },
+  'claude-sonnet-4-6':         { maxTokens: 64000,  adaptive: true,  provider: 'anthropic', contextWindow: 1000000 },
+  'claude-haiku-4-5-20251001': { maxTokens: 64000,  adaptive: false, provider: 'anthropic', contextWindow: 1000000 },
   // OpenAI (Codex) — ordered fastest to slowest
   'gpt-5.4-mini':       { maxTokens: 64000,  adaptive: false, provider: 'openai', contextWindow: 200000 },
   'gpt-5.4':            { maxTokens: 128000, adaptive: false, provider: 'openai', contextWindow: 200000 },
@@ -153,7 +153,7 @@ function trackNarration(sessionKey, hadToolUse, text) {
 function resolveModel(model) {
   const clean = model.includes('/') ? model.split('/').pop() : model;
   const resolved = MODEL_MAP[clean];
-  if (resolved) return { modelId: resolved, ...(MODEL_CONFIG[resolved] || { maxTokens: 64000, adaptive: false, provider: 'anthropic', contextWindow: 200000 }) };
+  if (resolved) return { modelId: resolved, ...(MODEL_CONFIG[resolved] || { maxTokens: 64000, adaptive: false, provider: 'anthropic', contextWindow: 1000000 }) };
   return { modelId: 'claude-sonnet-4-6', ...MODEL_CONFIG['claude-sonnet-4-6'] };
 }
 
@@ -584,6 +584,57 @@ function refreshOpenAIToken(entry) {
 }
 
 // ---------------------------------------------------------------------------
+// Image handling — save base64 images to temp files for agent vision
+// ---------------------------------------------------------------------------
+
+const SUBSTATION_IMG_DIR = '/tmp/substation-images';
+try { mkdirSync(SUBSTATION_IMG_DIR, { recursive: true }); } catch {}
+
+function extractImageBlocks(contentArray) {
+  const images = [];
+  if (!Array.isArray(contentArray)) return images;
+  for (const block of contentArray) {
+    if (block.type === 'image_url' && block.image_url?.url) {
+      const match = block.image_url.url.match(/^data:(image\/\w+);base64,(.+)$/s);
+      if (match) {
+        images.push({ mediaType: match[1], data: match[2] });
+      } else {
+        images.push({ url: block.image_url.url });
+      }
+    } else if (block.type === 'image' && block.source?.data) {
+      images.push({ mediaType: block.source.media_type || 'image/png', data: block.source.data });
+    }
+  }
+  return images;
+}
+
+function saveImageToTmp(imageBlock) {
+  const ext = (imageBlock.mediaType || 'image/png').split('/')[1] || 'png';
+  const filename = `img-${randomUUID().slice(0, 8)}.${ext}`;
+  const filepath = join(SUBSTATION_IMG_DIR, filename);
+  if (imageBlock.data) {
+    writeFileSync(filepath, Buffer.from(imageBlock.data, 'base64'));
+  }
+  return filepath;
+}
+
+function convertImageToAnthropic(imageBlock) {
+  if (imageBlock.data) {
+    return {
+      type: 'image',
+      source: { type: 'base64', media_type: imageBlock.mediaType || 'image/png', data: imageBlock.data },
+    };
+  }
+  if (imageBlock.url) {
+    return {
+      type: 'image',
+      source: { type: 'url', url: imageBlock.url },
+    };
+  }
+  return null;
+}
+
+// ---------------------------------------------------------------------------
 // Message conversion — OpenAI chat format → provider-native format
 // ---------------------------------------------------------------------------
 
@@ -596,16 +647,25 @@ function convertForAnthropic(openaiMessages) {
   const messages = [];
 
   for (const m of openaiMessages) {
-    const content = Array.isArray(m.content)
+    const textContent = Array.isArray(m.content)
       ? m.content.filter(b => b.type === 'text').map(b => b.text).join('\n')
       : (m.content || '');
+    const imageBlocks = extractImageBlocks(m.content);
 
     if (m.role === 'system') {
-      systemBlocks.push({ type: 'text', text: content });
+      systemBlocks.push({ type: 'text', text: textContent });
     } else {
+      const contentBlocks = [];
+      if (textContent) contentBlocks.push({ type: 'text', text: textContent });
+      for (const img of imageBlocks) {
+        const converted = convertImageToAnthropic(img);
+        if (converted) contentBlocks.push(converted);
+      }
       messages.push({
         role: m.role === 'user' ? 'user' : 'assistant',
-        content,
+        content: contentBlocks.length === 1 && contentBlocks[0].type === 'text'
+          ? contentBlocks[0].text
+          : contentBlocks.length > 0 ? contentBlocks : textContent || '(empty)',
       });
     }
   }
@@ -614,11 +674,18 @@ function convertForAnthropic(openaiMessages) {
   if (messages.length > 0 && messages[0].role === 'assistant') {
     messages.unshift({ role: 'user', content: '(continue)' });
   }
-  // Merge consecutive same-role messages
+  // Merge consecutive same-role messages (text-only merge; multimodal stays separate)
   const merged = [];
   for (const msg of messages) {
     if (merged.length > 0 && merged[merged.length - 1].role === msg.role) {
-      merged[merged.length - 1].content += '\n\n' + msg.content;
+      const prev = merged[merged.length - 1];
+      if (typeof prev.content === 'string' && typeof msg.content === 'string') {
+        prev.content += '\n\n' + msg.content;
+      } else {
+        const prevBlocks = typeof prev.content === 'string' ? [{ type: 'text', text: prev.content }] : prev.content;
+        const newBlocks = typeof msg.content === 'string' ? [{ type: 'text', text: msg.content }] : msg.content;
+        prev.content = [...prevBlocks, ...newBlocks];
+      }
     } else {
       merged.push({ ...msg });
     }
@@ -1140,8 +1207,8 @@ function makeAnthropicDirectRequest(bodyStr, tokenEntry, onDelta) {
         'anthropic-beta': ANTHROPIC_BETA_HEADERS,
         // Claude Code identity headers — required for OAuth tokens
         'anthropic-client-type': 'claude-code',
-        'anthropic-client-version': '1.0.33',
-        'User-Agent': 'claude-code/1.0.33',
+        'anthropic-client-version': '2.1.114',
+        'User-Agent': 'claude-code/2.1.114',
         'Content-Length': Buffer.byteLength(bodyStr),
       },
     };
@@ -1242,53 +1309,24 @@ async function invokeClaudeDirect(openaiMessages, modelInfo, tokenAffinity, onDe
 
 // Warm session pool — keyed by "model:tokenId", LRU rotation
 // Each Anthropic OAuth token gets its own persistent session per model
-const warmSessions = new Map(); // "model:tokenId" → { session, tokenId, lastUsed, active, cooldownUntil }
 let anthropicRRIndex = 0; // Round-robin counter for Anthropic token selection
 
-async function getOrCreateSession(model, tokenId, oauthToken) {
-  const key = `${model}:${tokenId}`;
-  const existing = warmSessions.get(key);
-  if (existing) {
-    // If session is null (stored during rate-limit cooldown), clear it and create fresh
-    if (!existing.session) {
-      warmSessions.delete(key);
-    } else {
-      existing.lastUsed = Date.now();
-      return existing.session;
-    }
-  }
-
+async function querySDK(model, tokenId, oauthToken, prompt) {
   const sdk = await loadAgentSDK();
-  log(`Creating persistent session for ${model} with token ${tokenId} (first request slow, then instant)...`);
-
-  // Pass the specific OAuth token via env so each session uses its own account
-  const sessionEnv = { ...process.env };
+  log(`SDK query (model=${model}, token=${tokenId})...`);
+  const queryEnv = { ...process.env };
   if (oauthToken) {
-    sessionEnv.CLAUDE_CODE_OAUTH_TOKEN = oauthToken;
+    queryEnv.CLAUDE_CODE_OAUTH_TOKEN = oauthToken;
   }
-  const session = sdk.unstable_v2_createSession({
-    model,
-    permissionMode: 'bypassPermissions',
-    allowDangerouslySkipPermissions: true,
-    pathToClaudeCodeExecutable: process.env.CLAUDE_BIN || '/opt/homebrew/lib/node_modules/@anthropic-ai/claude-code/bin/claude.exe',
-    env: sessionEnv,
+  return sdk.query({
+    prompt,
+    options: {
+      model,
+      permissionMode: 'bypassPermissions',
+      maxTurns: 20,
+      env: queryEnv,
+    },
   });
-  log(`Session created for ${key} with token ${tokenId}`);
-  const entry = { session, tokenId, lastUsed: Date.now(), active: 0, cooldownUntil: null };
-  warmSessions.set(key, entry);
-
-  // Auto-close idle sessions
-  const interval = setInterval(() => {
-    const e = warmSessions.get(key);
-    if (e && Date.now() - e.lastUsed > SESSION_IDLE_TIMEOUT) {
-      log(`Closing idle session ${key}`);
-      try { e.session.close(); } catch {}
-      warmSessions.delete(key);
-      clearInterval(interval);
-    }
-  }, 60000);
-
-  return session;
 }
 
 function selectAnthropicToken() {
@@ -1298,12 +1336,8 @@ function selectAnthropicToken() {
 
   const now = Date.now();
 
-  // Filter to tokens not in cooldown (pool cooldownUntil OR warmSessions cooldown)
   const available = tokens.filter(t => {
     if (t.cooldownUntil && t.cooldownUntil > now) return false;
-    for (const [, e] of warmSessions) {
-      if (e.tokenId === t.id && e.cooldownUntil && e.cooldownUntil > now) return false;
-    }
     return true;
   });
 
@@ -1326,22 +1360,73 @@ function selectAnthropicToken() {
 // Format OpenAI-style messages into a single prompt string for the Agent SDK session.
 // Preserves system prompts (operator identity/personality), full conversation history,
 // and tool results so Claude has complete context — not just the last user message.
+function rewriteGatewayVisionRefs(text) {
+  // Gateway text-mode vision enrichment injects patterns like:
+  //   [The user sent an image~ Here's what I can see:\n{description}]\n
+  //   [If you need a closer look, use vision_analyze with image_url: /path/to/file ~]
+  // The vision description is often wrong (analyzed without conversation context).
+  // Replace the whole block with a direct Read reference to the cached image file.
+  const patterns = [
+    // Gateway v2 format: "sent an image~" ... "vision_analyze with image_url: PATH"
+    /\[The user sent an image~[^\]]*\]\s*\[If you need a closer look, use vision_analyze with image_url:\s*([^\s~\]]+)\s*~?\]/gs,
+    // Gateway fallback format: "sent an image but" ... "vision_analyze using image_url: PATH"
+    /\[The user sent an image but[^\]]*vision_analyze (?:using|with) image_url:\s*([^\s\]~]+)\s*~?\]/gs,
+    // Older format: "attached an image. Here's what it contains:" ... inlined description
+    /\[The user attached an image\. Here's what it contains:\n[^\]]*\]\s*(?:\[If you need a closer look[^\]]*image_url:\s*([^\s\]~]+)[^\]]*\])?/gs,
+  ];
+  let result = text;
+  for (const pattern of patterns) {
+    result = result.replace(pattern, (match, path) => {
+      if (path && existsSync(path)) {
+        log(`Rewrote gateway vision ref → direct Read reference: ${path}`);
+        return `[The user attached an image. It has been saved to ${path} — use the Read tool to view it.]`;
+      }
+      // If the path doesn't exist or wasn't captured, try extracting from the full match
+      const fallbackMatch = match.match(/image_url:\s*([^\s\]~]+)/);
+      if (fallbackMatch && fallbackMatch[1] && existsSync(fallbackMatch[1])) {
+        log(`Rewrote gateway vision ref (fallback) → direct Read reference: ${fallbackMatch[1]}`);
+        return `[The user attached an image. It has been saved to ${fallbackMatch[1]} — use the Read tool to view it.]`;
+      }
+      return match; // can't find file, keep original description
+    });
+  }
+  return result;
+}
+
 function formatMessagesForSDK(openaiMessages) {
   const parts = [];
   const systemParts = [];
   const conversationParts = [];
 
   for (const msg of openaiMessages) {
-    const text = Array.isArray(msg.content)
+    let text = Array.isArray(msg.content)
       ? msg.content.filter(b => b.type === 'text').map(b => b.text).join('\n')
       : (msg.content || '');
 
-    if (!text.trim()) continue;
+    // Rewrite gateway vision-enrichment blocks to direct file references
+    // so the agent can Read the actual image instead of trusting a lossy description
+    text = rewriteGatewayVisionRefs(text);
+
+    // Extract and save images to temp files so the agent can view them via Read tool
+    const imageBlocks = extractImageBlocks(msg.content);
+    let imageRefs = '';
+    for (const img of imageBlocks) {
+      if (img.data) {
+        const filepath = saveImageToTmp(img);
+        imageRefs += `\n[The user attached an image. It has been saved to ${filepath} — use the Read tool to view it.]`;
+        log(`Saved user image to ${filepath} (${img.mediaType}, ${Math.round(img.data.length / 1024)}KB base64)`);
+      } else if (img.url) {
+        imageRefs += `\n[The user attached an image: ${img.url}]`;
+      }
+    }
+
+    const fullText = (text + imageRefs).trim();
+    if (!fullText) continue;
 
     if (msg.role === 'system') {
       systemParts.push(text);
     } else {
-      conversationParts.push({ role: msg.role, text });
+      conversationParts.push({ role: msg.role, text: fullText });
     }
   }
 
@@ -1409,101 +1494,68 @@ async function invokeClaudeSDK(openaiMessages, modelInfo, onDelta, tokenAffinity
     markRequestStart(token);
 
     try {
-      const session = await getOrCreateSession(model, token.id, token.token);
+      const iter = await querySDK(model, token.id, token.token, prompt);
 
-      // Idle timeout — resets on each stream message, extends during tool execution
-      let idleTimer;
-      let idleReject;
-      let toolRunning = false;
+      let text = '';
+      let usage = {};
       let hadToolUse = false;
-      const IDLE_TIMEOUT = 120000;         // 120s for text/thinking (Opus needs >30s for deep reasoning)
-      const TOOL_IDLE_TIMEOUT = 900000;    // 15min for tool execution (deploys, builds, long commands)
+      let idleReject;
+      const idlePromise = new Promise((_, reject) => { idleReject = reject; });
+      const IDLE_TIMEOUT = 120000;
+      const TOOL_IDLE_TIMEOUT = 900000;
+      let idleTimer;
+      let toolRunning = false;
       const resetIdleTimer = () => {
         if (idleTimer) clearTimeout(idleTimer);
         const timeout = toolRunning ? TOOL_IDLE_TIMEOUT : IDLE_TIMEOUT;
         idleTimer = setTimeout(() => idleReject(new Error(`Agent SDK timeout — no stream activity for ${timeout/1000}s`)), timeout);
       };
-      const idlePromise = new Promise((_, reject) => { idleReject = reject; });
+      resetIdleTimer();
 
-      const result = await Promise.race([
-        (async () => {
-          await session.send(prompt);
+      const iteratorLoop = (async () => {
+        for await (const msg of iter) {
           resetIdleTimer();
-
-          let text = '';
-          let usage = {};
-
-          for await (const msg of session.stream()) {
+          if (msg.type === 'user') {
+            toolRunning = false;
             resetIdleTimer();
-            log(`Stream msg type=${msg.type}: ${JSON.stringify(msg).substring(0, 300)}`);
-            if (msg.type === 'user') {
-              // tool_result came back — tool finished, revert to short timeout
-              toolRunning = false;
-              resetIdleTimer();
-            }
-            if (msg.type === 'assistant') {
-              for (const block of (msg.message?.content || [])) {
-                if (block.type === 'tool_use') {
-                  hadToolUse = true;
-                  toolRunning = true; // tool dispatched — extend timeout
-                  resetIdleTimer();
-                } else if (block.type === 'tool_result') {
-                  hadToolUse = true;
-                }
-                if (block.type === 'text' || 'text' in block) {
-                  const chunk = block.text || '';
-                  if (chunk) {
-                    text += chunk;
-                    if (onDelta) onDelta(chunk);
-                  }
-                }
-              }
-            } else if (msg.type === 'rate_limit_event') {
-              const info = msg.rate_limit_info || {};
-              if (info.status !== 'allowed') {
-                const cooldownMs = info.resetsAt ? Math.max(0, info.resetsAt * 1000 - Date.now()) : DEAD_REVIVE_MS;
-                const resetStr = info.resetsAt ? new Date(info.resetsAt * 1000).toISOString() : 'unknown';
-                throw Object.assign(new Error(`usage limit hit — resets at ${resetStr} (${info.rateLimitType || 'claude_max'}) — cooldown ${Math.ceil(cooldownMs/60000)}min`), { statusCode: 429 });
-              }
-            } else if (msg.type === 'result') {
-              if (msg.usage) usage = msg.usage;
-              if (msg.is_error && msg.result) throw new Error(msg.result);
-              if (msg.result && !text) text = msg.result;
-            }
           }
+          if (msg.type === 'assistant') {
+            for (const block of (msg.message?.content || [])) {
+              if (block.type === 'tool_use') {
+                hadToolUse = true;
+                toolRunning = true;
+                resetIdleTimer();
+              }
+              if (block.type === 'text' && block.text) {
+                text += block.text;
+                if (onDelta) onDelta(block.text);
+              }
+            }
+          } else if (msg.type === 'rate_limit_event') {
+            const info = msg.rate_limit_info || {};
+            if (info.status && !info.status.startsWith('allowed')) {
+              const cooldownMs = info.resetsAt ? Math.max(0, info.resetsAt * 1000 - Date.now()) : DEAD_REVIVE_MS;
+              const resetStr = info.resetsAt ? new Date(info.resetsAt * 1000).toISOString() : 'unknown';
+              throw Object.assign(new Error(`usage limit hit — resets at ${resetStr} (${info.rateLimitType || 'claude_max'}) — cooldown ${Math.ceil(cooldownMs/60000)}min`), { statusCode: 429 });
+            }
+          } else if (msg.type === 'result') {
+            if (msg.usage) usage = msg.usage;
+            if (msg.is_error && msg.result) throw new Error(msg.result);
+            if (msg.result && !text) text = msg.result;
+          }
+        }
+      })();
 
-          if (idleTimer) clearTimeout(idleTimer);
-          return { text, usage };
-        })(),
-        idlePromise,
-      ]);
-
-      const { text, usage } = result;
-
-      // Check if the response itself contains a usage limit message
-      const textLower = (text || '').toLowerCase();
-      if (textLower.includes('hit your limit') || textLower.includes('usage limit') || textLower.includes('your limit resets') || textLower.includes('limit resets at')) {
-        throw new Error(`Usage limit detected in response: ${text.substring(0, 200)}`);
-      }
+      await Promise.race([iteratorLoop, idlePromise]);
+      if (idleTimer) clearTimeout(idleTimer);
 
       if (!text) throw new Error('Empty response from Claude via Agent SDK');
 
-      // Narration loop breaker — track per model (not per token) so rotation doesn't reset counter
       if (trackNarration(model, hadToolUse, text)) {
-        log(`NARRATION LOOP DETECTED for ${key} — destroying session to break cycle`);
-        const broken = warmSessions.get(key);
-        if (broken) {
-          try { broken.session.close(); } catch {}
-          warmSessions.delete(key);
-        }
-        throw new Error('BLOCKED: Agent produced consecutive narration-only responses with no tool calls. Session destroyed to break apology loop. Re-send the task with a specific instruction.');
+        throw new Error('BLOCKED: Agent produced consecutive narration-only responses with no tool calls. Re-send with a specific instruction.');
       }
 
-      // Mark success
-      const entry = warmSessions.get(key);
-      if (entry) entry.lastUsed = Date.now();
-      markSuccess(token); // persists lastSuccess/requestCount/errorCount to pool state
-
+      markSuccess(token);
       return { text, usage };
     } catch (err) {
       lastError = err;
@@ -1512,13 +1564,6 @@ async function invokeClaudeSDK(openaiMessages, modelInfo, onDelta, tokenAffinity
       // Narration loop block is TERMINAL — do not retry with another token
       if (err.message && err.message.startsWith('BLOCKED:')) {
         throw err;
-      }
-
-      // Destroy broken session
-      const entry = warmSessions.get(key);
-      if (entry) {
-        try { entry.session.close(); } catch {}
-        warmSessions.delete(key);
       }
 
       // If rate/usage limited, cooldown for the actual window duration (not just 30 min)
@@ -1539,13 +1584,6 @@ async function invokeClaudeSDK(openaiMessages, modelInfo, onDelta, tokenAffinity
         const cooldownMs = cooldownSec * 1000;
         log(`Token ${token.id} hit usage/rate limit — cooldown ${Math.ceil(cooldownMs / 60000)}min (until ${new Date(Date.now() + cooldownMs).toISOString()}), failing over...`);
         markRateLimited(token, cooldownSec);
-        // Mark ALL warmSessions for this token as in cooldown too
-        for (const [k, e] of warmSessions) {
-          if (e.tokenId === token.id) e.cooldownUntil = Date.now() + cooldownMs;
-        }
-        if (!warmSessions.has(key)) {
-          warmSessions.set(key, { session: null, tokenId: token.id, lastUsed: 0, active: 0, cooldownUntil: Date.now() + cooldownMs });
-        }
         continue;
       }
 
@@ -1663,38 +1701,45 @@ async function invokeModel(openaiMessages, model, onDelta, opts = {}) {
   const modelInfo = resolveModel(baseModel);
 
   if (modelInfo.provider === 'anthropic') {
-    // --- Step 1: Try Agent SDK with token rotation (already rotates internally) ---
+    // --- Step 1: Try Direct API first (Agent SDK v2 API removed in 0.3.x) ---
+    const now2 = Date.now();
+    // Clear stale cooldowns from previous SDK errors
+    for (const t of pool) {
+      if (t.provider === 'anthropic' && t.cooldownUntil && t.cooldownUntil < now2) {
+        t.cooldownUntil = null;
+      }
+    }
+    const directTokens = pool.filter(t => t.provider === 'anthropic' && !t.dead && (!t.cooldownUntil || t.cooldownUntil < now2));
+    if (directTokens.length > 0) {
+      let lastDirectErr = null;
+      for (const token of directTokens) {
+        try {
+          log(`Direct API with token ${token.id}...`);
+          return await invokeClaudeDirect(openaiMessages, modelInfo, token.id, onDelta);
+        } catch (directErr) {
+          lastDirectErr = directErr;
+          if (isCapError(directErr)) {
+            log(`Direct API token ${token.id} capped`);
+            continue;
+          }
+          throw directErr;
+        }
+      }
+      throw lastDirectErr;
+    }
+
+    // --- Step 2: Try Agent SDK as fallback ---
     let sdkErr = null;
     try {
       return await invokeClaudeSDK(openaiMessages, modelInfo, onDelta, opts.tokenAffinity || null);
     } catch (err) {
       sdkErr = err;
-      if (!isCapError(err)) throw err;
-      log(`SDK path exhausted all tokens: ${err.message}`);
+      const isSdkBroken = err.message && (err.message.includes('is not a function') || err.message.includes('not installed'));
+      if (!isCapError(err) && !isSdkBroken) throw err;
+      log(isSdkBroken ? `SDK unavailable: ${err.message}` : `SDK path exhausted: ${err.message}`);
     }
 
-    // --- Step 2: Try Direct API with each pool token (different auth path) ---
-    const now2 = Date.now();
-    const directTokens = pool.filter(t => t.provider === 'anthropic' && !t.dead && (!t.cooldownUntil || t.cooldownUntil < now2));
-    if (directTokens.length === 0) {
-      log('All Anthropic tokens in cooldown — skipping Direct API fallback');
-      throw sdkErr;
-    }
-    for (const token of directTokens) {
-      try {
-        log(`Trying Direct API with token ${token.id}...`);
-        return await invokeClaudeDirect(openaiMessages, modelInfo, token.id, onDelta);
-      } catch (directErr) {
-        if (isCapError(directErr)) {
-          log(`Direct API token ${token.id} also capped`);
-          continue;
-        }
-        throw directErr;
-      }
-    }
-
-    // All Anthropic tokens exhausted — no ChatGPT fallover, Claude only
-    throw sdkErr;
+    throw sdkErr || new Error('All Anthropic tokens exhausted');
   }
 
   // --- OpenAI primary path with reverse failover to Anthropic ---
@@ -2050,8 +2095,8 @@ function startProxy() {
           'Authorization': `Bearer ${targetToken.token}`,
           'anthropic-version': req.headers['anthropic-version'] || '2023-06-01',
           'anthropic-client-type': 'claude-code',
-          'anthropic-client-version': '1.0.33',
-          'User-Agent': 'claude-code/1.0.33',
+          'anthropic-client-version': '2.1.114',
+          'User-Agent': 'claude-code/2.1.114',
           'Content-Length': Buffer.byteLength(body),
         };
         // Forward anthropic-beta header if present
@@ -2258,7 +2303,7 @@ const ANTHROPIC_MODELS = [
     reasoning: false,
     input: ['text'],
     cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
-    contextWindow: 200000,
+    contextWindow: 1000000,
     maxTokens: 128000,
   },
   {
@@ -2267,7 +2312,7 @@ const ANTHROPIC_MODELS = [
     reasoning: false,
     input: ['text'],
     cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
-    contextWindow: 200000,
+    contextWindow: 1000000,
     maxTokens: 128000,
   },
   {
@@ -2276,7 +2321,7 @@ const ANTHROPIC_MODELS = [
     reasoning: false,
     input: ['text'],
     cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
-    contextWindow: 200000,
+    contextWindow: 1000000,
     maxTokens: 64000,
   },
   {
@@ -2285,7 +2330,7 @@ const ANTHROPIC_MODELS = [
     reasoning: false,
     input: ['text'],
     cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
-    contextWindow: 200000,
+    contextWindow: 1000000,
     maxTokens: 64000,
   },
 ];
@@ -2344,8 +2389,8 @@ function getAllModels() {
   const anthropicPoolTokens = pool.filter(t => t.provider === 'anthropic' && !t.dead);
   for (const t of anthropicPoolTokens) {
     models.push(
-      { id: `opus-4-6:${t.id}`, name: `Opus 4.6 — ${t.id}`, reasoning: false, input: ['text'], cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 }, contextWindow: 200000, maxTokens: 128000 },
-      { id: `sonnet-4-6:${t.id}`, name: `Sonnet 4.6 — ${t.id}`, reasoning: false, input: ['text'], cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 }, contextWindow: 200000, maxTokens: 64000 },
+      { id: `opus-4-6:${t.id}`, name: `Opus 4.6 — ${t.id}`, reasoning: false, input: ['text'], cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 }, contextWindow: 1000000, maxTokens: 128000 },
+      { id: `sonnet-4-6:${t.id}`, name: `Sonnet 4.6 — ${t.id}`, reasoning: false, input: ['text'], cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 }, contextWindow: 1000000, maxTokens: 64000 },
     );
   }
   if (pool.some(t => t.provider === 'openai')) {

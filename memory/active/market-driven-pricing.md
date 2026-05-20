@@ -38,6 +38,13 @@ tire.ca, 4tires.ca, wheelsco, pmctire, 1010tires, blackcircles, quattrotires
 - Show % increase or decrease from 30% baseline
 - 30% is the goal — deviate only with local evidence
 
+## CRITICAL LESSON (May 18 — DO NOT REPEAT)
+Previous scrape searched by SIZE and grabbed random brands' prices, attaching them to wrong models.
+This corrupted the entire DB. The fix took a full manual rebuild (707 tires, one model at a time).
+**NEVER search by size alone.** Always search by exact brand + model, then record only sizes listed under that model.
+Cross-brand contamination = data destruction. Verify every entry maps to the correct brand/model before touching DB.
+Also: Michelin was MISSED in local market scraping. Dee caught it manually ($260 vs $249 local). ALL brands must be scraped, no exceptions.
+
 ## Open Loops
 - [ ] Pull full inventory
 - [ ] Scrape all 8 shops

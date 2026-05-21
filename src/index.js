@@ -1323,7 +1323,7 @@ async function querySDK(model, tokenId, oauthToken, prompt) {
     options: {
       model,
       permissionMode: 'bypassPermissions',
-      maxTurns: 20,
+      maxTurns: Infinity,
       env: queryEnv,
     },
   });

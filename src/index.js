@@ -1845,9 +1845,12 @@ function startProxy() {
     // --- Auth enforcement for POST requests ---
     if (req.method === 'POST') {
       const authHeader = req.headers['authorization'] || '';
-      const providedKey = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : '';
+      const bearerKey = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : '';
+      // Also accept Anthropic's x-api-key header (used by Claude CLI --bare mode)
+      const xApiKey = req.headers['x-api-key'] || '';
+      const providedKey = bearerKey || xApiKey;
       if (providedKey !== AUTH_KEY) {
-        safeEnd(res, 401, { error: { message: 'Unauthorized. Provide Authorization: Bearer <SUBSTATION_API_KEY> header.' } });
+        safeEnd(res, 401, { error: { message: 'Unauthorized. Provide Authorization: Bearer <key> or x-api-key: <key> header.' } });
         return;
       }
     }
@@ -2221,13 +2224,36 @@ function startProxy() {
           markRequestEnd(tokenEntry);
           log(`Image gen error: ${err.message}`);
 
-          if (err.statusCode === 401 || err.statusCode === 403) {
+          // On 401/403 — try refreshing the token before giving up (matches text model behavior)
+          if ((err.statusCode === 401 || err.statusCode === 403) && tokenEntry.refreshToken) {
+            try {
+              log(`Image gen: token ${tokenEntry.id} got ${err.statusCode}, attempting refresh...`);
+              await refreshOpenAIToken(tokenEntry);
+              markRequestStart(tokenEntry);
+              const results = [];
+              for (let i = 0; i < Math.min(n, 4); i++) {
+                const result = await chatgptImageGenerate(tokenEntry, prompt, size, quality);
+                results.push({ b64: result.b64, revised_prompt: prompt });
+              }
+              markSuccess(tokenEntry);
+              safeEnd(res, 200, {
+                created: Math.floor(Date.now() / 1000),
+                data: results.map(r => ({ b64_json: r.b64, revised_prompt: r.revised_prompt })),
+              });
+              return;
+            } catch (refreshErr) {
+              log(`Image gen: refresh failed for ${tokenEntry.id}: ${refreshErr.message}`);
+              markDead(tokenEntry);
+            }
+          } else if (err.statusCode === 401 || err.statusCode === 403) {
             markDead(tokenEntry);
           }
 
-          safeEnd(res, err.statusCode && err.statusCode >= 400 ? err.statusCode : 502, {
-            error: { message: `Image generation failed: ${err.message}` },
-          });
+          if (!res.headersSent) {
+            safeEnd(res, err.statusCode && err.statusCode >= 400 ? err.statusCode : 502, {
+              error: { message: `Image generation failed: ${err.message}` },
+            });
+          }
         }
       });
 

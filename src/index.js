@@ -83,6 +83,7 @@ process.on('unhandledRejection', (reason) => {
 
 const MODEL_CONFIG = {
   // Anthropic
+  'claude-opus-4-8':           { maxTokens: 128000, adaptive: true,  provider: 'anthropic', contextWindow: 1000000 },
   'claude-opus-4-7':           { maxTokens: 128000, adaptive: true,  provider: 'anthropic', contextWindow: 1000000 },
   'claude-opus-4-6':           { maxTokens: 128000, adaptive: true,  provider: 'anthropic', contextWindow: 1000000 },
   'claude-sonnet-4-6':         { maxTokens: 64000,  adaptive: true,  provider: 'anthropic', contextWindow: 1000000 },
@@ -97,6 +98,8 @@ const MODEL_CONFIG = {
 
 const MODEL_MAP = {
   // Anthropic aliases
+  'opus-4-8': 'claude-opus-4-8',
+  'claude-opus-4-8': 'claude-opus-4-8',
   'opus-4-7': 'claude-opus-4-7',
   'claude-opus-4-7': 'claude-opus-4-7',
   'opus-4-6': 'claude-opus-4-6',
@@ -1664,6 +1667,8 @@ async function invokeCodex(openaiMessages, modelInfo, onDelta) {
 
 const FAILOVER_MAP = {
   // Anthropic → OpenAI equivalents
+  'claude-opus-4-8':           'gpt-5.4',
+  'claude-opus-4-7':           'gpt-5.4',
   'claude-opus-4-6':           'gpt-5.4',
   'claude-sonnet-4-6':         'gpt-5.1-codex',
   'claude-haiku-4-5-20251001': 'gpt-5.4-mini',
@@ -1701,45 +1706,28 @@ async function invokeModel(openaiMessages, model, onDelta, opts = {}) {
   const modelInfo = resolveModel(baseModel);
 
   if (modelInfo.provider === 'anthropic') {
-    // --- Step 1: Try Direct API first (Agent SDK v2 API removed in 0.3.x) ---
-    const now2 = Date.now();
-    // Clear stale cooldowns from previous SDK errors
-    for (const t of pool) {
-      if (t.provider === 'anthropic' && t.cooldownUntil && t.cooldownUntil < now2) {
-        t.cooldownUntil = null;
-      }
-    }
-    const directTokens = pool.filter(t => t.provider === 'anthropic' && !t.dead && (!t.cooldownUntil || t.cooldownUntil < now2));
-    if (directTokens.length > 0) {
-      let lastDirectErr = null;
-      for (const token of directTokens) {
-        try {
-          log(`Direct API with token ${token.id}...`);
-          return await invokeClaudeDirect(openaiMessages, modelInfo, token.id, onDelta);
-        } catch (directErr) {
-          lastDirectErr = directErr;
-          if (isCapError(directErr)) {
-            log(`Direct API token ${token.id} capped`);
-            continue;
-          }
-          throw directErr;
-        }
-      }
-      throw lastDirectErr;
-    }
-
-    // --- Step 2: Try Agent SDK as fallback ---
-    let sdkErr = null;
+    // --- Agent SDK (Claude OAuth) — only path for Anthropic models ---
     try {
       return await invokeClaudeSDK(openaiMessages, modelInfo, onDelta, opts.tokenAffinity || null);
     } catch (err) {
-      sdkErr = err;
       const isSdkBroken = err.message && (err.message.includes('is not a function') || err.message.includes('not installed'));
       if (!isCapError(err) && !isSdkBroken) throw err;
-      log(isSdkBroken ? `SDK unavailable: ${err.message}` : `SDK path exhausted: ${err.message}`);
-    }
+      log(isSdkBroken ? `SDK unavailable: ${err.message}` : `SDK path capped: ${err.message}`);
 
-    throw sdkErr || new Error('All Anthropic tokens exhausted');
+      // Cross-provider failover to OpenAI
+      const failoverModelId = FAILOVER_MAP[modelInfo.modelId];
+      if (failoverModelId) {
+        const failoverInfo = resolveModel(failoverModelId);
+        log(`>>> FAILOVER: Anthropic capped → ${failoverModelId} (OpenAI)`);
+        try {
+          return await invokeCodex(openaiMessages, failoverInfo, onDelta);
+        } catch (codexErr) {
+          log(`OpenAI failover also failed: ${codexErr.message}`);
+        }
+      }
+
+      throw err;
+    }
   }
 
   // --- OpenAI primary path with reverse failover to Anthropic ---
@@ -1799,7 +1787,7 @@ function killStaleProcess(port) {
 let proxyServer = null;
 
 const rateLimitMap = new Map();
-const RATE_LIMIT_MAX = 120;
+const RATE_LIMIT_MAX = 600;
 const RATE_LIMIT_WINDOW_MS = 60000;
 setInterval(() => {
   const now = Date.now();
@@ -1886,6 +1874,7 @@ function startProxy() {
 
       if (req.url === '/v1/models' || req.url === '/models') {
         const models = [
+          { id: 'opus-4-8', object: 'model', owned_by: 'indigo-collective' },
           { id: 'opus-4-7', object: 'model', owned_by: 'indigo-collective' },
           { id: 'opus-4-6', object: 'model', owned_by: 'indigo-collective' },
           { id: 'sonnet-4-6', object: 'model', owned_by: 'indigo-collective' },
@@ -1898,6 +1887,7 @@ function startProxy() {
             { id: `sonnet-4-6:${t.id}`, object: 'model', owned_by: 'indigo-collective' },
             { id: `opus-4-6:${t.id}`, object: 'model', owned_by: 'indigo-collective' },
             { id: `opus-4-7:${t.id}`, object: 'model', owned_by: 'indigo-collective' },
+            { id: `opus-4-8:${t.id}`, object: 'model', owned_by: 'indigo-collective' },
           );
         }
         if (pool.some(t => t.provider === 'openai')) {
@@ -2324,6 +2314,15 @@ function startProxy() {
 
 const ANTHROPIC_MODELS = [
   {
+    id: 'opus-4-8',
+    name: 'Claude Opus 4.8 (SubStation)',
+    reasoning: false,
+    input: ['text'],
+    cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+    contextWindow: 1000000,
+    maxTokens: 128000,
+  },
+  {
     id: 'opus-4-7',
     name: 'Claude Opus 4.7 (SubStation)',
     reasoning: false,
@@ -2415,6 +2414,7 @@ function getAllModels() {
   const anthropicPoolTokens = pool.filter(t => t.provider === 'anthropic' && !t.dead);
   for (const t of anthropicPoolTokens) {
     models.push(
+      { id: `opus-4-8:${t.id}`, name: `Opus 4.8 — ${t.id}`, reasoning: false, input: ['text'], cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 }, contextWindow: 1000000, maxTokens: 128000 },
       { id: `opus-4-6:${t.id}`, name: `Opus 4.6 — ${t.id}`, reasoning: false, input: ['text'], cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 }, contextWindow: 1000000, maxTokens: 128000 },
       { id: `sonnet-4-6:${t.id}`, name: `Sonnet 4.6 — ${t.id}`, reasoning: false, input: ['text'], cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 }, contextWindow: 1000000, maxTokens: 64000 },
     );

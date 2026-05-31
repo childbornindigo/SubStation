@@ -225,3 +225,10 @@ Full pass running --apply (1000 review rows / 76 models). Integrity gate aborts 
 - Running FULL per-size pass: 993 distinct (model,size) keys, --apply (only patches rows with a REAL exact-size market match; no-match stays target30+needs_review). Checkpointed/resumable at data/pricing/per-size-checkpoint.json. Firecrawl+Supabase only, ZERO Claude tokens.
 - Expect PARTIAL real-match coverage: the 1007 are the long tail (sizes blackcircles didn't list). First 20 (KO2 + WS90 large CUV/LT sizes) = honest no-match (genuinely rare sizes). Rest of 77 models span more common sizes -> better yield.
 - Log: logs/persize-FULL-20260529-225925.log
+
+## 2026-05-30 ~15:25 — PROD DEPLOY SHIPPED ✅
+- Dee said "Go" → `vercel --prod` from ~/luxurylanetires.ca @ commit c630d43
+- Aliased: https://luxurylanetires.ca (build clean, 997+ tire paths, wheels, brands all rendered)
+- Verified live: homepage 200, /tires 200, toyo-extensa-as-ii/angle-1.png 200
+- Shipped the full 12-commit / 9-day backlog (wheels→Supabase, TDG mirror, +1366 tire options, 542 season fixes, all images). DB image coverage 100%.
+- Pricing fallback run (PID 88611, started 11:36): 26/70 models done, 74 real sizes resolved, applying to DB per-model, resumable. Still grinding.

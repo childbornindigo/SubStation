@@ -54,3 +54,8 @@ Photo verified (sidewall-match) + price applied (in-band) + de-collided name/slu
 - Monitor 3 background jobs. When sourcing done → build sheets → vision-gate → apply wheels.
 - When CT photos done → sidewall vision-check → activate parked models in batches.
 - Hold all deploys for Dee's go (show-before-ship).
+
+## 2026-05-31 — getAllTires 1000-row cap fix
+- BUG: `src/lib/tires.ts getAllTires()` used `.range(0,1999)` but Supabase/PostgREST hard-caps every response at 1000 rows → browse `/tires` only ever showed the 1000 cheapest active tires. With 3360 active, 2360 (incl. newly-activated parked set) were invisible to browsing (detail pages worked fine via direct URL).
+- FIX: paginate getAllTires in 1000-row chunks until exhausted. Verified: now returns 3360. Commit aa8f164, deployed.
+- LESSON: any Supabase query expecting >1000 rows must paginate; `.range()` alone does NOT override the server max-rows cap.

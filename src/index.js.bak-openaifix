@@ -751,17 +751,6 @@ function buildAnthropicBody(openaiMessages, modelInfo) {
   return body;
 }
 
-// ChatGPT (Plus/Pro) subscription accounts reach OpenAI only via the Codex
-// /backend-api/codex/responses endpoint, which REJECTS the gpt-5.1-codex* model
-// family with HTTP 400 ("not supported when using Codex with a ChatGPT account").
-// gpt-5.4 / gpt-5.4-mini ARE accepted. Remap any codex model to its supported
-// equivalent so failover never dead-ends on a blocked model. Verified 2026-06-04.
-const CODEX_CHATGPT_REMAP = {
-  'gpt-5.1-codex':      'gpt-5.4',
-  'gpt-5.1-codex-max':  'gpt-5.4',
-  'gpt-5.1-codex-mini': 'gpt-5.4-mini',
-};
-
 function buildCodexBody(openaiMessages, modelInfo) {
   const input = convertForCodex(openaiMessages);
   // Extract instructions from developer messages, remaining go in input
@@ -782,7 +771,7 @@ function buildCodexBody(openaiMessages, modelInfo) {
     filteredInput.push({ type: 'message', role: 'user', content: [{ type: 'input_text', text: '(empty)' }] });
   }
   return {
-    model: CODEX_CHATGPT_REMAP[modelInfo.modelId] || modelInfo.modelId,
+    model: modelInfo.modelId,
     instructions,
     input: filteredInput,
     store: false,
@@ -1681,7 +1670,7 @@ const FAILOVER_MAP = {
   'claude-opus-4-8':           'gpt-5.4',
   'claude-opus-4-7':           'gpt-5.4',
   'claude-opus-4-6':           'gpt-5.4',
-  'claude-sonnet-4-6':         'gpt-5.4',
+  'claude-sonnet-4-6':         'gpt-5.1-codex',
   'claude-haiku-4-5-20251001': 'gpt-5.4-mini',
   // OpenAI → Anthropic equivalents
   'gpt-5.4':            'claude-opus-4-6',

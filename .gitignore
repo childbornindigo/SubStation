@@ -1,0 +1,13 @@
+node_modules/
+dist/
+
+# Secrets — NEVER commit these
+token-pool.json
+pool-state.json
+auth-profiles.json
+*.log
+*.log.old
+
+# Runtime data
+.substation/
+data/

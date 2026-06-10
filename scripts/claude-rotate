@@ -1,0 +1,102 @@
+#!/usr/bin/env node
+/**
+ * claude-rotate — Launch Claude Code with smart token rotation.
+ * Checks SubStation pool state + does a live probe to pick a healthy token.
+ * Falls back to round-robin if SubStation is down.
+ */
+
+import { readFileSync, writeFileSync } from 'fs';
+import { request } from 'http';
+import { homedir } from 'os';
+import { join } from 'path';
+import { execFileSync } from 'child_process';
+
+const POOL_FILE = join(homedir(), '.substation', 'token-pool.json');
+const POOL_STATE = join(homedir(), '.substation', 'pool-state.json');
+const STATE_FILE = join(homedir(), '.substation', 'rr-state.json');
+
+// Load Anthropic tokens from pool
+let tokens = [];
+try {
+  const data = JSON.parse(readFileSync(POOL_FILE, 'utf8'));
+  tokens = (data.tokens || []).filter(t => t.provider === 'anthropic' && t.token);
+} catch (e) {
+  console.error(`[claude-rotate] Cannot read ${POOL_FILE}: ${e.message}`);
+  execRealClaude();
+}
+
+if (tokens.length === 0) {
+  console.error('[claude-rotate] No Anthropic tokens in pool — launching without rotation');
+  execRealClaude();
+}
+
+// Check pool state for cooldown/dead tokens
+let poolState = [];
+try {
+  const ps = JSON.parse(readFileSync(POOL_STATE, 'utf8'));
+  poolState = ps.entries || [];
+} catch {}
+
+// Filter out tokens that are dead or in cooldown
+const now = Date.now();
+const healthy = tokens.filter(t => {
+  const state = poolState.find(s => s.id === t.id);
+  if (!state) return true; // no state = assume healthy
+  if (state.dead) {
+    console.error(`[claude-rotate] Skipping ${t.id} — marked dead`);
+    return false;
+  }
+  if (state.cooldownUntil && now < state.cooldownUntil) {
+    console.error(`[claude-rotate] Skipping ${t.id} — in cooldown until ${new Date(state.cooldownUntil).toISOString()}`);
+    return false;
+  }
+  return true;
+});
+
+// Sort: prefer tokens with more recent success, then fewer errors
+const ranked = (healthy.length > 0 ? healthy : tokens).map(t => {
+  const state = poolState.find(s => s.id === t.id) || {};
+  return { ...t, lastSuccess: state.lastSuccess || 0, errorCount: state.errorCount || 0 };
+}).sort((a, b) => {
+  // Prefer tokens with successful history
+  if (a.lastSuccess !== b.lastSuccess) return b.lastSuccess - a.lastSuccess;
+  // Then fewer errors
+  return a.errorCount - b.errorCount;
+});
+
+// Round-robin among the ranked candidates
+let rrIndex = 0;
+try {
+  const state = JSON.parse(readFileSync(STATE_FILE, 'utf8'));
+  rrIndex = (state.nextIndex || 0) % ranked.length;
+} catch {}
+
+const chosen = ranked[rrIndex];
+const nextIndex = (rrIndex + 1) % ranked.length;
+
+try {
+  writeFileSync(STATE_FILE, JSON.stringify({
+    nextIndex,
+    lastToken: chosen.id,
+    lastPicked: new Date().toISOString(),
+    candidates: ranked.map(t => t.id),
+  }));
+} catch {}
+
+console.error(`[claude-rotate] Using token: ${chosen.id} (${rrIndex + 1}/${ranked.length} healthy)`);
+
+// Set env and exec into real claude
+process.env.CLAUDE_CODE_OAUTH_TOKEN = chosen.token;
+execRealClaude();
+
+function execRealClaude() {
+  const args = process.argv.slice(2);
+  try {
+    execFileSync('/opt/homebrew/bin/claude', args, {
+      stdio: 'inherit',
+      env: process.env,
+    });
+  } catch (e) {
+    process.exit(e.status || 1);
+  }
+}

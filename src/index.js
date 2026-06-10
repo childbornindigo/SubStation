@@ -83,6 +83,7 @@ process.on('unhandledRejection', (reason) => {
 
 const MODEL_CONFIG = {
   // Anthropic
+  'claude-fable-5':            { maxTokens: 128000, adaptive: true,  provider: 'anthropic', contextWindow: 1000000 },
   'claude-opus-4-8':           { maxTokens: 128000, adaptive: true,  provider: 'anthropic', contextWindow: 1000000 },
   'claude-opus-4-7':           { maxTokens: 128000, adaptive: true,  provider: 'anthropic', contextWindow: 1000000 },
   'claude-opus-4-6':           { maxTokens: 128000, adaptive: true,  provider: 'anthropic', contextWindow: 1000000 },
@@ -98,6 +99,9 @@ const MODEL_CONFIG = {
 
 const MODEL_MAP = {
   // Anthropic aliases
+  'fable-5': 'claude-fable-5',
+  'fable': 'claude-fable-5',
+  'claude-fable-5': 'claude-fable-5',
   'opus-4-8': 'claude-opus-4-8',
   'claude-opus-4-8': 'claude-opus-4-8',
   'opus-4-7': 'claude-opus-4-7',
@@ -1678,6 +1682,7 @@ async function invokeCodex(openaiMessages, modelInfo, onDelta) {
 
 const FAILOVER_MAP = {
   // Anthropic → OpenAI equivalents
+  'claude-fable-5':            'gpt-5.4',
   'claude-opus-4-8':           'gpt-5.4',
   'claude-opus-4-7':           'gpt-5.4',
   'claude-opus-4-6':           'gpt-5.4',
@@ -1885,6 +1890,7 @@ function startProxy() {
 
       if (req.url === '/v1/models' || req.url === '/models') {
         const models = [
+          { id: 'fable-5', object: 'model', owned_by: 'indigo-collective' },
           { id: 'opus-4-8', object: 'model', owned_by: 'indigo-collective' },
           { id: 'opus-4-7', object: 'model', owned_by: 'indigo-collective' },
           { id: 'opus-4-6', object: 'model', owned_by: 'indigo-collective' },
@@ -1895,6 +1901,7 @@ function startProxy() {
         const anthropicPoolTokens = pool.filter(t => t.provider === 'anthropic' && !t.dead);
         for (const t of anthropicPoolTokens) {
           models.push(
+            { id: `fable-5:${t.id}`, object: 'model', owned_by: 'indigo-collective' },
             { id: `sonnet-4-6:${t.id}`, object: 'model', owned_by: 'indigo-collective' },
             { id: `opus-4-6:${t.id}`, object: 'model', owned_by: 'indigo-collective' },
             { id: `opus-4-7:${t.id}`, object: 'model', owned_by: 'indigo-collective' },

@@ -1486,25 +1486,62 @@ async function invokeClaudeSDK(openaiMessages, modelInfo, onDelta, tokenAffinity
     throw new Error(`No token matching affinity "${tokenAffinity}" found.`);
   }
 
-  // Fast-fail: all tokens already in cooldown → return 429 immediately, don't hang
+  // All tokens in cooldown. OpenAI is a LAST resort — so distinguish a short
+  // transient backoff (60–120s blip) from a genuine multi-hour usage cap.
+  //   • short cooldown  → WAIT it out and retry Anthropic (stay on Claude/tools)
+  //   • long cap        → throw 429 so invokeModel can divert to OpenAI
+  // This stops a momentary rate-blip on both bars from kicking the whole session
+  // onto the GPT lane (where tool calls degrade and the agent narrates instead).
   const now = Date.now();
-  const available = candidateTokens.filter(t => !t.cooldownUntil || t.cooldownUntil < now);
+  let available = candidateTokens.filter(t => !t.cooldownUntil || t.cooldownUntil < now);
   if (available.length === 0) {
     const earliest = candidateTokens.reduce((min, t) => t.cooldownUntil && (!min || t.cooldownUntil < min) ? t.cooldownUntil : min, null);
     const secsLeft = earliest ? Math.ceil((earliest - now) / 1000) : 60;
-    const minsLeft = Math.ceil(secsLeft / 60);
-    throw Object.assign(new Error(`All Anthropic tokens in cooldown — rate limit resets in ~${minsLeft}min`), { statusCode: 429, retryAfterSec: secsLeft });
+    const SHORT_COOLDOWN_WAIT_S = 120; // catches the 60s/120s exponential-backoff levels (transient blips)
+    if (secsLeft <= SHORT_COOLDOWN_WAIT_S) {
+      log(`All Anthropic bars cooling but soonest frees in ${secsLeft}s — waiting on Anthropic instead of diverting to OpenAI`);
+      await new Promise(r => setTimeout(r, (secsLeft + 1) * 1000));
+      const now2 = Date.now();
+      available = candidateTokens.filter(t => !t.cooldownUntil || t.cooldownUntil < now2);
+    }
+    if (available.length === 0) {
+      const minsLeft = Math.ceil(secsLeft / 60);
+      log(`All Anthropic tokens genuinely capped (~${minsLeft}min) — allowing OpenAI last-resort failover`);
+      throw Object.assign(new Error(`All Anthropic tokens in cooldown — rate limit resets in ~${minsLeft}min`), { statusCode: 429, retryAfterSec: secsLeft });
+    }
   }
 
   // Format full conversation context including system prompts and history
   const prompt = formatMessagesForSDK(openaiMessages);
 
-  // Try tokens with rotation
-  const maxAttempts = available.length;
+  // Build a deterministic rotation over ALL available bars — each tried exactly
+  // once, no repeats — so EVERY Anthropic bar is exhausted before the caller
+  // (invokeModel) is allowed to fail over to OpenAI as a last resort.
+  // OLD BUG: loop used `selectAnthropicToken()` on attempt 0 then `tokens[attempt % len]`
+  // afterwards, which could pick the same bar twice and skip the other entirely —
+  // failing straight to OpenAI with a healthy bar untouched.
+  let rotation;
+  if (tokenAffinity) {
+    rotation = available;
+  } else {
+    const sorted = [...available].sort((a, b) => {
+      const aProven = a.lastSuccess > 0 ? 0 : 1;
+      const bProven = b.lastSuccess > 0 ? 0 : 1;
+      if (aProven !== bProven) return aProven - bProven; // proven bars first
+      return a.errorCount - b.errorCount;                // then fewest errors
+    });
+    // Round-robin only the STARTING point (load-balance), then walk every bar once.
+    const start = anthropicRRIndex % sorted.length;
+    anthropicRRIndex = (anthropicRRIndex + 1) % sorted.length;
+    rotation = sorted.slice(start).concat(sorted.slice(0, start));
+  }
+
+  const maxAttempts = rotation.length;
   let lastError = null;
+  log(`Anthropic rotation order: [${rotation.map(t => t.id).join(' → ')}] then OpenAI last-resort`);
 
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
-    const token = tokenAffinity ? available[attempt] : (attempt === 0 ? selectAnthropicToken() : tokens[attempt % tokens.length]);
+    const token = rotation[attempt];
     if (!token) break;
 
     const key = `${model}:${token.id}`;
@@ -1584,9 +1621,20 @@ async function invokeClaudeSDK(openaiMessages, modelInfo, onDelta, tokenAffinity
         throw err;
       }
 
-      // If rate/usage limited, cooldown for the actual window duration (not just 30 min)
+      // A transient SDK idle-timeout is NOT an account cap. Do NOT cool the bar —
+      // that would falsely mark a healthy bar "rate limited" and, if both bars blip
+      // at once, kick the whole session onto the OpenAI lane. Just move to the next
+      // Anthropic bar with no cooldown; if all bars blip, we surface the error and
+      // STAY on Anthropic rather than degrade to GPT.
       const errLower = (err.message || '').toLowerCase();
-      if (errLower.includes('rate') || errLower.includes('limit') || errLower.includes('usage') || errLower.includes('hit your') || errLower.includes('resets') || errLower.includes('timeout')) {
+      if (errLower.includes('timeout')) {
+        log(`Token ${token.id} transient timeout (not a cap) — trying next Anthropic bar, no cooldown`);
+        markRequestEnd(token);
+        continue;
+      }
+
+      // If genuinely rate/usage limited, cooldown for the actual window duration (not just 30 min)
+      if (errLower.includes('rate') || errLower.includes('limit') || errLower.includes('usage') || errLower.includes('hit your') || errLower.includes('resets')) {
         // Parse actual reset time from rate_limit_event error if available
         let cooldownSec = DEAD_REVIVE_MS / 1000; // fallback: 30 min
         const resetsMatch = err.message.match(/resets at (\d{4}-\d{2}-\d{2}T[\d:.]+Z?)/);
@@ -1595,9 +1643,6 @@ async function invokeClaudeSDK(openaiMessages, modelInfo, onDelta, tokenAffinity
           if (!isNaN(resetsAt) && resetsAt > Date.now()) {
             cooldownSec = Math.ceil((resetsAt - Date.now()) / 1000);
           }
-        } else if (errLower.includes('timeout')) {
-          // SDK timeout ≠ account cap. Likely transient — retry after short cooldown.
-          cooldownSec = 3 * 60; // 3 minutes, not 5 hours
         }
         const cooldownMs = cooldownSec * 1000;
         log(`Token ${token.id} hit usage/rate limit — cooldown ${Math.ceil(cooldownMs / 60000)}min (until ${new Date(Date.now() + cooldownMs).toISOString()}), failing over...`);
@@ -1698,9 +1743,13 @@ const FAILOVER_MAP = {
 
 function isCapError(err) {
   const msg = (err.message || '').toLowerCase();
+  // NOTE: must be a GENUINE cap. A bare 'rate' substring matched too much
+  // (timeouts, transient blips) and falsely diverted healthy sessions to OpenAI.
+  // A pure SDK timeout is explicitly NOT a cap.
+  if (msg.includes('timeout')) return false;
   return msg.includes('hit your limit') ||
     msg.includes('usage limit') ||
-    msg.includes('rate') ||
+    msg.includes('rate limit') ||
     msg.includes('exhausted') ||
     msg.includes('all anthropic tokens') ||
     msg.includes('all chatgpt tokens') ||

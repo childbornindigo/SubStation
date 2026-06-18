@@ -1556,7 +1556,7 @@ async function invokeClaudeSDK(openaiMessages, modelInfo, onDelta, tokenAffinity
       let hadToolUse = false;
       let idleReject;
       const idlePromise = new Promise((_, reject) => { idleReject = reject; });
-      const IDLE_TIMEOUT = 120000;
+      const IDLE_TIMEOUT = Number(process.env.SUBSTATION_IDLE_TIMEOUT_MS) || 300000;
       const TOOL_IDLE_TIMEOUT = 900000;
       let idleTimer;
       let toolRunning = false;

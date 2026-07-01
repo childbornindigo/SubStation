@@ -87,6 +87,7 @@ const MODEL_CONFIG = {
   'claude-opus-4-8':           { maxTokens: 128000, adaptive: true,  provider: 'anthropic', contextWindow: 1000000 },
   'claude-opus-4-7':           { maxTokens: 128000, adaptive: true,  provider: 'anthropic', contextWindow: 1000000 },
   'claude-opus-4-6':           { maxTokens: 128000, adaptive: true,  provider: 'anthropic', contextWindow: 1000000 },
+  'claude-sonnet-5':           { maxTokens: 64000,  adaptive: true,  provider: 'anthropic', contextWindow: 1000000 },
   'claude-sonnet-4-6':         { maxTokens: 64000,  adaptive: true,  provider: 'anthropic', contextWindow: 1000000 },
   'claude-haiku-4-5-20251001': { maxTokens: 64000,  adaptive: false, provider: 'anthropic', contextWindow: 1000000 },
   // OpenAI (Codex) — ordered fastest to slowest
@@ -107,6 +108,8 @@ const MODEL_MAP = {
   'opus-4-7': 'claude-opus-4-7',
   'claude-opus-4-7': 'claude-opus-4-7',
   'opus-4-6': 'claude-opus-4-6',
+  'sonnet-5': 'claude-sonnet-5',
+  'claude-sonnet-5': 'claude-sonnet-5',
   'sonnet-4-6': 'claude-sonnet-4-6',
   'haiku-4-5': 'claude-haiku-4-5-20251001',
   'claude-opus-4-6': 'claude-opus-4-6',
@@ -1686,6 +1689,7 @@ const FAILOVER_MAP = {
   'claude-opus-4-8':           'gpt-5.4',
   'claude-opus-4-7':           'gpt-5.4',
   'claude-opus-4-6':           'gpt-5.4',
+  'claude-sonnet-5':           'gpt-5.4',
   'claude-sonnet-4-6':         'gpt-5.4',
   'claude-haiku-4-5-20251001': 'gpt-5.4-mini',
   // OpenAI → Anthropic equivalents
@@ -1894,6 +1898,7 @@ function startProxy() {
           { id: 'opus-4-8', object: 'model', owned_by: 'indigo-collective' },
           { id: 'opus-4-7', object: 'model', owned_by: 'indigo-collective' },
           { id: 'opus-4-6', object: 'model', owned_by: 'indigo-collective' },
+          { id: 'sonnet-5', object: 'model', owned_by: 'indigo-collective' },
           { id: 'sonnet-4-6', object: 'model', owned_by: 'indigo-collective' },
           { id: 'haiku-4-5', object: 'model', owned_by: 'indigo-collective' },
         ];
@@ -2357,6 +2362,15 @@ const ANTHROPIC_MODELS = [
     cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
     contextWindow: 1000000,
     maxTokens: 128000,
+  },
+  {
+    id: 'sonnet-5',
+    name: 'Claude Sonnet 5 (SubStation)',
+    reasoning: false,
+    input: ['text'],
+    cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+    contextWindow: 1000000,
+    maxTokens: 64000,
   },
   {
     id: 'sonnet-4-6',

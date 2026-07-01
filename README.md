@@ -67,7 +67,7 @@ Both providers support **multi-account credential pools**. Add two accounts, fiv
 
 ---
 
-## 11 models, 2 providers, 0 API cost
+## 12 models, 2 providers, 0 API cost
 
 | Provider | Model ID | What you get |
 |----------|----------|------|
@@ -75,6 +75,7 @@ Both providers support **multi-account credential pools**. Add two accounts, fiv
 | Claude | `opus-4-8` | Claude Opus 4.8, 1M context |
 | Claude | `opus-4-7` | Claude Opus 4.7, 1M context |
 | Claude | `opus-4-6` | Claude Opus 4.6, 1M context |
+| Claude | `sonnet-5` | Claude Sonnet 5, latest — 1M context |
 | Claude | `sonnet-4-6` | Claude Sonnet 4.6, 1M context |
 | Claude | `haiku-4-5` | Claude Haiku 4.5, 1M context |
 | ChatGPT | `gpt-5.4` | GPT 5.4, 200K context |
@@ -143,6 +144,7 @@ Add SubStation as a provider in `~/.openclaw/openclaw.json`:
         "api": "openai-completions",
         "models": [
           { "id": "opus-4-6", "name": "Claude Opus 4.6 (SubStation)", "contextWindow": 200000, "maxTokens": 128000 },
+          { "id": "sonnet-5", "name": "Claude Sonnet 5 (SubStation)", "contextWindow": 200000, "maxTokens": 64000 },
           { "id": "sonnet-4-6", "name": "Claude Sonnet 4.6 (SubStation)", "contextWindow": 200000, "maxTokens": 64000 },
           { "id": "haiku-4-5", "name": "Claude Haiku 4.5 (SubStation)", "contextWindow": 200000, "maxTokens": 64000 },
           { "id": "gpt-5.4", "name": "GPT 5.4 (SubStation)", "contextWindow": 200000, "maxTokens": 128000 },

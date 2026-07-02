@@ -1225,8 +1225,8 @@ function makeAnthropicDirectRequest(bodyStr, tokenEntry, onDelta) {
         'anthropic-beta': ANTHROPIC_BETA_HEADERS,
         // Claude Code identity headers — required for OAuth tokens
         'anthropic-client-type': 'claude-code',
-        'anthropic-client-version': '2.1.114',
-        'User-Agent': 'claude-code/2.1.114',
+        'anthropic-client-version': '2.1.197',
+        'User-Agent': 'claude-code/2.1.197',
         'Content-Length': Buffer.byteLength(bodyStr),
       },
     };
@@ -2155,8 +2155,8 @@ function startProxy() {
           'Authorization': `Bearer ${targetToken.token}`,
           'anthropic-version': req.headers['anthropic-version'] || '2023-06-01',
           'anthropic-client-type': 'claude-code',
-          'anthropic-client-version': '2.1.114',
-          'User-Agent': 'claude-code/2.1.114',
+          'anthropic-client-version': '2.1.197',
+          'User-Agent': 'claude-code/2.1.197',
           'Content-Length': Buffer.byteLength(body),
         };
         // Forward anthropic-beta header if present

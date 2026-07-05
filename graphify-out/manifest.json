@@ -1,0 +1,482 @@
+{
+  "fb-marketplace-listings/generate_listings.py": {
+    "mtime": 1779023331.5737865,
+    "ast_hash": "a11b936d846fdbdfcd66e53ed1ed39d4",
+    "semantic_hash": ""
+  },
+  "item.json": {
+    "mtime": 1781981682.6576703,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": ""
+  },
+  "market-intelligence/cleaned-catalogue.json": {
+    "mtime": 1778636678.878584,
+    "ast_hash": "8b61cc81942c959f3f98e50ce99db02f",
+    "semantic_hash": ""
+  },
+  "market-intelligence/cleaned-products.json": {
+    "mtime": 1778636791.3951323,
+    "ast_hash": "28226688f58fd180c6f4a5147114250e",
+    "semantic_hash": ""
+  },
+  "market-intelligence/pmctire-data.json": {
+    "mtime": 1778639531.8280928,
+    "ast_hash": "ec48886f5fa6947303dd90e1203b284a",
+    "semantic_hash": ""
+  },
+  "market-intelligence/retail-data.json": {
+    "mtime": 1778634893.7565525,
+    "ast_hash": "045bb26f1cb0b55121dcda81f0456502",
+    "semantic_hash": ""
+  },
+  "market-intelligence/scrape-log.json": {
+    "mtime": 1778634069.9824433,
+    "ast_hash": "02fed07ebf595f0ea85621474e5149e6",
+    "semantic_hash": ""
+  },
+  "market-intelligence/tire-brand-rankings.json": {
+    "mtime": 1778635040.2731698,
+    "ast_hash": "38911262ebc950240a8188eb0e2469f1",
+    "semantic_hash": ""
+  },
+  "openclaw.plugin.json": {
+    "mtime": 1775883372.125835,
+    "ast_hash": "6d56c1688549fc37e5a5a3c742d4da87",
+    "semantic_hash": ""
+  },
+  "package.json": {
+    "mtime": 1779217717.296089,
+    "ast_hash": "5a3fc6e63722a827bff8ece8eede8886",
+    "semantic_hash": ""
+  },
+  "scripts/add_legend_top15.py": {
+    "mtime": 1778640726.9548225,
+    "ast_hash": "b6e6758c3a63fa9fc3567cb861de6994",
+    "semantic_hash": ""
+  },
+  "scripts/analyze_tires.py": {
+    "mtime": 1778633332.7406232,
+    "ast_hash": "4e4a841d5370545c962fb5f9bb6afbdb",
+    "semantic_hash": ""
+  },
+  "scripts/audit-tdg-all-brands.py": {
+    "mtime": 1779151740.9608095,
+    "ast_hash": "365be0c44aed3089e4c1b62c96f23a2e",
+    "semantic_hash": ""
+  },
+  "scripts/build_excel.py": {
+    "mtime": 1778639110.4670618,
+    "ast_hash": "f4c8a8d66795c98414aa85c4134c49be",
+    "semantic_hash": ""
+  },
+  "scripts/build_excel_v2.py": {
+    "mtime": 1778635939.1374447,
+    "ast_hash": "53a1f5cd651589e1aafdc7098fa2ae9c",
+    "semantic_hash": ""
+  },
+  "scripts/build_final_excel.py": {
+    "mtime": 1778637444.6583338,
+    "ast_hash": "434e58a201a1bbe3fa0667d301a65113",
+    "semantic_hash": ""
+  },
+  "scripts/check-tdg-stock.py": {
+    "mtime": 1779139259.0185037,
+    "ast_hash": "5af129d5da20d81d7e19cff0d641e190",
+    "semantic_hash": ""
+  },
+  "scripts/claude-rotate": {
+    "mtime": 1775919649.668612,
+    "ast_hash": "387ba93f321ad9e22764e3db1e734d49",
+    "semantic_hash": ""
+  },
+  "scripts/compile-market-pricing-v2.py": {
+    "mtime": 1779163484.0974467,
+    "ast_hash": "070ef7b1beca565547063472443323de",
+    "semantic_hash": ""
+  },
+  "scripts/compile-market-pricing.py": {
+    "mtime": 1779163221.6308372,
+    "ast_hash": "0b2e1eead7341b93967ce1df44066ba0",
+    "semantic_hash": ""
+  },
+  "scripts/compile-michelin-pricing.py": {
+    "mtime": 1779149553.2302904,
+    "ast_hash": "046c00710d0abd860218397030bb46ff",
+    "semantic_hash": ""
+  },
+  "scripts/inventory-dump.json": {
+    "mtime": 1779162823.5976293,
+    "ast_hash": "7f9c23407fee97218e63ac007277fb66",
+    "semantic_hash": ""
+  },
+  "scripts/local-prices-active-green-ross.json": {
+    "mtime": 1779132681.8012483,
+    "ast_hash": "d751713988987e9331980363e24189ce",
+    "semantic_hash": ""
+  },
+  "scripts/local-prices-all-shops-2026-05-19.json": {
+    "mtime": 1779165196.3867512,
+    "ast_hash": "76e310652c7b5cf9f2805365913fa200",
+    "semantic_hash": ""
+  },
+  "scripts/local-prices-canadian-tire.json": {
+    "mtime": 1779133645.746226,
+    "ast_hash": "9ae77d3e63dfc05ae17952af0c84e180",
+    "semantic_hash": ""
+  },
+  "scripts/local-prices-fas-tire.json": {
+    "mtime": 1779132684.4403608,
+    "ast_hash": "d751713988987e9331980363e24189ce",
+    "semantic_hash": ""
+  },
+  "scripts/local-prices-gap-fill.json": {
+    "mtime": 1779163132.6146684,
+    "ast_hash": "d751713988987e9331980363e24189ce",
+    "semantic_hash": ""
+  },
+  "scripts/local-prices-krave.json": {
+    "mtime": 1779133435.29321,
+    "ast_hash": "1775817d112f1889c34cb7a52961664b",
+    "semantic_hash": ""
+  },
+  "scripts/local-prices-michelin.json": {
+    "mtime": 1779146590.9275727,
+    "ast_hash": "969be296a27af5d50cbd2324150c834c",
+    "semantic_hash": ""
+  },
+  "scripts/local-prices-noble-tire.json": {
+    "mtime": 1779130633.654034,
+    "ast_hash": "45b8786d88a47a2e57f03c09db3bee71",
+    "semantic_hash": ""
+  },
+  "scripts/local-prices-point-s.json": {
+    "mtime": 1779130648.0333238,
+    "ast_hash": "b098a907817d9cee19c13979183f4084",
+    "semantic_hash": ""
+  },
+  "scripts/local-prices-tdot-performance.json": {
+    "mtime": 1779133227.7694128,
+    "ast_hash": "020f8645c7f0dd637da9340cd06184b4",
+    "semantic_hash": ""
+  },
+  "scripts/local-prices-zracing.json": {
+    "mtime": 1779130457.5536125,
+    "ast_hash": "ebcdd0cccd0893cad3f5a8790e212807",
+    "semantic_hash": ""
+  },
+  "scripts/market-pricing-results.json": {
+    "mtime": 1779163225.0985608,
+    "ast_hash": "7cfe2aec03a7ca19a678b027ffd231c4",
+    "semantic_hash": ""
+  },
+  "scripts/market-pricing-v2-results.json": {
+    "mtime": 1779163526.997338,
+    "ast_hash": "25f52488d345871dce2bef7a73fdb53f",
+    "semantic_hash": ""
+  },
+  "scripts/michelin-pricing-results.json": {
+    "mtime": 1779149556.8236725,
+    "ast_hash": "1c87d0f76a36a3b4609fcf964440171e",
+    "semantic_hash": ""
+  },
+  "scripts/missing-sizes-audit.json": {
+    "mtime": 1779151948.1755106,
+    "ast_hash": "0dcaae9acf684c45e36e7089708098c5",
+    "semantic_hash": ""
+  },
+  "scripts/scrape-active-green-ross.py": {
+    "mtime": 1779130278.0710657,
+    "ast_hash": "9f508c1ea3d31900522d5d7699f57bcc",
+    "semantic_hash": ""
+  },
+  "scripts/scrape-all-local-2026-05-18.py": {
+    "mtime": 1779163109.8720782,
+    "ast_hash": "34c8d773996a759c3ce03e4137662a23",
+    "semantic_hash": ""
+  },
+  "scripts/scrape-all-local-2026-05-19.py": {
+    "mtime": 1779165604.973274,
+    "ast_hash": "58981a81d22de8f85d9493d2c71428db",
+    "semantic_hash": ""
+  },
+  "scripts/scrape-all-local-shops.py": {
+    "mtime": 1779129093.5307775,
+    "ast_hash": "890f8978970677d7ab8ae3e7df246c57",
+    "semantic_hash": ""
+  },
+  "scripts/scrape-canadian-tire.py": {
+    "mtime": 1779118385.5362132,
+    "ast_hash": "234f9ad1032257aeb14baec43cdfc015",
+    "semantic_hash": ""
+  },
+  "scripts/scrape-ct-final.py": {
+    "mtime": 1779132183.5422378,
+    "ast_hash": "96bcc945cb85bca0b07f3fe1cd0bcdcb",
+    "semantic_hash": ""
+  },
+  "scripts/scrape-ct-v2.py": {
+    "mtime": 1779130400.4075758,
+    "ast_hash": "e9b523a9f68dd34bf204259a0ef9fb9b",
+    "semantic_hash": ""
+  },
+  "scripts/scrape-ct-v3.py": {
+    "mtime": 1779130882.425205,
+    "ast_hash": "139776b09fa18fc95ba8540e46ab2c80",
+    "semantic_hash": ""
+  },
+  "scripts/scrape-local-market-scrapling.py": {
+    "mtime": 1779118136.4847744,
+    "ast_hash": "c98902daf7dda3315e77209928c343ac",
+    "semantic_hash": ""
+  },
+  "scripts/scrape-michelin-local.py": {
+    "mtime": 1779145651.222114,
+    "ast_hash": "26421b901c3647c70744409f98433952",
+    "semantic_hash": ""
+  },
+  "scripts/scrape-noble-tire.py": {
+    "mtime": 1779130222.067737,
+    "ast_hash": "db28e23c387c663e7b3684b01184bb51",
+    "semantic_hash": ""
+  },
+  "scripts/scrape-point-s.py": {
+    "mtime": 1779130448.9669647,
+    "ast_hash": "24348948e0fa26168a36fd55aaf16824",
+    "semantic_hash": ""
+  },
+  "scripts/scrape-progress-2026-05-18.json": {
+    "mtime": 1779163728.4682498,
+    "ast_hash": "72ffc8cdec5b7384bc1ab5aa80b0860b",
+    "semantic_hash": ""
+  },
+  "scripts/scrape-progress-2026-05-19.json": {
+    "mtime": 1779165196.3814843,
+    "ast_hash": "b54809e4d74f9ef99837ce5837edccff",
+    "semantic_hash": ""
+  },
+  "scripts/scrape-tdg-michelin.py": {
+    "mtime": 1779146791.553551,
+    "ast_hash": "eee44088cc7aa05d7b834b165a70bc38",
+    "semantic_hash": ""
+  },
+  "scripts/scrape-tdot-gap-fill.py": {
+    "mtime": 1779164001.22488,
+    "ast_hash": "3e0a53d72e31603260d6a2829d0b61ce",
+    "semantic_hash": ""
+  },
+  "scripts/scrape-tdot-krave.py": {
+    "mtime": 1779133400.7503986,
+    "ast_hash": "6706f19972917b21cf02e269f059b2c3",
+    "semantic_hash": ""
+  },
+  "scripts/scrape-zracing-fresh.py": {
+    "mtime": 1779130192.4199018,
+    "ast_hash": "4d89d2bbab1101c5aed956e91a35f8b2",
+    "semantic_hash": ""
+  },
+  "scripts/scrape_pmctire.py": {
+    "mtime": 1778638573.211086,
+    "ast_hash": "f481f2da85e1559abbe6b84797f6092d",
+    "semantic_hash": ""
+  },
+  "scripts/scrape_utils.py": {
+    "mtime": 1779129179.2501028,
+    "ast_hash": "fef2d524c335b3dbe15e19ccaa1f4686",
+    "semantic_hash": ""
+  },
+  "scripts/scrapling-test-results.json": {
+    "mtime": 1779118257.481998,
+    "ast_hash": "fa3c4fd30e39154310c90f42dcb6e5ff",
+    "semantic_hash": ""
+  },
+  "scripts/substation-auth": {
+    "mtime": 1775883372.126231,
+    "ast_hash": "bb697660e2bf582303c5e024fbe42873",
+    "semantic_hash": ""
+  },
+  "scripts/tdg-brand-audit-raw.json": {
+    "mtime": 1779151862.5134351,
+    "ast_hash": "24e51d9996a441749b1c18191ead2681",
+    "semantic_hash": ""
+  },
+  "scripts/tdg-michelin-stock.json": {
+    "mtime": 1779146911.194199,
+    "ast_hash": "f48cf5389a62c83464cf1c18881d5167",
+    "semantic_hash": ""
+  },
+  "scripts/tdg-screenshot.py": {
+    "mtime": 1779138831.1731172,
+    "ast_hash": "34f497521d77a321b8cf36815ff47764",
+    "semantic_hash": ""
+  },
+  "scripts/tdg-stock-check.json": {
+    "mtime": 1779139372.0228589,
+    "ast_hash": "44b69379145952fac82248aca144f9fd",
+    "semantic_hash": ""
+  },
+  "scripts/tdot-scrape-progress.json": {
+    "mtime": 1779164310.7410457,
+    "ast_hash": "ede72472d6ad6d03459a568eb7785250",
+    "semantic_hash": ""
+  },
+  "scripts/tire_scraper.py": {
+    "mtime": 1778634002.8019037,
+    "ast_hash": "bbc505cb6d4e39eaa4eaf8647605b043",
+    "semantic_hash": ""
+  },
+  "src/index.js": {
+    "mtime": 1782936404.9481537,
+    "ast_hash": "6b67b56fd8969c02569fbb85122f93ee",
+    "semantic_hash": ""
+  },
+  "src/right-hand-sdk.mjs": {
+    "mtime": 1778466594.467485,
+    "ast_hash": "f0cd28b2796955ea4d910837d8f0a112",
+    "semantic_hash": ""
+  },
+  "README.md": {
+    "mtime": 1775883372.1256351,
+    "ast_hash": "eb6db17f63cbec2944623782cf44f85e",
+    "semantic_hash": ""
+  },
+  "fb-marketplace-listings/listings.md": {
+    "mtime": 1779023399.2311368,
+    "ast_hash": "4edc50c1f627800dfa2fdc95d5be7bfb",
+    "semantic_hash": ""
+  },
+  "full-pricing-audit.md": {
+    "mtime": 1779071761.4324489,
+    "ast_hash": "36b8d170cecef7136213fb25cbdf09db",
+    "semantic_hash": ""
+  },
+  "indigo-collective-profile.html": {
+    "mtime": 1778948412.0841174,
+    "ast_hash": "19852e26529c6ddc14f7e0b107d4605b",
+    "semantic_hash": ""
+  },
+  "memory/active/infra-audit.md": {
+    "mtime": 1777491019.824544,
+    "ast_hash": "b3248797763451e13f39b5a89659c408",
+    "semantic_hash": ""
+  },
+  "memory/active/luxurylane-4issues-2026-05-31.md": {
+    "mtime": 1780265142.6102166,
+    "ast_hash": "da281e19842a5c9010c935db61875afe",
+    "semantic_hash": ""
+  },
+  "memory/active/luxurylane-crm-backend.md": {
+    "mtime": 1780253446.4945107,
+    "ast_hash": "28bf3fa038ebc71a8148d33981a95f7e",
+    "semantic_hash": ""
+  },
+  "memory/active/luxurylane-ct-price-scrape.md": {
+    "mtime": 1780333918.0169454,
+    "ast_hash": "28a073065606396fc5a380ee9cbe5d67",
+    "semantic_hash": ""
+  },
+  "memory/active/luxurylane-fixes-may19.md": {
+    "mtime": 1779224544.3739374,
+    "ast_hash": "112c8fe7b6894c1c3cc64f9e26ba68e0",
+    "semantic_hash": ""
+  },
+  "memory/active/luxurylane-jun-batch.md": {
+    "mtime": 1780159239.0178194,
+    "ast_hash": "e8891d9023bfa73f8c29d884afa1b836",
+    "semantic_hash": ""
+  },
+  "memory/active/luxurylane-metadata-pricing-fix.md": {
+    "mtime": 1780338460.0319726,
+    "ast_hash": "8c8d1fecf1b42771811a700560d81b12",
+    "semantic_hash": ""
+  },
+  "memory/active/luxurylane-parked-reintro.md": {
+    "mtime": 1780236783.1852484,
+    "ast_hash": "d7b699e0cffb5c1a7516b6a56a159046",
+    "semantic_hash": ""
+  },
+  "memory/active/luxurylane-tire-research.md": {
+    "mtime": 1778550261.223579,
+    "ast_hash": "ff947c80939fb452efd91c262da278f5",
+    "semantic_hash": ""
+  },
+  "memory/active/luxurylane-tires.md": {
+    "mtime": 1779111522.948102,
+    "ast_hash": "2c7f3e4df1af00ecfba46af2d304bedc",
+    "semantic_hash": ""
+  },
+  "memory/active/market-driven-pricing.md": {
+    "mtime": 1779198373.7578733,
+    "ast_hash": "588172df1762d2629b913a3e14753930",
+    "semantic_hash": ""
+  },
+  "memory/active/peptide-site-rebuild.md": {
+    "mtime": 1778537132.1285644,
+    "ast_hash": "3751c996f0cd21c9011fc86182a96359",
+    "semantic_hash": ""
+  },
+  "memory/active/scraping-skill-plan.md": {
+    "mtime": 1778633289.6697192,
+    "ast_hash": "8b472812a5063662a1bc96aed4c85ce6",
+    "semantic_hash": ""
+  },
+  "scripts/market-pricing-summary.txt": {
+    "mtime": 1779163225.0996375,
+    "ast_hash": "56f23a482cf9576515e7dd240d51de55",
+    "semantic_hash": ""
+  },
+  "scripts/michelin-pricing-summary.txt": {
+    "mtime": 1779149556.8243833,
+    "ast_hash": "dcac5d174046719e003afbef4a7638ae",
+    "semantic_hash": ""
+  },
+  "scripts/missing-sizes-summary.txt": {
+    "mtime": 1779151996.3296273,
+    "ast_hash": "94f60aed0c285c03c59f15c7647a4126",
+    "semantic_hash": ""
+  },
+  "screenshots/crm-dashboard.png": {
+    "mtime": 1778910414.183324,
+    "ast_hash": "2d5c1b237f79f55d5e28c7bd515b3f38",
+    "semantic_hash": ""
+  },
+  "screenshots/crm-login.png": {
+    "mtime": 1778910377.4531167,
+    "ast_hash": "d6bb7d8e362f7a10476f1505c4767e7c",
+    "semantic_hash": ""
+  },
+  "screenshots/luxurylane-full.png": {
+    "mtime": 1778910416.534577,
+    "ast_hash": "72787ad95f826c9a23487471e6a572a5",
+    "semantic_hash": ""
+  },
+  "screenshots/luxurylane-hero.png": {
+    "mtime": 1778910378.6731606,
+    "ast_hash": "a5c55973560e26d31b231918f276f502",
+    "semantic_hash": ""
+  },
+  "screenshots/luxurylane-mobile.png": {
+    "mtime": 1778910415.3475668,
+    "ast_hash": "0af82ba5bcddc8fbaec490eab762c71e",
+    "semantic_hash": ""
+  },
+  "screenshots/luxurylane-tires.png": {
+    "mtime": 1778910380.2738783,
+    "ast_hash": "37774af890f28cfab00b6d0acefbfc7c",
+    "semantic_hash": ""
+  },
+  "screenshots/mypeptide-hero.png": {
+    "mtime": 1778948360.3550937,
+    "ast_hash": "928d4bdf3d0fd0b12fa1ed2b4f351aca",
+    "semantic_hash": ""
+  },
+  "scripts/tdg-dashboard.png": {
+    "mtime": 1779138879.995249,
+    "ast_hash": "86b0bc71bd362df64b0711b19d202411",
+    "semantic_hash": ""
+  },
+  "scripts/tdg-login.png": {
+    "mtime": 1779138847.82662,
+    "ast_hash": "e9495f06d5c7e52cd7f404e4879b1af4",
+    "semantic_hash": ""
+  }
+}

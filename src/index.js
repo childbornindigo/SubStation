@@ -993,13 +993,15 @@ function makeCodexRequest(bodyStr, tokenEntry, onDelta) {
 // ChatGPT Image Generation — via Codex/Responses API (bypasses Cloudflare)
 // ---------------------------------------------------------------------------
 
-function chatgptImageGenerate(tokenEntry, prompt, size = '1024x1024', quality = 'auto') {
+function chatgptImageGenerate(tokenEntry, prompt, size = '1024x1024', quality = 'high') {
   return new Promise((resolve, reject) => {
-    // Use GPT 5.4 through the Codex/Responses endpoint — it supports native image generation
-    // gpt-image-1 is rejected by this endpoint, but gpt-5.4 handles image prompts natively
-    // Send as a plain text input — GPT 5.4 auto-generates images when the prompt describes one
+    // Use GPT 5.5 through the Codex/Responses endpoint — it supports native image generation
+    // gpt-image-1 is also accepted by this endpoint as of 2026-07-09 (live-probed), but
+    // gpt-image-2 remains the tool model since no proven newer id was found -- see
+    // /tmp/substation_image_patch.md (commit b3d0faa) for the full probe evidence.
+    // Send as a plain text input — GPT 5.5 auto-generates images when the prompt describes one
     const requestBody = JSON.stringify({
-      model: 'gpt-5.4',
+      model: 'gpt-5.5',
       instructions: 'Generate the requested image. Output only the image.',
       input: [{ role: 'user', content: prompt }],
       tools: [{ type: 'image_generation', model: 'gpt-image-2', size, quality }],
@@ -2329,7 +2331,11 @@ function startProxy() {
           return;
         }
 
-        const { prompt, model: _reqModel, size = '1024x1024', quality = 'auto', n = 1 } = parsed;
+        // quality default matches chatgptImageGenerate's own default ('high' as of
+        // 2026-07-09) -- this route ALWAYS passes quality explicitly to that function
+        // below, so this default (not the function's) is what actually governs real
+        // requests that omit the field. Keep both in sync.
+        const { prompt, model: _reqModel, size = '1024x1024', quality = 'high', n = 1 } = parsed;
         if (!prompt) {
           safeEnd(res, 400, { error: { message: 'Missing required field: prompt' } });
           return;

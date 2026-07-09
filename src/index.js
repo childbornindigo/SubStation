@@ -766,7 +766,22 @@ const CODEX_CHATGPT_REMAP = {
   'gpt-5.1-codex-mini': 'gpt-5.4-mini',
 };
 
-function buildCodexBody(openaiMessages, modelInfo) {
+// Best-effort OpenAI chat-completions tool schema -> Responses API tool shape.
+// NOTE: the Responses API's tool shape is FLATTER than Chat Completions —
+// {type:'function', name, description, parameters} directly, NOT nested under
+// a `function` key. This is unverified against a live ChatGPT/codex backend
+// probe as of writing; treat as best-effort, document honestly if it fails.
+function convertOpenAIToolsToCodexResponses(tools) {
+  if (!tools || !tools.length) return undefined;
+  return tools.map(t => ({
+    type: 'function',
+    name: t.function?.name,
+    description: t.function?.description,
+    parameters: t.function?.parameters || { type: 'object', properties: {} },
+  }));
+}
+
+function buildCodexBody(openaiMessages, modelInfo, tools) {
   const input = convertForCodex(openaiMessages);
   // Extract instructions from developer messages, remaining go in input
   let instructions = '';
@@ -785,7 +800,7 @@ function buildCodexBody(openaiMessages, modelInfo) {
   if (filteredInput.length === 0) {
     filteredInput.push({ type: 'message', role: 'user', content: [{ type: 'input_text', text: '(empty)' }] });
   }
-  return {
+  const body = {
     model: CODEX_CHATGPT_REMAP[modelInfo.modelId] || modelInfo.modelId,
     instructions,
     input: filteredInput,
@@ -793,6 +808,9 @@ function buildCodexBody(openaiMessages, modelInfo) {
     stream: true,
     service_tier: 'priority',
   };
+  const codexTools = convertOpenAIToolsToCodexResponses(tools);
+  if (codexTools) body.tools = codexTools;
+  return body;
 }
 
 // ---------------------------------------------------------------------------
@@ -882,14 +900,14 @@ function makeAnthropicRequest(bodyStr, tokenEntry, onDelta) {
         res.on('end', () => {
           try {
             const parsed = JSON.parse(data);
-            const text = (parsed.content || [])
-              .filter(b => b.type === 'text')
-              .map(b => b.text)
-              .join('\n');
-            if (text) {
-              resolve({ text, usage: parsed.usage || {} });
+            // Return the full content blocks array (text + tool_use, etc.) so
+            // callers that need structured tool_use data (e.g.
+            // invokeClaudeMessagesAPIWithTools) don't lose it to a text-only
+            // join. Callers that only want text can still derive it themselves.
+            if (parsed.content && parsed.content.length) {
+              resolve({ content: parsed.content, usage: parsed.usage || {} });
             } else {
-              reject(Object.assign(new Error('Empty response from Anthropic ��� model returned no text blocks'), { statusCode: 0 }));
+              reject(Object.assign(new Error('Empty response from Anthropic — model returned no content blocks'), { statusCode: 0 }));
             }
           } catch (e) {
             reject(Object.assign(new Error(`Failed to parse Anthropic response: ${e.message}`), { statusCode: 0 }));
@@ -943,6 +961,10 @@ function makeCodexRequest(bodyStr, tokenEntry, onDelta) {
       let text = '';
       let usage = {};
       let buf = '';
+      // Best-effort: capture function_call output items if the codex/Responses
+      // backend surfaces them (see convertOpenAIToolsToCodexResponses above).
+      // Unverified live — may end up empty even when tools were sent.
+      const toolCalls = [];
 
       res.on('data', (chunk) => {
         buf += chunk;
@@ -961,8 +983,29 @@ function makeCodexRequest(bodyStr, tokenEntry, onDelta) {
               if (onDelta) onDelta(event.delta);
             } else if (event.type === 'response.output_text.done') {
               if (event.text) text = event.text;
+            } else if (event.type === 'response.output_item.done' && event.item?.type === 'function_call') {
+              const item = event.item;
+              toolCalls.push({
+                id: item.call_id || item.id,
+                type: 'function',
+                function: { name: item.name, arguments: item.arguments || '{}' },
+              });
             } else if (event.type === 'response.completed' && event.response?.usage) {
               usage = event.response.usage;
+              // Fallback: some backends only surface function_call items in the
+              // final response.completed payload's output array, not as their
+              // own output_item.done events.
+              if (!toolCalls.length && Array.isArray(event.response.output)) {
+                for (const item of event.response.output) {
+                  if (item.type === 'function_call') {
+                    toolCalls.push({
+                      id: item.call_id || item.id,
+                      type: 'function',
+                      function: { name: item.name, arguments: item.arguments || '{}' },
+                    });
+                  }
+                }
+              }
             } else if (event.type === 'response.failed') {
               const errMsg = event.response?.error?.message || 'Unknown Codex error';
               const errCode = event.response?.error?.code || '';
@@ -974,8 +1017,8 @@ function makeCodexRequest(bodyStr, tokenEntry, onDelta) {
       });
 
       res.on('end', () => {
-        if (text) {
-          resolve({ text, usage });
+        if (text || toolCalls.length) {
+          resolve({ text, usage, toolCalls: toolCalls.length ? toolCalls : undefined });
         } else {
           reject(Object.assign(new Error('Empty response from Codex API — check your ChatGPT subscription status'), { statusCode: 0 }));
         }
@@ -1503,6 +1546,99 @@ function retrieveVaultContext(query) {
   }
 }
 
+// ---------------------------------------------------------------------------
+// OpenAI <-> Anthropic tool-calling converters (raw Messages API path, used
+// when a caller sends `tools` on /v1/chat/completions — see
+// invokeClaudeMessagesAPIWithTools below). Kept separate from
+// formatMessagesForSDK, which flattens everything into one prompt string and
+// cannot carry structured tool_use/tool_result blocks.
+// ---------------------------------------------------------------------------
+
+function convertOpenAIToolsToAnthropic(tools) {
+  if (!tools || !tools.length) return undefined;
+  return tools.map(t => ({
+    name: t.function?.name,
+    description: t.function?.description,
+    input_schema: t.function?.parameters || { type: 'object', properties: {} },
+  }));
+}
+
+function convertOpenAIToolChoiceToAnthropic(toolChoice) {
+  if (toolChoice === undefined || toolChoice === null || toolChoice === 'auto') return { type: 'auto' };
+  if (toolChoice === 'required') return { type: 'any' };
+  // Anthropic has no direct "none but keep tools visible" mode; 'auto' is the
+  // closest available behavior (model may still choose not to call a tool).
+  if (toolChoice === 'none') return { type: 'auto' };
+  if (typeof toolChoice === 'object' && toolChoice.type === 'function' && toolChoice.function?.name) {
+    return { type: 'tool', name: toolChoice.function.name };
+  }
+  return { type: 'auto' };
+}
+
+function convertOpenAIMessagesToAnthropic(openaiMessages) {
+  const systemParts = [];
+  const messages = [];
+
+  for (const msg of openaiMessages) {
+    if (msg.role === 'system') {
+      const text = Array.isArray(msg.content)
+        ? msg.content.filter(b => b.type === 'text').map(b => b.text).join('\n')
+        : (msg.content || '');
+      if (text) systemParts.push(text);
+      continue;
+    }
+
+    if (msg.role === 'user') {
+      if (Array.isArray(msg.content)) {
+        // Preserve at minimum any text parts; pass the array through otherwise.
+        messages.push({ role: 'user', content: msg.content });
+      } else {
+        messages.push({ role: 'user', content: msg.content || '' });
+      }
+      continue;
+    }
+
+    if (msg.role === 'assistant') {
+      const content = [];
+      const textContent = Array.isArray(msg.content)
+        ? msg.content.filter(b => b.type === 'text').map(b => b.text).join('\n')
+        : (msg.content || '');
+      if (textContent) content.push({ type: 'text', text: textContent });
+      if (Array.isArray(msg.tool_calls)) {
+        for (const tc of msg.tool_calls) {
+          let input = {};
+          try { input = JSON.parse(tc.function?.arguments || '{}'); } catch { input = {}; }
+          content.push({ type: 'tool_use', id: tc.id, name: tc.function?.name, input });
+        }
+      }
+      messages.push({ role: 'assistant', content });
+      continue;
+    }
+
+    if (msg.role === 'tool') {
+      messages.push({
+        role: 'user',
+        content: [{ type: 'tool_result', tool_use_id: msg.tool_call_id, content: msg.content }],
+      });
+      continue;
+    }
+  }
+
+  return { system: systemParts.length ? systemParts.join('\n\n') : undefined, messages };
+}
+
+function anthropicContentToOpenAIToolCalls(contentBlocks) {
+  const blocks = contentBlocks || [];
+  const text = blocks.filter(b => b.type === 'text').map(b => b.text).join('');
+  const toolUseBlocks = blocks.filter(b => b.type === 'tool_use');
+  const toolCalls = toolUseBlocks.length ? toolUseBlocks.map(b => ({
+    id: b.id,
+    type: 'function',
+    function: { name: b.name, arguments: JSON.stringify(b.input || {}) },
+  })) : undefined;
+  return { text, toolCalls };
+}
+
 function formatMessagesForSDK(openaiMessages) {
   const parts = [];
   const systemParts = [];
@@ -1567,6 +1703,56 @@ function formatMessagesForSDK(openaiMessages) {
   }
 
   return parts.join('\n\n');
+}
+
+// Raw Anthropic Messages API path for tool-calling requests. The Agent SDK's
+// query() (used by invokeClaudeSDK below) is a full coding-agent session with
+// its own fixed toolset — arbitrary caller-supplied custom tool schemas
+// (e.g. a client's `get_weather` function) cannot be cleanly injected into it.
+// The raw Messages API accepts arbitrary custom `tools` directly, so when a
+// /v1/chat/completions caller sends `tools`, we bypass the Agent SDK entirely
+// and go straight to api.anthropic.com via makeAnthropicRequest.
+async function invokeClaudeMessagesAPIWithTools(openaiMessages, tools, toolChoice, modelInfo, tokenAffinity) {
+  const tokens = getAnthropicOAuthTokens();
+  if (tokens.length === 0) {
+    throw new Error('No Anthropic OAuth tokens found. Log into Claude Code or add tokens to auth-profiles.json.');
+  }
+
+  const candidateTokens = tokenAffinity
+    ? tokens.filter(t => t.id === tokenAffinity || t.id.includes(tokenAffinity))
+    : tokens;
+  if (candidateTokens.length === 0) {
+    throw new Error(`No token matching affinity "${tokenAffinity}" found.`);
+  }
+
+  const { system, messages } = convertOpenAIMessagesToAnthropic(openaiMessages);
+  const anthropicTools = convertOpenAIToolsToAnthropic(tools);
+  const anthropicToolChoice = anthropicTools ? convertOpenAIToolChoiceToAnthropic(toolChoice) : undefined;
+
+  const body = {
+    model: modelInfo.modelId,
+    max_tokens: modelInfo.maxTokens || 8192,
+    messages,
+    stream: false,
+  };
+  if (system) body.system = system;
+  if (anthropicTools) body.tools = anthropicTools;
+  if (anthropicToolChoice) body.tool_choice = anthropicToolChoice;
+
+  const bodyStr = JSON.stringify(body);
+
+  let lastErr;
+  for (const token of candidateTokens) {
+    try {
+      const result = await makeAnthropicRequest(bodyStr, token);
+      const { text, toolCalls } = anthropicContentToOpenAIToolCalls(result.content);
+      return { text, toolCalls, usage: result.usage };
+    } catch (err) {
+      lastErr = err;
+      log(`invokeClaudeMessagesAPIWithTools: token ${token.id} failed: ${err.message}`);
+    }
+  }
+  throw new Error(`All Anthropic tokens failed for tool-calling request: ${lastErr ? lastErr.message : 'unknown error'}`);
 }
 
 async function invokeClaudeSDK(openaiMessages, modelInfo, onDelta, tokenAffinity, onServedModel) {
@@ -1781,14 +1967,14 @@ async function invokeClaudeSDK(openaiMessages, modelInfo, onDelta, tokenAffinity
 // Codex API caller with pool rotation
 // ---------------------------------------------------------------------------
 
-async function invokeCodex(openaiMessages, modelInfo, onDelta) {
+async function invokeCodex(openaiMessages, modelInfo, onDelta, tools) {
   const provider = 'openai';
   const providerTokens = pool.filter(t => t.provider === provider);
   if (providerTokens.length === 0) {
     throw new Error('No ChatGPT tokens configured. Run "substation-auth chatgpt" to set up authentication.');
   }
 
-  const bodyStr = JSON.stringify(buildCodexBody(openaiMessages, modelInfo));
+  const bodyStr = JSON.stringify(buildCodexBody(openaiMessages, modelInfo, tools));
   log(`Codex request (model=${modelInfo.modelId}, body=${bodyStr.length}b)`);
 
   const maxAttempts = providerTokens.length;
@@ -2116,15 +2302,40 @@ function startProxy() {
           return;
         }
 
-        const { messages = [], model = 'sonnet-4-6', stream = false } = parsed;
+        const { messages = [], model = 'sonnet-4-6', stream = false, tools, tool_choice } = parsed;
         if (!messages.length) {
           safeEnd(res, 400, { error: { message: 'No messages in request — include at least one message' } });
           return;
         }
 
+        // Tool-calling requests to Anthropic-family models bypass the Agent SDK
+        // (a fixed-toolset coding-agent session that can't take arbitrary
+        // caller-supplied tool schemas) and go straight to the raw Messages API.
+        // No `tools` in the request → zero behavior change, same invokeModel path as before.
+        const hasTools = Array.isArray(tools) && tools.length > 0;
+        // Per-account suffix "model:acct2-foo" (same convention as invokeModel below) —
+        // strip it for model resolution, and honor it as tokenAffinity when the
+        // X-SubStation-Token header isn't already pinning a token.
+        const modelColonIdx = model.indexOf(':');
+        const baseModelForTools = modelColonIdx === -1 ? model : model.slice(0, modelColonIdx);
+        const resolvedModelInfo = hasTools ? resolveModel(baseModelForTools) : null;
+        const useAnthropicToolsPath = hasTools && resolvedModelInfo && resolvedModelInfo.provider === 'anthropic';
+        // Best-effort forward for GPT/codex-family models — see buildCodexBody /
+        // makeCodexRequest function_call handling. Unverified against a live
+        // probe; may legitimately fail (Responses API tool support unconfirmed).
+        const useCodexToolsPath = hasTools && resolvedModelInfo && resolvedModelInfo.provider !== 'anthropic';
+
         // Token affinity: X-SubStation-Token header routes to a specific pool token
         // "backup" = use backup OAuth token via direct API (for secondary agents)
+        // Kept header-only here (unchanged) because this same value also flows
+        // into invokeOpts for the plain invokeModel(...) no-tools path below,
+        // which does its OWN "model:acct" colon parsing internally — pre-populating
+        // it here would short-circuit that and break plain-model resolution.
         const tokenAffinity = req.headers['x-substation-token'] || null;
+        // Tools-path-only variant: same header, falling back to the colon
+        // suffix (see baseModelForTools above) since the two new tools-path
+        // invoke functions don't do their own colon parsing like invokeModel does.
+        const toolsPathTokenAffinity = tokenAffinity || (modelColonIdx !== -1 ? model.slice(modelColonIdx + 1) : null);
 
         // Swap-detection guard: NOTE that this response's own top-level `model`
         // field (below, both streaming and non-streaming branches) ALWAYS
@@ -2146,6 +2357,82 @@ function startProxy() {
           const created = Math.floor(Date.now() / 1000);
 
           if (stream) {
+            if (useAnthropicToolsPath) {
+              // Tool-calling responses aren't incrementally streamed (the raw
+              // Messages API call here is non-streaming) — emit one completed
+              // delta chunk with the full content/tool_calls, then finish_reason.
+              const { text, toolCalls, usage } = await invokeClaudeMessagesAPIWithTools(messages, tools, tool_choice, resolvedModelInfo, toolsPathTokenAffinity);
+              res.writeHead(200, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', 'Connection': 'keep-alive' });
+              const deltaPayload = { role: 'assistant', content: text || null };
+              if (toolCalls) deltaPayload.tool_calls = toolCalls;
+              res.write(`data: ${JSON.stringify({
+                id, object: 'chat.completion.chunk', created,
+                model, system_fingerprint: null,
+                choices: [{ index: 0, delta: deltaPayload, logprobs: null, finish_reason: null }]
+              })}\n\n`);
+              res.write(`data: ${JSON.stringify({
+                id, object: 'chat.completion.chunk', created,
+                model, system_fingerprint: null,
+                choices: [{ index: 0, delta: {}, logprobs: null, finish_reason: toolCalls ? 'tool_calls' : 'stop' }]
+              })}\n\n`);
+              res.write('data: [DONE]\n\n');
+              res.end();
+              return;
+            }
+
+            if (useCodexToolsPath) {
+              // Best-effort GPT/codex tool-calling forward — see buildCodexBody /
+              // makeCodexRequest. Text deltas still stream live; tool_calls (if
+              // the backend actually returns any) are only known at the end,
+              // same one-shot-completed-chunk pattern as the Anthropic tools path.
+              let headersSentCx = false;
+              let textSoFar = '';
+              const onDeltaCx = (delta) => {
+                if (res.destroyed) return;
+                textSoFar += delta;
+                if (!headersSentCx) {
+                  headersSentCx = true;
+                  res.writeHead(200, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', 'Connection': 'keep-alive' });
+                  res.write(`data: ${JSON.stringify({
+                    id, object: 'chat.completion.chunk', created,
+                    model, system_fingerprint: null,
+                    choices: [{ index: 0, delta: { role: 'assistant' }, logprobs: null, finish_reason: null }]
+                  })}\n\n`);
+                }
+                res.write(`data: ${JSON.stringify({
+                  id, object: 'chat.completion.chunk', created,
+                  model, system_fingerprint: null,
+                  choices: [{ index: 0, delta: { content: delta }, logprobs: null, finish_reason: null }]
+                })}\n\n`);
+              };
+              const cxResult = await invokeCodex(messages, resolvedModelInfo, onDeltaCx, tools);
+              if (!headersSentCx) {
+                res.writeHead(200, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', 'Connection': 'keep-alive' });
+                const deltaPayload = { role: 'assistant', content: cxResult.text || null };
+                if (cxResult.toolCalls) deltaPayload.tool_calls = cxResult.toolCalls;
+                res.write(`data: ${JSON.stringify({
+                  id, object: 'chat.completion.chunk', created,
+                  model, system_fingerprint: null,
+                  choices: [{ index: 0, delta: deltaPayload, logprobs: null, finish_reason: null }]
+                })}\n\n`);
+              } else if (cxResult.toolCalls) {
+                // Tool calls only known after the stream finished — emit them now.
+                res.write(`data: ${JSON.stringify({
+                  id, object: 'chat.completion.chunk', created,
+                  model, system_fingerprint: null,
+                  choices: [{ index: 0, delta: { tool_calls: cxResult.toolCalls }, logprobs: null, finish_reason: null }]
+                })}\n\n`);
+              }
+              res.write(`data: ${JSON.stringify({
+                id, object: 'chat.completion.chunk', created,
+                model, system_fingerprint: null,
+                choices: [{ index: 0, delta: {}, logprobs: null, finish_reason: cxResult.toolCalls ? 'tool_calls' : 'stop' }]
+              })}\n\n`);
+              res.write('data: [DONE]\n\n');
+              res.end();
+              return;
+            }
+
             // Real-time streaming — send SSE headers immediately, pipe deltas as they arrive
             let headersSent = false;
             const onDelta = (delta) => {
@@ -2191,6 +2478,49 @@ function startProxy() {
             })}\n\n`);
             res.write('data: [DONE]\n\n');
             res.end();
+          } else if (useAnthropicToolsPath) {
+            // Non-streaming tool-calling path — raw Messages API, arbitrary caller tools.
+            const { text, toolCalls, usage } = await invokeClaudeMessagesAPIWithTools(messages, tools, tool_choice, resolvedModelInfo, toolsPathTokenAffinity);
+            const promptTokens = usage?.input_tokens || usage?.prompt_tokens || Math.max(1, JSON.stringify(messages).split(/\s+/).length);
+            const completionTokens = usage?.output_tokens || usage?.completion_tokens || Math.max(1, (text || '').split(/\s+/).length);
+            const message = { role: 'assistant', content: text || null };
+            if (toolCalls) message.tool_calls = toolCalls;
+            safeEnd(res, 200, {
+              id,
+              object: 'chat.completion',
+              created,
+              model,
+              system_fingerprint: null,
+              choices: [{
+                index: 0,
+                message,
+                logprobs: null,
+                finish_reason: toolCalls ? 'tool_calls' : 'stop',
+              }],
+              usage: { prompt_tokens: promptTokens, completion_tokens: completionTokens, total_tokens: promptTokens + completionTokens },
+            });
+          } else if (useCodexToolsPath) {
+            // Non-streaming best-effort GPT/codex tool-calling path — see
+            // buildCodexBody / makeCodexRequest function_call handling.
+            const cxResult = await invokeCodex(messages, resolvedModelInfo, null, tools);
+            const promptTokens = cxResult.usage?.input_tokens || cxResult.usage?.prompt_tokens || Math.max(1, JSON.stringify(messages).split(/\s+/).length);
+            const completionTokens = cxResult.usage?.output_tokens || cxResult.usage?.completion_tokens || Math.max(1, (cxResult.text || '').split(/\s+/).length);
+            const message = { role: 'assistant', content: cxResult.text || null };
+            if (cxResult.toolCalls) message.tool_calls = cxResult.toolCalls;
+            safeEnd(res, 200, {
+              id,
+              object: 'chat.completion',
+              created,
+              model,
+              system_fingerprint: null,
+              choices: [{
+                index: 0,
+                message,
+                logprobs: null,
+                finish_reason: cxResult.toolCalls ? 'tool_calls' : 'stop',
+              }],
+              usage: { prompt_tokens: promptTokens, completion_tokens: completionTokens, total_tokens: promptTokens + completionTokens },
+            });
           } else {
             // Non-streaming — buffer full response
             const { text, usage } = await invokeModel(messages, model, null, invokeOpts);

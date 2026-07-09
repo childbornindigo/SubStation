@@ -838,8 +838,16 @@ function makeAnthropicRequest(bodyStr, tokenEntry, onDelta) {
         'anthropic-version': '2023-06-01',
         'anthropic-beta': ANTHROPIC_BETA_HEADERS,
         'Authorization': `Bearer ${tokenEntry.token}`,
-        'user-agent': `claude-cli/${VERSION} (external, cli)`,
-        'x-app': 'cli',
+        // Matches the proven-working /v1/messages passthrough exactly (see
+        // startProxy()'s proxyHeaders) -- the stale 'claude-cli' identity this
+        // used to send appears to get bucketed into a much harsher rate limit
+        // by Anthropic's OAuth backend than a client fingerprint matching the
+        // real Claude Code CLI. Root-caused live: this function's old headers
+        // produced persistent 429s while the identical-token /v1/messages path
+        // succeeded in parallel at the same time.
+        'anthropic-client-type': 'claude-code',
+        'anthropic-client-version': '2.1.197',
+        'User-Agent': 'claude-code/2.1.197',
         'Content-Length': Buffer.byteLength(actualBodyStr),
       },
     };

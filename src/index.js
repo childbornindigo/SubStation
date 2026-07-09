@@ -1331,6 +1331,21 @@ async function invokeClaudeDirect(openaiMessages, modelInfo, tokenAffinity, onDe
 // Each Anthropic OAuth token gets its own persistent session per model
 let anthropicRRIndex = 0; // Round-robin counter for Anthropic token selection
 
+// --- Served-model swap-detection guard (WO: SubStation Fable verification) --
+// The OpenAI-compatible /v1/chat/completions response's own `model` field
+// ALWAYS echoes back whatever model string was requested -- that's normal
+// OpenAI API convention, but it means the response body is NEVER proof of
+// what actually served the request. Real detection lives in two places:
+//   1. invokeClaudeSDK (below): the Agent SDK's own `system`/`init` message
+//      reports the model it actually initialized with (msg.model) -- this IS
+//      knowable and is compared against the requested model on every call.
+//   2. The /v1/messages passthrough (startProxy(), further below): a
+//      non-blocking tee peeks at the response body's own `"model":"..."`
+//      field (Anthropic's Messages API always includes this) without
+//      altering the passthrough bytes.
+// Neither hard-fails on a mismatch -- this is observability, not enforcement.
+let modelSwapCount = 0;
+
 async function querySDK(model, tokenId, oauthToken, prompt) {
   const sdk = await loadAgentSDK();
   log(`SDK query (model=${model}, token=${tokenId})...`);
@@ -1554,7 +1569,7 @@ function formatMessagesForSDK(openaiMessages) {
   return parts.join('\n\n');
 }
 
-async function invokeClaudeSDK(openaiMessages, modelInfo, onDelta, tokenAffinity) {
+async function invokeClaudeSDK(openaiMessages, modelInfo, onDelta, tokenAffinity, onServedModel) {
   const model = modelInfo.modelId;
   const tokens = getAnthropicOAuthTokens();
   if (tokens.length === 0) {
@@ -1637,6 +1652,7 @@ async function invokeClaudeSDK(openaiMessages, modelInfo, onDelta, tokenAffinity
       let text = '';
       let usage = {};
       let hadToolUse = false;
+      let servedModel = null;
       let idleReject;
       const idlePromise = new Promise((_, reject) => { idleReject = reject; });
       const IDLE_TIMEOUT = Number(process.env.SUBSTATION_IDLE_TIMEOUT_MS) || 300000;
@@ -1653,6 +1669,19 @@ async function invokeClaudeSDK(openaiMessages, modelInfo, onDelta, tokenAffinity
       const iteratorLoop = (async () => {
         for await (const msg of iter) {
           resetIdleTimer();
+          if (msg.type === 'system' && msg.subtype === 'init') {
+            // Swap-detection guard: the Agent SDK's own init message reports
+            // the model it actually initialized with -- compare against what
+            // we asked for. Non-fatal: log + counter + surface via callback
+            // (the HTTP handler turns this into an x-substation-served-model
+            // response header), never throws/blocks the request.
+            servedModel = msg.model;
+            if (servedModel !== model) {
+              modelSwapCount++;
+              log(`WARN: model swap detected -- requested "${model}" but Agent SDK served "${servedModel}" (token=${token.id}, swapCount=${modelSwapCount})`);
+            }
+            if (onServedModel) { try { onServedModel(servedModel); } catch {} }
+          }
           if (msg.type === 'user') {
             toolRunning = false;
             resetIdleTimer();
@@ -1694,7 +1723,7 @@ async function invokeClaudeSDK(openaiMessages, modelInfo, onDelta, tokenAffinity
       }
 
       markSuccess(token);
-      return { text, usage };
+      return { text, usage, servedModel, modelMismatch: servedModel !== null && servedModel !== model };
     } catch (err) {
       lastError = err;
       log(`Agent SDK error (token=${token.id}): ${err.message}`);
@@ -1856,7 +1885,7 @@ async function invokeModel(openaiMessages, model, onDelta, opts = {}) {
   if (modelInfo.provider === 'anthropic') {
     // --- Agent SDK (Claude OAuth) — only path for Anthropic models ---
     try {
-      return await invokeClaudeSDK(openaiMessages, modelInfo, onDelta, opts.tokenAffinity || null);
+      return await invokeClaudeSDK(openaiMessages, modelInfo, onDelta, opts.tokenAffinity || null, opts.onServedModel);
     } catch (err) {
       const isSdkBroken = err.message && (err.message.includes('is not a function') || err.message.includes('not installed'));
       if (!isCapError(err) && !isSdkBroken) throw err;
@@ -1890,7 +1919,7 @@ async function invokeModel(openaiMessages, model, onDelta, opts = {}) {
     const failoverInfo = resolveModel(failoverModelId);
     log(`>>> FAILOVER: Codex capped → ${failoverModelId} (Anthropic)`);
     try {
-      return await invokeClaudeSDK(openaiMessages, failoverInfo, onDelta);
+      return await invokeClaudeSDK(openaiMessages, failoverInfo, onDelta, null, opts.onServedModel);
     } catch (anthropicErr) {
       log(`Anthropic failover also failed: ${anthropicErr.message}`);
       throw err;
@@ -2096,7 +2125,21 @@ function startProxy() {
         // Token affinity: X-SubStation-Token header routes to a specific pool token
         // "backup" = use backup OAuth token via direct API (for secondary agents)
         const tokenAffinity = req.headers['x-substation-token'] || null;
-        const invokeOpts = tokenAffinity ? { tokenAffinity } : {};
+
+        // Swap-detection guard: NOTE that this response's own top-level `model`
+        // field (below, both streaming and non-streaming branches) ALWAYS
+        // echoes back the REQUESTED model per OpenAI chat-completions API
+        // convention -- it is NEVER proof of what actually served the request,
+        // and this endpoint cannot self-verify that on its own. The real,
+        // verified served model (when the Anthropic/Agent-SDK path is used)
+        // is surfaced via the x-substation-served-model response header below,
+        // sourced from the Agent SDK's own init message (see invokeClaudeSDK).
+        // A mismatch is logged + counted (modelSwapCount) but never fails the
+        // request -- observability only.
+        const onServedModel = (servedModel) => {
+          if (!res.headersSent) res.setHeader('x-substation-served-model', servedModel);
+        };
+        const invokeOpts = { ...(tokenAffinity ? { tokenAffinity } : {}), onServedModel };
 
         try {
           const id = `chatcmpl-ss-${randomUUID().slice(0, 12)}`;
@@ -2232,6 +2275,16 @@ function startProxy() {
         log(`Anthropic proxy (token=${targetToken.id}, body=${body.length}b)`);
         markRequestStart(targetToken);
 
+        // Best-effort, non-blocking extraction of the requested model for the
+        // swap-detection tee below. Regex, not JSON.parse -- this passthrough
+        // deliberately never parses the body (see startProxy() docs), and a
+        // malformed/huge body must never throw or slow down the real proxy.
+        let requestedModelForSwapCheck = null;
+        try {
+          const reqModelMatch = body.match(/"model"\s*:\s*"([^"]+)"/);
+          requestedModelForSwapCheck = reqModelMatch ? reqModelMatch[1] : null;
+        } catch {}
+
         // Forward to Anthropic API — transparent passthrough
         const proxyHeaders = {
           'Content-Type': 'application/json',
@@ -2265,6 +2318,34 @@ function startProxy() {
           }
           res.writeHead(statusCode, respHeaders);
           proxyRes.pipe(res);
+
+          // Swap-detection guard (read-only tee, never alters the passthrough
+          // bytes going to the client -- .pipe() and this .on('data', ...)
+          // listener both receive every chunk independently). Unlike
+          // /v1/chat/completions, the real served model IS knowable here:
+          // Anthropic's Messages API always includes a top-level `"model"`
+          // field (present early in both streaming and non-streaming
+          // responses), so a lightweight regex peek at the first few KB is
+          // enough -- no full JSON parse needed, and it never blocks/delays
+          // the real response. Logs + counts on mismatch only; never fails.
+          if (requestedModelForSwapCheck) {
+            let peekBuf = '';
+            let modelChecked = false;
+            proxyRes.on('data', (chunk) => {
+              if (modelChecked) return;
+              peekBuf += chunk.toString('utf8');
+              if (peekBuf.length > 8192) { modelChecked = true; return; } // give up, avoid unbounded growth
+              const m = peekBuf.match(/"model"\s*:\s*"([^"]+)"/);
+              if (m) {
+                modelChecked = true;
+                const servedModel = m[1];
+                if (servedModel !== requestedModelForSwapCheck) {
+                  modelSwapCount++;
+                  log(`WARN: /v1/messages model swap detected -- requested "${requestedModelForSwapCheck}" but Anthropic served "${servedModel}" (token=${targetToken.id}, swapCount=${modelSwapCount})`);
+                }
+              }
+            });
+          }
 
           proxyRes.on('end', () => {
             if (statusCode >= 200 && statusCode < 300) {

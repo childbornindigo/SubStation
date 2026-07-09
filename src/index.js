@@ -1424,6 +1424,45 @@ function retrieveVaultContext(query) {
     const q = String(query).slice(0, 500).trim();
     if (q.length < 12) return '';              // skip trivial pings
     if (/HEARTBEAT/i.test(q)) return '';       // skip heartbeat polls
+
+    // ── Operational/meta query suppression (META-QUERY-SUPPRESS WO gap-fix,
+    // 2026-07-09) ──────────────────────────────────────────────────────────
+    // Same suppression applied at the other two entry points (vault-prefetch.py
+    // CLI, vault-prefetch-inject-daemon.sh hook) — this is the third, previously
+    // unpatched call site. Reuses is_operational_meta_query() from
+    // vault-prefetch.py via the same importlib.util dynamic-import trick the
+    // bash hook uses, so the regex pattern list has one single source of truth
+    // instead of a second copy that can drift. Env-flag gated, default enabled,
+    // same flag name as the other two sites. Fails OPEN: any python/spawn error
+    // here falls through to the normal daemon-curl path below (matches this
+    // function's existing silent-no-op-on-any-failure contract) rather than
+    // suppressing — this gate must never be the reason a real query loses its
+    // context injection.
+    // Rollback: VAULT_PREFETCH_SUPPRESS_META=0, or restore
+    // index.js.bak-pre-meta-suppress-20260709.
+    if ((process.env.VAULT_PREFETCH_SUPPRESS_META || '1') !== '0') {
+      try {
+        // Single-line, semicolon-joined Python (not a multi-line "\n"-escaped
+        // string) — execSync shells out via `/bin/sh -c`, which does NOT
+        // interpret "\n" inside a double-quoted arg as a real newline, so a
+        // multi-line script embedded that way fails with a SyntaxError. The
+        // outer try/catch here already gives us fail-open error handling, so
+        // no try/except is needed inside the Python one-liner itself.
+        const loaderScript =
+          'import sys; from importlib.util import spec_from_file_location, module_from_spec; ' +
+          `spec = spec_from_file_location('vault_prefetch', '${homedir()}/.hermes/workspace/vault-search/vault-prefetch.py'); ` +
+          'm = module_from_spec(spec); spec.loader.exec_module(m); ' +
+          "print('1' if m.is_operational_meta_query(sys.argv[1]) else '0')";
+        const isMetaRaw = execSync(
+          `python3 -c ${JSON.stringify(loaderScript)} ${JSON.stringify(q)}`,
+          { timeout: 2000, encoding: 'utf8' }
+        ).trim();
+        if (isMetaRaw === '1') return '';
+      } catch {
+        // fails open — fall through to normal retrieval below
+      }
+    }
+
     const url = `http://127.0.0.1:8404/query?q=${encodeURIComponent(q)}&top=3&fast=1&source=substation`;
     const raw = execSync(
       `curl -sf --connect-timeout 0.3 --max-time 1.5 ${JSON.stringify(url)}`,

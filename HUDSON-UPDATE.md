@@ -34,7 +34,8 @@ doesn't have yet. This doc is the one-command path to get his box current.
 | `89c7313` | Claude-Code client-identity headers on `makeAnthropicRequest` |
 | `a8f02bb` | **Release-audit commit.** Backports everything below — was live-only in `dist/index.js`, never committed until now |
 | `ae06377` | ~~systemPrompt fix~~ — **REVERTED by `d89ccbc`, DO NOT REAPPLY.** Broke live billing classification, see below. |
-| `d89ccbc` | Revert of `ae06377` — restores pre-fix behavior. This is the commit that's actually in effect now. |
+| `d89ccbc` | Revert of `ae06377` — restores pre-fix behavior. |
+| `4edcdd6` | **settingSources fix — safe, verified, in effect now.** `invokeClaudeSDKWithTools` passes `settingSources: []` to isolate from the operator's personal `~/.claude` environment, without touching `systemPrompt` at all. See "settingSources fix — what and why" below. |
 
 ### What `a8f02bb` backported (was dist-only hand-edits, now in `src` + committed)
 - **`invokeClaudeSDKWithTools`** — the tools-path now goes through the Claude
@@ -131,6 +132,51 @@ inferred/estimated number):**
   SDK/OAuth transport itself, not from the system prompt's content — so
   trimming the prompt does not reintroduce the raw-REST 429-bucketing
   problem that motivated the SDK bridge (`a8f02bb`) in the first place.
+
+## settingSources fix (`4edcdd6`) — what and why, and why it's safe
+
+**What changed:** `invokeClaudeSDKWithTools`'s `query()` call now passes
+`options.settingSources = []`. This is an official SDK option ("SDK
+isolation mode" per the SDK's own type docs) that stops loading the
+operator's filesystem settings (`~/.claude/settings.json` and project/local
+settings) — which by default get loaded automatically when the option is
+omitted.
+
+**Why it mattered:** using the SDK's own `getContextUsage()` diagnostic
+(a real per-category token breakdown, not a guess), the actual system
+prompt turned out to be tiny (~245 tokens) — the real cost was
+`invokeClaudeSDKWithTools` silently inheriting the operator's **entire
+personal Claude Code environment** on every single tool-calling request:
+global MCP servers (deferred: 16,100 tokens), custom agents (1,956 tokens),
+skills (5,411 → 721 tokens after the fix), none of which a shared
+multi-tenant tool-calling bridge needs or wants.
+
+**Why this is the safe fix and `ae06377` (reverted, above) was not:** this
+change never touches `systemPrompt` — it stays completely unset, still
+defaulting to the SDK's official `claude_code` preset. That preset appears
+to be what keeps a request billed as normal Claude Code subscription usage
+(see the reverted section above). `settingSources` is a different,
+unrelated option that only controls which *filesystem settings* get loaded
+into the session — it does not change the system-prompt/identity shape that
+seems to drive billing classification.
+
+**Evidence (measured directly against the SDK's own `result.usage`):**
+- Cold cache: cache-creation tokens dropped from 24,385 → 9,552; cost
+  $0.1002 → $0.0477/request.
+- Warm/steady-state (4 consecutive calls): $0.0141–$0.0152/request,
+  consistently at or below the prior $0.0159 baseline.
+- **No billing-classification regression**, unlike `ae06377`: verified
+  with 3 successive live tool-call probes against the exact
+  account/model in production use (`opus-4-8`, `acct2-dsskerritt11`) post
+  restart — all 200, real `toolu_`-prefixed tool calls, zero 429s, zero
+  "out of extra usage" errors, zero OpenAI-failover lines.
+  `pool-state.json`'s `errorCount` stayed at 0 throughout. Also verified
+  end-to-end through the real Hermes agent CLI path (not just direct
+  SubStation probes) with clean, fast, correct responses.
+- One known gap: "Memory files" (7,550 tokens) stayed unchanged by this
+  fix — appears to be a separate loading mechanism from `settingSources`,
+  not addressed here. Not investigated further; flag if it turns out to
+  matter.
 
 ## Build story: there is no build step
 

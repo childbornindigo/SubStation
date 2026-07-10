@@ -1655,7 +1655,7 @@ function anthropicContentToOpenAIToolCalls(contentBlocks) {
   return { text, toolCalls };
 }
 
-function formatMessagesForSDK(openaiMessages) {
+function formatMessagesForSDK(openaiMessages, { skipSystemInjection = false } = {}) {
   const parts = [];
   const systemParts = [];
   const conversationParts = [];
@@ -1692,10 +1692,15 @@ function formatMessagesForSDK(openaiMessages) {
     }
   }
 
-  // Always inject operator identity, then any caller-provided system context
-  parts.push(OPERATOR_SYSTEM_PROMPT);
-  if (systemParts.length > 0) {
-    parts.push(systemParts.join('\n\n'));
+  // Inject operator identity + caller-provided system context into the prompt
+  // text — UNLESS the caller is supplying both via the SDK's proper
+  // `systemPrompt` option instead (skipSystemInjection), which avoids paying
+  // for the same content twice.
+  if (!skipSystemInjection) {
+    parts.push(OPERATOR_SYSTEM_PROMPT);
+    if (systemParts.length > 0) {
+      parts.push(systemParts.join('\n\n'));
+    }
   }
 
   // If there's conversation history (more than just the last user message),
@@ -1824,8 +1829,23 @@ async function invokeClaudeSDKWithTools(openaiMessages, tools, toolChoice, model
   const server = sdkMod.createSdkMcpServer({ name: SERVER, version: '1.0.0', tools: sdkTools, alwaysLoad: true });
   const allowedTools = [...nameMap.keys()];
 
+  // Lean system prompt — REPLACES the Agent SDK's default (full Claude Code
+  // harness/tool-scaffolding, thousands of tokens) with just the operator
+  // identity + any caller-provided system context, mirroring how the
+  // raw-REST path (invokeClaudeMessagesAPIWithTools, above) composes `system`.
+  // A plain string here replaces the default; the SDK only APPENDS to the
+  // default when systemPrompt is the `{type:'preset', preset:'claude_code'}`
+  // form, which is NOT what we want.
+  const { system: callerSystem } = convertOpenAIMessagesToAnthropic(openaiMessages);
+  const leanSystemPrompt = callerSystem
+    ? `${OPERATOR_SYSTEM_PROMPT}\n\n${callerSystem}`
+    : OPERATOR_SYSTEM_PROMPT;
+
   // Nudge tool usage when the caller demands it (SDK has no direct force-tool).
-  let prompt = formatMessagesForSDK(openaiMessages);
+  // skipSystemInjection: true — operator identity + caller system context now
+  // ride the systemPrompt option above instead of being baked into the prompt
+  // text twice.
+  let prompt = formatMessagesForSDK(openaiMessages, { skipSystemInjection: true });
   if (toolChoice === 'required' || toolChoice === 'any') {
     prompt += '\n\nYou MUST call one of the provided tools to respond.';
   } else if (typeof toolChoice === 'object' && toolChoice?.function?.name) {
@@ -1850,6 +1870,7 @@ async function invokeClaudeSDKWithTools(openaiMessages, tools, toolChoice, model
         prompt,
         options: {
           model,
+          systemPrompt: leanSystemPrompt,
           permissionMode: 'bypassPermissions',
           maxTurns: 2,
           env: queryEnv,

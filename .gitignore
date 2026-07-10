@@ -1,5 +1,10 @@
 node_modules/
-dist/
+# No build step exists (verified 2026-07-10 release audit — no tsconfig/bundler/
+# build script) — dist/index.js IS the deployable artifact launchd runs, so it
+# must be committed as source of truth. Historical dist/*.bak-* snapshots stay
+# ignored (local-only, not for distribution).
+dist/*
+!dist/index.js
 
 # Secrets — NEVER commit these
 token-pool.json

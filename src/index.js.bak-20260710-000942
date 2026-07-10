@@ -83,7 +83,6 @@ process.on('unhandledRejection', (reason) => {
 
 const MODEL_CONFIG = {
   // Anthropic
-  'claude-sonnet-5':           { maxTokens: 64000,  adaptive: true,  provider: 'anthropic', contextWindow: 1000000 },
   'claude-fable-5':            { maxTokens: 128000, adaptive: true,  provider: 'anthropic', contextWindow: 1000000 },
   'claude-opus-4-8':           { maxTokens: 128000, adaptive: true,  provider: 'anthropic', contextWindow: 1000000 },
   'claude-opus-4-7':           { maxTokens: 128000, adaptive: true,  provider: 'anthropic', contextWindow: 1000000 },
@@ -100,8 +99,6 @@ const MODEL_CONFIG = {
 
 const MODEL_MAP = {
   // Anthropic aliases
-  'sonnet-5': 'claude-sonnet-5',
-  'claude-sonnet-5': 'claude-sonnet-5',
   'fable-5': 'claude-fable-5',
   'fable': 'claude-fable-5',
   'claude-fable-5': 'claude-fable-5',
@@ -1722,212 +1719,12 @@ function formatMessagesForSDK(openaiMessages) {
 }
 
 // Raw Anthropic Messages API path for tool-calling requests. The Agent SDK's
-// ---------------------------------------------------------------------------
-// SDK-mediated tool-calling bridge (invokeClaudeSDKWithTools)
-// ---------------------------------------------------------------------------
-// The raw Messages API path (invokeClaudeMessagesAPIWithTools, below) gets
-// bucketed into a harsher rate limit by Anthropic's edge and 429s persistently
-// on OAuth tokens, even with a fresh fully-scoped token + matching client
-// headers. The Agent SDK transport does NOT have this problem. It was long
-// believed the SDK couldn't accept arbitrary caller tool schemas — but it can,
-// via createSdkMcpServer + tool() (proven 2026-07-10). We register the caller's
-// tools as in-process MCP tools whose handlers are capture-and-halt sentinels,
-// let the model emit a tool_use, read it straight from the assistant stream,
-// abort, and hand it back as OpenAI tool_calls. alwaysLoad:true is REQUIRED or
-// the SDK defers the tools behind ToolSearch and wastes a turn.
-let zodModule = null;
-async function loadZod() {
-  if (!zodModule) zodModule = await import('zod');
-  return zodModule.z || zodModule.default || zodModule;
-}
-
-// Convert a JSON-Schema property node to a Zod type. Best-effort; unknown → any.
-function jsonSchemaPropToZod(prop, z) {
-  if (!prop || typeof prop !== 'object') return z.any();
-  let t;
-  const type = Array.isArray(prop.type) ? prop.type.find(x => x !== 'null') : prop.type;
-  if (Array.isArray(prop.enum) && prop.enum.length && prop.enum.every(v => typeof v === 'string')) {
-    t = z.enum(prop.enum);
-  } else if (type === 'string') {
-    t = z.string();
-  } else if (type === 'integer') {
-    t = z.number().int();
-  } else if (type === 'number') {
-    t = z.number();
-  } else if (type === 'boolean') {
-    t = z.boolean();
-  } else if (type === 'array') {
-    t = z.array(prop.items ? jsonSchemaPropToZod(prop.items, z) : z.any());
-  } else if (type === 'object') {
-    if (prop.properties && Object.keys(prop.properties).length) {
-      t = z.object(jsonSchemaToZodShape(prop, z));
-    } else {
-      t = z.record(z.string(), z.any());
-    }
-  } else {
-    t = z.any();
-  }
-  if (typeof prop.description === 'string' && t.describe) t = t.describe(prop.description);
-  return t;
-}
-
-// Convert a JSON-Schema object node (with .properties/.required) to a Zod raw
-// shape ({ key: ZodType, ... }) suitable for the SDK tool() helper.
-function jsonSchemaToZodShape(schema, z) {
-  const shape = {};
-  const props = (schema && schema.properties) || {};
-  const required = new Set((schema && Array.isArray(schema.required)) ? schema.required : []);
-  for (const [key, prop] of Object.entries(props)) {
-    let zt = jsonSchemaPropToZod(prop, z);
-    if (!required.has(key) && zt.optional) zt = zt.optional();
-    shape[key] = zt;
-  }
-  return shape;
-}
-
-async function invokeClaudeSDKWithTools(openaiMessages, tools, toolChoice, modelInfo, tokenAffinity, onServedModel, noFailover) {
-  const sdkMod = await loadAgentSDK();
-  const z = await loadZod();
-  const model = modelInfo.modelId;
-
-  const tokens = getAnthropicOAuthTokens();
-  if (tokens.length === 0) {
-    throw new Error('No Anthropic OAuth tokens found. Log into Claude Code or add tokens to auth-profiles.json.');
-  }
-  const candidateTokens = tokenAffinity
-    ? tokens.filter(t => t.id === tokenAffinity || t.id.includes(tokenAffinity))
-    : tokens;
-  if (candidateTokens.length === 0) {
-    throw new Error(`No token matching affinity "${tokenAffinity}" found.`);
-  }
-  const now = Date.now();
-  const attemptTokens = tokenAffinity
-    ? candidateTokens
-    : candidateTokens.filter(t => !t.cooldownUntil || t.cooldownUntil < now);
-
-  // Register the caller's tools as in-process MCP tools. Handlers are halt
-  // sentinels — we capture the tool_use from the stream, not from execution.
-  const SERVER = 'caller-tools';
-  const nameMap = new Map(); // mcp__caller-tools__<name> -> original <name>
-  const sdkTools = (tools || []).map(t => {
-    const fname = t.function?.name || 'tool';
-    nameMap.set(`mcp__${SERVER}__${fname}`, fname);
-    const shape = jsonSchemaToZodShape(t.function?.parameters, z);
-    return sdkMod.tool(
-      fname,
-      t.function?.description || '',
-      shape,
-      async () => { throw new Error('__CAPTURE_HALT__'); },
-      { alwaysLoad: true }
-    );
-  });
-  const server = sdkMod.createSdkMcpServer({ name: SERVER, version: '1.0.0', tools: sdkTools, alwaysLoad: true });
-  const allowedTools = [...nameMap.keys()];
-
-  // Nudge tool usage when the caller demands it (SDK has no direct force-tool).
-  let prompt = formatMessagesForSDK(openaiMessages);
-  if (toolChoice === 'required' || toolChoice === 'any') {
-    prompt += '\n\nYou MUST call one of the provided tools to respond.';
-  } else if (typeof toolChoice === 'object' && toolChoice?.function?.name) {
-    prompt += `\n\nYou MUST call the tool named "${toolChoice.function.name}" to respond.`;
-  }
-
-  const stripName = (n) => nameMap.get(n) || n.replace(/^mcp__[^_]*(?:__)?[^_]*__/, '') || n;
-
-  let lastErr;
-  if (attemptTokens.length === 0) {
-    lastErr = Object.assign(new Error('All Anthropic tokens in cooldown'), { statusCode: 429 });
-  }
-  for (const token of attemptTokens) {
-    markRequestStart(token);
-    const ac = new AbortController();
-    const queryEnv = { ...process.env };
-    if (token.token) queryEnv.CLAUDE_CODE_OAUTH_TOKEN = token.token;
-    let text = '', usage = {}, servedModel = null, capturedCalls = null;
-    try {
-      log(`SDK tools query (model=${model}, token=${token.id})...`);
-      const iter = sdkMod.query({
-        prompt,
-        options: {
-          model,
-          permissionMode: 'bypassPermissions',
-          maxTurns: 2,
-          env: queryEnv,
-          mcpServers: { [SERVER]: server },
-          allowedTools,
-          abortController: ac,
-        },
-      });
-      for await (const msg of iter) {
-        if (msg.type === 'system' && msg.subtype === 'init') {
-          servedModel = msg.model;
-          if (servedModel !== model) {
-            modelSwapCount++;
-            log(`WARN: model swap detected -- requested "${model}" but SDK served "${servedModel}" (token=${token.id})`);
-          }
-          if (onServedModel) { try { onServedModel(servedModel); } catch {} }
-        }
-        if (msg.type === 'assistant') {
-          const blocks = msg.message?.content || [];
-          for (const b of blocks) if (b.type === 'text' && b.text) text += b.text;
-          const toolUse = blocks.filter(b => b.type === 'tool_use');
-          if (toolUse.length) {
-            capturedCalls = toolUse.map(b => ({
-              id: b.id,
-              type: 'function',
-              function: { name: stripName(b.name), arguments: JSON.stringify(b.input || {}) },
-            }));
-            try { ac.abort(); } catch {}
-            break;
-          }
-        }
-        if (msg.type === 'result') {
-          if (msg.usage) usage = msg.usage;
-          if (!text && msg.result) text = msg.result;
-        }
-      }
-      markSuccess(token);
-      return { text, toolCalls: capturedCalls || undefined, usage, servedModel, modelMismatch: servedModel !== null && servedModel !== model };
-    } catch (err) {
-      // If we already captured the tool call, an abort-triggered throw is success.
-      if (capturedCalls) {
-        markSuccess(token);
-        return { text, toolCalls: capturedCalls, usage, servedModel, modelMismatch: servedModel !== null && servedModel !== model };
-      }
-      lastErr = err;
-      log(`invokeClaudeSDKWithTools: token ${token.id} failed: ${err.message}`);
-      const el = (err.message || '').toLowerCase();
-      if (el.includes('rate') || el.includes('limit') || el.includes('usage') || err.statusCode === 429) {
-        markRateLimited(token, 60);
-      } else {
-        markRequestEnd(token);
-      }
-    }
-  }
-
-  const allFailedErr = new Error(`All Anthropic tokens failed for SDK tool-calling request: ${lastErr ? lastErr.message : 'unknown error'}`);
-  if (lastErr && lastErr.statusCode === 429) allFailedErr.statusCode = 429;
-
-  // Cross-provider failover — skip when a specific account was pinned so a
-  // deliberate single-account test surfaces the raw truth (no OpenAI disguise).
-  if (!tokenAffinity && !noFailover && isCapError(allFailedErr)) {
-    const failoverModelId = FAILOVER_MAP[modelInfo.modelId];
-    if (failoverModelId) {
-      const failoverInfo = resolveModel(failoverModelId);
-      log(`>>> FAILOVER: Anthropic SDK tools-path capped → ${failoverModelId} (OpenAI)`);
-      try {
-        return await invokeCodex(openaiMessages, failoverInfo, null, tools);
-      } catch (codexErr) {
-        log(`OpenAI failover also failed: ${codexErr.message}`);
-      }
-    }
-  }
-  throw allFailedErr;
-}
-
-// LEGACY raw-REST tool-calling path. Kept as a fallback but no longer the
-// primary — Anthropic's edge 429s these OAuth requests persistently. The
-// /v1/chat/completions handler now calls invokeClaudeSDKWithTools first.
+// query() (used by invokeClaudeSDK below) is a full coding-agent session with
+// its own fixed toolset — arbitrary caller-supplied custom tool schemas
+// (e.g. a client's `get_weather` function) cannot be cleanly injected into it.
+// The raw Messages API accepts arbitrary custom `tools` directly, so when a
+// /v1/chat/completions caller sends `tools`, we bypass the Agent SDK entirely
+// and go straight to api.anthropic.com via makeAnthropicRequest.
 async function invokeClaudeMessagesAPIWithTools(openaiMessages, tools, toolChoice, modelInfo, tokenAffinity) {
   const tokens = getAnthropicOAuthTokens();
   if (tokens.length === 0) {
@@ -2335,12 +2132,9 @@ async function invokeModel(openaiMessages, model, onDelta, opts = {}) {
       if (!isCapError(err) && !isSdkBroken) throw err;
       log(isSdkBroken ? `SDK unavailable: ${err.message}` : `SDK path capped: ${err.message}`);
 
-      // Cross-provider failover to OpenAI — but NOT when a specific account was
-      // pinned (tokenAffinity). A deliberate account pin must never be silently
-      // disguised by an OpenAI answer; surface the raw Anthropic error instead.
-      // (Matches the guard already on both tool-calling paths, lines ~1913/2000.)
+      // Cross-provider failover to OpenAI
       const failoverModelId = FAILOVER_MAP[modelInfo.modelId];
-      if (!opts.tokenAffinity && !opts.noFailover && failoverModelId) {
+      if (failoverModelId) {
         const failoverInfo = resolveModel(failoverModelId);
         log(`>>> FAILOVER: Anthropic capped → ${failoverModelId} (OpenAI)`);
         try {
@@ -2361,7 +2155,7 @@ async function invokeModel(openaiMessages, model, onDelta, opts = {}) {
     if (!isCapError(err)) throw err;
 
     const failoverModelId = FAILOVER_MAP[modelInfo.modelId];
-    if (opts.noFailover || !failoverModelId) throw err;
+    if (!failoverModelId) throw err;
 
     const failoverInfo = resolveModel(failoverModelId);
     log(`>>> FAILOVER: Codex capped → ${failoverModelId} (Anthropic)`);
@@ -2498,7 +2292,6 @@ function startProxy() {
 
       if (req.url === '/v1/models' || req.url === '/models') {
         const models = [
-          { id: 'sonnet-5', object: 'model', owned_by: 'indigo-collective' },
           { id: 'fable-5', object: 'model', owned_by: 'indigo-collective' },
           { id: 'opus-4-8', object: 'model', owned_by: 'indigo-collective' },
           { id: 'opus-4-7', object: 'model', owned_by: 'indigo-collective' },
@@ -2510,7 +2303,6 @@ function startProxy() {
         const anthropicPoolTokens = pool.filter(t => t.provider === 'anthropic' && !t.dead);
         for (const t of anthropicPoolTokens) {
           models.push(
-            { id: `sonnet-5:${t.id}`, object: 'model', owned_by: 'indigo-collective' },
             { id: `fable-5:${t.id}`, object: 'model', owned_by: 'indigo-collective' },
             { id: `sonnet-4-6:${t.id}`, object: 'model', owned_by: 'indigo-collective' },
             { id: `opus-4-6:${t.id}`, object: 'model', owned_by: 'indigo-collective' },
@@ -2595,11 +2387,6 @@ function startProxy() {
         // which does its OWN "model:acct" colon parsing internally — pre-populating
         // it here would short-circuit that and break plain-model resolution.
         const tokenAffinity = req.headers['x-substation-token'] || null;
-        // Anthropic-only pool mode: X-SubStation-No-Failover:1 rotates the WHOLE
-        // Anthropic pool but never crosses over to OpenAI — surfaces the raw cap
-        // instead of a disguised OpenAI answer. Orthogonal to tokenAffinity
-        // (pin = one account no-failover; this = whole pool no-failover).
-        const noFailover = ['1', 'true', 'yes', 'on'].includes(String(req.headers['x-substation-no-failover'] || '').toLowerCase());
         // Tools-path-only variant: same header, falling back to the colon
         // suffix (see baseModelForTools above) since the two new tools-path
         // invoke functions don't do their own colon parsing like invokeModel does.
@@ -2618,7 +2405,7 @@ function startProxy() {
         const onServedModel = (servedModel) => {
           if (!res.headersSent) res.setHeader('x-substation-served-model', servedModel);
         };
-        const invokeOpts = { ...(tokenAffinity ? { tokenAffinity } : {}), ...(noFailover ? { noFailover } : {}), onServedModel };
+        const invokeOpts = { ...(tokenAffinity ? { tokenAffinity } : {}), onServedModel };
 
         try {
           const id = `chatcmpl-ss-${randomUUID().slice(0, 12)}`;
@@ -2626,12 +2413,10 @@ function startProxy() {
 
           if (stream) {
             if (useAnthropicToolsPath) {
-              // Tool-calling responses aren't incrementally streamed (the SDK
-              // tools bridge resolves the tool_use in one shot) — emit one
-              // completed delta chunk with the full content/tool_calls, then
-              // finish_reason. Uses the SDK transport (not raw REST) to dodge
-              // the OAuth-edge 429; onServedModel surfaces the real served model.
-              const { text, toolCalls, usage } = await invokeClaudeSDKWithTools(messages, tools, tool_choice, resolvedModelInfo, toolsPathTokenAffinity, onServedModel, noFailover);
+              // Tool-calling responses aren't incrementally streamed (the raw
+              // Messages API call here is non-streaming) — emit one completed
+              // delta chunk with the full content/tool_calls, then finish_reason.
+              const { text, toolCalls, usage } = await invokeClaudeMessagesAPIWithTools(messages, tools, tool_choice, resolvedModelInfo, toolsPathTokenAffinity);
               res.writeHead(200, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', 'Connection': 'keep-alive' });
               const deltaPayload = { role: 'assistant', content: text || null };
               if (toolCalls) deltaPayload.tool_calls = toolCalls;
@@ -2749,9 +2534,8 @@ function startProxy() {
             res.write('data: [DONE]\n\n');
             res.end();
           } else if (useAnthropicToolsPath) {
-            // Non-streaming tool-calling path — SDK transport (dodges OAuth-edge
-            // 429), arbitrary caller tools bridged via createSdkMcpServer.
-            const { text, toolCalls, usage } = await invokeClaudeSDKWithTools(messages, tools, tool_choice, resolvedModelInfo, toolsPathTokenAffinity, onServedModel, noFailover);
+            // Non-streaming tool-calling path — raw Messages API, arbitrary caller tools.
+            const { text, toolCalls, usage } = await invokeClaudeMessagesAPIWithTools(messages, tools, tool_choice, resolvedModelInfo, toolsPathTokenAffinity);
             const promptTokens = usage?.input_tokens || usage?.prompt_tokens || Math.max(1, JSON.stringify(messages).split(/\s+/).length);
             const completionTokens = usage?.output_tokens || usage?.completion_tokens || Math.max(1, (text || '').split(/\s+/).length);
             const message = { role: 'assistant', content: text || null };

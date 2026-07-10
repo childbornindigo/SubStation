@@ -1850,6 +1850,18 @@ async function invokeClaudeSDKWithTools(openaiMessages, tools, toolChoice, model
         prompt,
         options: {
           model,
+          // SDK isolation mode -- do NOT inherit the operator's personal
+          // ~/.claude/settings.json (global MCP servers, skills, custom
+          // agents, memory files). This is a shared multi-tenant
+          // tool-calling bridge, not a personal coding-assistant session;
+          // measured breakdown (getContextUsage()) showed the inherited
+          // environment, not the ~245-token system prompt itself, was the
+          // real cost driver. Deliberately does NOT touch `systemPrompt` --
+          // that stays unset (SDK default `claude_code` preset), which is
+          // what keeps this billed as normal Claude Code subscription usage
+          // (see the reverted ae06377/d89ccbc history above for why a
+          // custom systemPrompt string broke that).
+          settingSources: [],
           permissionMode: 'bypassPermissions',
           maxTurns: 2,
           env: queryEnv,

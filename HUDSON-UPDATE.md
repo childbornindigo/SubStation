@@ -33,7 +33,8 @@ doesn't have yet. This doc is the one-command path to get his box current.
 | `390ca8d` | gpt-5.5 + `quality:high` image-gen patch |
 | `89c7313` | Claude-Code client-identity headers on `makeAnthropicRequest` |
 | `a8f02bb` | **Release-audit commit.** Backports everything below — was live-only in `dist/index.js`, never committed until now |
-| `ae06377` | **systemPrompt fix.** `invokeClaudeSDKWithTools` now passes a lean, custom `systemPrompt` instead of inheriting the Agent SDK's full default Claude Code system prompt. See "systemPrompt fix — what and why" below. |
+| `ae06377` | ~~systemPrompt fix~~ — **REVERTED by `d89ccbc`, DO NOT REAPPLY.** Broke live billing classification, see below. |
+| `d89ccbc` | Revert of `ae06377` — restores pre-fix behavior. This is the commit that's actually in effect now. |
 
 ### What `a8f02bb` backported (was dist-only hand-edits, now in `src` + committed)
 - **`invokeClaudeSDKWithTools`** — the tools-path now goes through the Claude
@@ -56,7 +57,30 @@ doesn't have yet. This doc is the one-command path to get his box current.
   `claude --version` / `npm ls -g @anthropic-ai/claude-code`). All 3 are now
   `2.1.197` in both `src` and `dist`.
 
-## systemPrompt fix (`ae06377`) — what and why
+## ⛔ systemPrompt fix (`ae06377`) — REVERTED, do not reapply (see `d89ccbc`)
+
+**This entire section describes a change that broke production and was
+reverted within minutes.** Kept below for the record, not as guidance.
+
+Within 6 seconds of this fix going live, the only live Anthropic account in
+the pool started hard-failing every SDK-tools request with `API Error: 400
+You're out of extra usage`. Dee confirmed live (chatting through that same
+account via a separate native session at the time) that the account had
+real usage available and should never see that message under his plan —
+ruling out a real cap coincidence. Root cause, best evidence: passing a
+**custom (non-preset) `systemPrompt` string** to the Agent SDK's `query()`
+appears to make Anthropic's backend reclassify the session as generic
+third-party Agent-SDK usage instead of Claude Code subscription usage,
+which draws from a billing bucket this token isn't provisioned for.
+Reverting immediately restored clean 200s on the exact same account/model.
+**Do not pass a custom `systemPrompt` string to this SDK's `query()` calls
+on a subscription OAuth token without first confirming the billing-
+classification behavior with Anthropic directly** — the `{type:'preset',
+preset:'claude_code', append:...}` form is the more likely safe path (keeps
+the `claude_code` identity, adds instructions) but does not shed the token
+cost, so the original cost problem below is still real and still unsolved.
+
+## systemPrompt fix (`ae06377`) — what and why [HISTORICAL — REVERTED, see banner above]
 
 **What changed:** `invokeClaudeSDKWithTools` (the SDK-mediated tool-calling
 bridge added in `a8f02bb`) calls the Claude Agent SDK's `query()`. Before

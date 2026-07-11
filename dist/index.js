@@ -5,6 +5,7 @@ import { randomUUID, randomBytes, createHash } from 'node:crypto';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
 import { readFileSync, writeFileSync, mkdirSync, renameSync, statSync, existsSync, watch } from 'node:fs';
+import { isAuthError, recordAuthFailure, resetAuthFailures, AUTH_FAIL_THRESHOLD, DEAD_REVIVE_MS, AUTH_DEAD_REVIVE_MS } from './auth-policy.js';
 
 // ---------------------------------------------------------------------------
 // Config
@@ -32,8 +33,8 @@ These rules are enforced at the infrastructure level. Violations waste budget an
 7. If you are confused or stuck, say "BLOCKED: [reason]" and stop. Do not fill the gap with narration.`;
 const MAX_BODY_SIZE = 2 * 1024 * 1024; // 2MB request body limit
 const LOG_MAX_SIZE = 5 * 1024 * 1024; // 5MB log rotation
-const DEAD_REVIVE_MS = 30 * 60 * 1000;       // 30 min — auto-retry rate-limited tokens
-const AUTH_DEAD_REVIVE_MS = 24 * 60 * 60 * 1000; // 24h — auto-retry auth-failed tokens
+// DEAD_REVIVE_MS (30m), AUTH_DEAD_REVIVE_MS (5m), isAuthError, AUTH_FAIL_THRESHOLD
+// now imported from ./auth-policy.js (extracted for unit testing — see auth-policy.js).
 const DATA_DIR = join(homedir(), '.substation', 'data');
 const PORT = parseInt(process.env.SUBSTATION_PORT || '8403');
 const AUTH_KEY = process.env.SUBSTATION_API_KEY || 'sk-substation-local-proxy';
@@ -191,6 +192,26 @@ async function loadAgentSDK() {
 function getAnthropicOAuthTokens() {
   const tokens = pool.filter(t => t.provider === 'anthropic' && !t.dead);
   if (tokens.length === 0) {
+    // Fix 3: every Anthropic token is benched. Before failing, pull the LIVE token that
+    // terminal Claude Code keeps auto-refreshed in ~/.claude/.credentials.json. If it's
+    // NEWER than what we hold (a genuine rotation), adopt it and revive the pool entry —
+    // self-heals without a manual re-sync. If it's the same token, we don't spin here;
+    // the 5-min AUTH_DEAD_REVIVE_MS timer will retry it.
+    try {
+      const cred = JSON.parse(readFileSync(join(homedir(), '.claude', '.credentials.json'), 'utf8'))?.claudeAiOauth;
+      if (cred?.accessToken) {
+        const entry = pool.find(t => t.provider === 'anthropic');
+        if (entry && entry.token !== cred.accessToken) {
+          entry.token = cred.accessToken;
+          if (cred.refreshToken) entry.refreshToken = cred.refreshToken;
+          entry.dead = false; entry.deadSince = null; entry.deadType = null;
+          entry.errorCount = 0; entry._consecutiveAuthFails = 0; entry.cooldownUntil = null;
+          savePoolState();
+          log(`Anthropic pool empty — reloaded live token from ~/.claude/.credentials.json, revived ${entry.id}`);
+          return [entry];
+        }
+      }
+    } catch { /* no live creds — fall through to auth-profiles */ }
     // Fallback: check auth-profiles directly
     try {
       const ap = JSON.parse(readFileSync(AUTH_PROFILES_PATH, 'utf8'));
@@ -379,6 +400,7 @@ function markSuccess(entry) {
   entry.requestCount++;
   entry.errorCount = 0;
   entry._consecutive429s = 0; // reset backoff on success
+  resetAuthFailures(entry);   // reset consecutive-auth-fail counter on success
   entry.activeRequests = Math.max(0, entry.activeRequests - 1);
   savePoolState();
 }
@@ -410,26 +432,7 @@ function markDead(entry, deadType = 'rate') {
   log(`Token ${entry.id} marked DEAD (${deadType} failure) — will auto-retry in ${retryIn}`);
 }
 
-function isAuthError(err) {
-  const msg = (err.message || '').toLowerCase();
-  return msg.includes('401') ||
-    msg.includes('403') ||
-    msg.includes('unauthorized') ||
-    msg.includes('unauthenticated') ||
-    msg.includes('authentication') ||
-    msg.includes('invalid token') ||
-    msg.includes('token expired') ||
-    msg.includes('not logged in') ||
-    msg.includes('please log in') ||
-    msg.includes('sign in') ||
-    msg.includes('invalid_grant') ||
-    msg.includes('invalid credentials') ||
-    msg.includes('organization does not have access') ||
-    msg.includes('contact your administrator') ||
-    msg.includes('please login again') ||
-    (err.statusCode === 401) ||
-    (err.statusCode === 403);
-}
+// isAuthError now imported from ./auth-policy.js
 
 function markRequestStart(entry) {
   entry.activeRequests++;
@@ -2218,9 +2221,16 @@ async function invokeClaudeSDK(openaiMessages, modelInfo, onDelta, tokenAffinity
         continue;
       }
 
-      // Auth error — bench this token for 24h and try next
+      // Auth error — but a single transient 401/403 from Anthropic's edge is NOT a dead
+      // token (edge bucketing throws spurious 401/403 independent of token validity).
+      // Only bench after AUTH_FAIL_THRESHOLD *consecutive* auth failures; reset on success.
       if (isAuthError(err)) {
-        markDead(token, 'auth'); // marks dead + decrements activeRequests
+        if (recordAuthFailure(token)) {
+          markDead(token, 'auth'); // marks dead + decrements activeRequests
+        } else {
+          log(`Token ${token.id} transient auth error ${token._consecutiveAuthFails}/${AUTH_FAIL_THRESHOLD} — NOT benching, trying next bar`);
+          markRequestEnd(token);
+        }
         continue;
       }
 

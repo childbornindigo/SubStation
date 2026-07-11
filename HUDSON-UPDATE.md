@@ -7,6 +7,13 @@
 > whether raw REST actually still 429s today (transport toggle theory). Do not
 > merge/push/tag or hand this to Hudson until Dee lifts this hold.
 
+> **Update (2026-07-11):** the OAuth daily-death in the banner above was root-caused and
+> FIXED in code (`b984a7d`, see "Auth-resilience fix" below). It was NOT an account/OAuth
+> problem and NOT the transport theory — it was an over-aggressive bench: a single transient
+> 401/403 benched the sole valid token for 24h. It now self-heals. This does not lift the
+> hold — that stays Dee's call — but it addresses the banner's stated blocker ("confirm our
+> own operation is healthy before shipping").
+
 # SubStation Update Package — for Hudson
 
 Audit date: 2026-07-10. This machine's SubStation has working fixes for Fable
@@ -16,12 +23,13 @@ doesn't have yet. This doc is the one-command path to get his box current.
 ## Current state (as of this audit)
 
 - **Branch:** `fix/image-gen-pro-quality-2026-07-09`
-- **Latest commit:** `a8f02bb4d30371f349381329095b4dd857c10150`
+- **Latest commit (tip):** `b984a7d99d1c5a96c4815ee7ef552beebe85ee6e` (auth-resilience — see
+  "Auth-resilience fix" section below). Prior tip was `a8f02bb`.
 - **NOT on `main` yet, NOT tagged yet** — this branch is queued for a
   batched merge/push/tag pass Dee runs separately. Do not point Hudson at
   `main` until that lands; point him at this branch/SHA directly for now,
   or wait for the tag if you're reading this after the merge happened
-  (check `git log main --oneline -1` first — if `a8f02bb` or later is on
+  (check `git log main --oneline -1` first — if `b984a7d` or later is on
   `main`, use `main` instead of the branch name below).
 
 ## Commit inventory (all verified present, all on the branch above)
@@ -36,6 +44,7 @@ doesn't have yet. This doc is the one-command path to get his box current.
 | `ae06377` | ~~systemPrompt fix~~ — **REVERTED by `d89ccbc`, DO NOT REAPPLY.** Broke live billing classification, see below. |
 | `d89ccbc` | Revert of `ae06377` — restores pre-fix behavior. |
 | `4edcdd6` | **settingSources fix — safe, verified, in effect now.** `invokeClaudeSDKWithTools` passes `settingSources: []` to isolate from the operator's personal `~/.claude` environment, without touching `systemPrompt` at all. See "settingSources fix — what and why" below. |
+| `b984a7d` | **Auth-resilience fix — safe, verified, in effect now (branch tip).** Stops a single transient 401/403 from benching the sole Anthropic token for 24h (the daily "No Anthropic OAuth tokens found" outage). Three sub-fixes; logic extracted to `dist/auth-policy.js` with TDD proof `test/auth-policy.test.mjs`. See "Auth-resilience fix — what and why" below. |
 
 ### What `a8f02bb` backported (was dist-only hand-edits, now in `src` + committed)
 - **`invokeClaudeSDKWithTools`** — the tools-path now goes through the Claude
@@ -178,6 +187,53 @@ seems to drive billing classification.
   not addressed here. Not investigated further; flag if it turns out to
   matter.
 
+## Auth-resilience fix (`b984a7d`) — what and why, and why it's safe
+
+**What changed:** the token auth/bench policy was extracted into a new pure module
+`dist/auth-policy.js` (imported by `dist/index.js`), and three behaviors changed:
+
+1. **Consecutive-fail guard.** Previously a single `isAuthError` (any 401/403, or a
+   message like "organization does not have access") called `markDead(token,'auth')`
+   immediately. Now `recordAuthFailure()` requires **`AUTH_FAIL_THRESHOLD` (3)
+   consecutive** auth failures before benching, and `markSuccess` resets the counter.
+   A lone transient blip no longer removes the token from service.
+2. **`AUTH_DEAD_REVIVE_MS` 24h → 5min.** Even a genuine bench now self-heals in 5
+   minutes instead of a guaranteed 24-hour outage. (`DEAD_REVIVE_MS` for rate-limits
+   stays 30min, unchanged.)
+3. **Live-credential re-read.** When the Anthropic pool is empty (all tokens benched),
+   `getAnthropicOAuthTokens()` re-reads the live `~/.claude/.credentials.json` (kept
+   auto-refreshed by terminal Claude Code); if it holds a **newer** token it adopts it
+   and revives the entry — self-healing a genuine rotation with no manual re-sync.
+
+**Why it mattered:** this is the root cause of the daily "No Anthropic OAuth tokens
+found" outage that had been forcing a manual `/login` → token re-sync every day.
+Anthropic's edge throws transient 401/403s **independent of token validity**; with the
+old threshold=1 policy, one such blip benched the *only* Anthropic account for 24h. The
+token itself was fine — proven by the fact that clearing the `dead` flag on the same
+token instantly restored service. The bug only started biting on 2026-07-09, when
+pool-state was made to persist (before that the bench write was silently discarded, so a
+valid token never actually got benched — which is why one token could "last weeks").
+
+**Why this is safe:** it only makes benching *less* aggressive and adds a self-heal
+path — it never benches a token the old code wouldn't have, it just waits for 3
+consecutive failures instead of 1 and recovers faster. It does not touch `systemPrompt`,
+transport, or the SDK bridge, so it cannot reintroduce the `ae06377` billing regression
+or the raw-REST 429 problem.
+
+**Evidence:**
+- **TDD proof** — `test/auth-policy.test.mjs`, run with `node test/auth-policy.test.mjs`:
+  15 assertions, `ALL PASS`, exit 0. Key assertion: a single 403 returns `false` (stays
+  in service), 2nd `false`, 3rd `true` (benches). Includes a teeth-check proving the old
+  `threshold=1` policy *would* have benched on one failure (reproduces the bug) while the
+  new default does not.
+- **Live gateway** — restarted on the committed code: boots clean (the new
+  `./auth-policy.js` import resolves, no crash), and served a real Anthropic response
+  (`claude-haiku-4-5`, `finish_reason: stop`, `x-substation-served-model` header present).
+
+**For Hudson:** `dist/auth-policy.js` is a new tracked file (added to the `dist/`
+gitignore exception alongside `dist/index.js`) — a plain `git pull` brings it. No build
+step, no extra action; the import is relative and resolves from `dist/`.
+
 ## Build story: there is no build step
 
 Verified: no `tsconfig.json`, no bundler config, no `build` script in
@@ -247,6 +303,13 @@ launchctl kickstart -k gui/$(id -u)/com.indigochild.substation
    entitlement, not a code/version gap — don't chase a code fix for what's
    actually an account-tier difference. Confirm via his own account's
    swap-detection guard output before assuming the update didn't take.
+
+6. **Auth-resilience proof (`b984a7d`):**
+   ```bash
+   node test/auth-policy.test.mjs   # expect: ALL PASS, exit 0
+   ```
+   Confirms the consecutive-fail guard, the 5-min revive constant, and that a
+   single 403 does NOT bench a token. No live account needed — pure unit test.
 
 ## What was explicitly NOT done in this audit (by design)
 

@@ -1850,18 +1850,6 @@ async function invokeClaudeSDKWithTools(openaiMessages, tools, toolChoice, model
         prompt,
         options: {
           model,
-          // SDK isolation mode -- do NOT inherit the operator's personal
-          // ~/.claude/settings.json (global MCP servers, skills, custom
-          // agents, memory files). This is a shared multi-tenant
-          // tool-calling bridge, not a personal coding-assistant session;
-          // measured breakdown (getContextUsage()) showed the inherited
-          // environment, not the ~245-token system prompt itself, was the
-          // real cost driver. Deliberately does NOT touch `systemPrompt` --
-          // that stays unset (SDK default `claude_code` preset), which is
-          // what keeps this billed as normal Claude Code subscription usage
-          // (see the reverted ae06377/d89ccbc history above for why a
-          // custom systemPrompt string broke that).
-          settingSources: [],
           permissionMode: 'bypassPermissions',
           maxTurns: 2,
           env: queryEnv,
@@ -2294,26 +2282,19 @@ async function invokeCodex(openaiMessages, modelInfo, onDelta, tools) {
 // ---------------------------------------------------------------------------
 
 const FAILOVER_MAP = {
-  // Anthropic → OpenAI equivalents. Points at gpt-5.5 (ChatGPT Pro tier,
-  // live-verified tool-calling), not gpt-5.4 -- when Anthropic caps out the
-  // orchestrator should fail over to the newest tool-capable model available,
-  // not a downgrade. gpt-5.6 is NOT used as a failover target: the ChatGPT-Pro
-  // Codex/Responses endpoint 400s it outright (see CODEX_CHATGPT_REMAP), so
-  // pointing failover at a model that hard-fails would break failover itself.
-  'claude-fable-5':            'gpt-5.5',
-  'claude-opus-4-8':           'gpt-5.5',
-  'claude-opus-4-7':           'gpt-5.5',
-  'claude-opus-4-6':           'gpt-5.5',
-  'claude-sonnet-4-6':         'gpt-5.5',
+  // Anthropic → OpenAI equivalents
+  'claude-fable-5':            'gpt-5.4',
+  'claude-opus-4-8':           'gpt-5.4',
+  'claude-opus-4-7':           'gpt-5.4',
+  'claude-opus-4-6':           'gpt-5.4',
+  'claude-sonnet-4-6':         'gpt-5.4',
   'claude-haiku-4-5-20251001': 'gpt-5.4-mini',
   // OpenAI → Anthropic equivalents
-  'gpt-5.5':             'claude-opus-4-6',
-  'gpt-5.6':             'claude-opus-4-6',
-  'gpt-5.4':             'claude-opus-4-6',
-  'gpt-5.1-codex-max':   'claude-opus-4-6',
-  'gpt-5.1-codex':       'claude-sonnet-4-6',
-  'gpt-5.4-mini':        'claude-haiku-4-5-20251001',
-  'gpt-5.1-codex-mini':  'claude-haiku-4-5-20251001',
+  'gpt-5.4':            'claude-opus-4-6',
+  'gpt-5.1-codex-max':  'claude-opus-4-6',
+  'gpt-5.1-codex':      'claude-sonnet-4-6',
+  'gpt-5.4-mini':       'claude-haiku-4-5-20251001',
+  'gpt-5.1-codex-mini': 'claude-haiku-4-5-20251001',
 };
 
 function isCapError(err) {

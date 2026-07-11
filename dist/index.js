@@ -94,6 +94,13 @@ const MODEL_CONFIG = {
   // OpenAI (Codex) — ordered fastest to slowest
   'gpt-5.4-mini':       { maxTokens: 64000,  adaptive: false, provider: 'openai', contextWindow: 200000 },
   'gpt-5.4':            { maxTokens: 128000, adaptive: false, provider: 'openai', contextWindow: 200000 },
+  // ChatGPT Pro tier (unlocked 2026-07-11). gpt-5.5 verified live on the
+  // chatgpt.com Codex/Responses endpoint (HTTP 200). gpt-5.6 is registered as
+  // selectable but that same endpoint 400s it ("not supported when using Codex
+  // with a ChatGPT account") -- same rejection class as the gpt-5.1-codex*
+  // family below -- so it's served via CODEX_CHATGPT_REMAP -> gpt-5.5, not 5.4.
+  'gpt-5.5':            { maxTokens: 128000, adaptive: false, provider: 'openai', contextWindow: 200000 },
+  'gpt-5.6':            { maxTokens: 128000, adaptive: false, provider: 'openai', contextWindow: 200000 },
   'gpt-5.1-codex':      { maxTokens: 128000, adaptive: false, provider: 'openai', contextWindow: 200000 },
   'gpt-5.1-codex-mini': { maxTokens: 64000,  adaptive: false, provider: 'openai', contextWindow: 128000 },
   'gpt-5.1-codex-max':  { maxTokens: 128000, adaptive: false, provider: 'openai', contextWindow: 200000 },
@@ -120,6 +127,8 @@ const MODEL_MAP = {
   // OpenAI aliases
   'gpt-5.4': 'gpt-5.4',
   'gpt-5.4-mini': 'gpt-5.4-mini',
+  'gpt-5.5': 'gpt-5.5',
+  'gpt-5.6': 'gpt-5.6',
   'gpt-5.1-codex-max': 'gpt-5.1-codex-max',
   'gpt-5.1-codex': 'gpt-5.1-codex',
   'gpt-5.1-codex-mini': 'gpt-5.1-codex-mini',
@@ -775,6 +784,11 @@ const CODEX_CHATGPT_REMAP = {
   'gpt-5.1-codex':      'gpt-5.4',
   'gpt-5.1-codex-max':  'gpt-5.4',
   'gpt-5.1-codex-mini': 'gpt-5.4-mini',
+  // gpt-5.6 hits the identical "not supported when using Codex with a ChatGPT
+  // account" HTTP 400 as the codex-family above (live-verified 2026-07-11).
+  // Remap to gpt-5.5 (the newest model that actually works on this endpoint)
+  // rather than gpt-5.4, so requests for 5.6 don't silently downgrade a tier.
+  'gpt-5.6':            'gpt-5.5',
 };
 
 // Best-effort OpenAI chat-completions tool schema -> Responses API tool shape.
@@ -2304,19 +2318,26 @@ async function invokeCodex(openaiMessages, modelInfo, onDelta, tools) {
 // ---------------------------------------------------------------------------
 
 const FAILOVER_MAP = {
-  // Anthropic → OpenAI equivalents
-  'claude-fable-5':            'gpt-5.4',
-  'claude-opus-4-8':           'gpt-5.4',
-  'claude-opus-4-7':           'gpt-5.4',
-  'claude-opus-4-6':           'gpt-5.4',
-  'claude-sonnet-4-6':         'gpt-5.4',
+  // Anthropic → OpenAI equivalents. Points at gpt-5.5 (ChatGPT Pro tier,
+  // live-verified tool-calling), not gpt-5.4 -- when Anthropic caps out the
+  // orchestrator should fail over to the newest tool-capable model available,
+  // not a downgrade. gpt-5.6 is NOT used as a failover target: the ChatGPT-Pro
+  // Codex/Responses endpoint 400s it outright (see CODEX_CHATGPT_REMAP), so
+  // pointing failover at a model that hard-fails would break failover itself.
+  'claude-fable-5':            'gpt-5.5',
+  'claude-opus-4-8':           'gpt-5.5',
+  'claude-opus-4-7':           'gpt-5.5',
+  'claude-opus-4-6':           'gpt-5.5',
+  'claude-sonnet-4-6':         'gpt-5.5',
   'claude-haiku-4-5-20251001': 'gpt-5.4-mini',
   // OpenAI → Anthropic equivalents
-  'gpt-5.4':            'claude-opus-4-6',
-  'gpt-5.1-codex-max':  'claude-opus-4-6',
-  'gpt-5.1-codex':      'claude-sonnet-4-6',
-  'gpt-5.4-mini':       'claude-haiku-4-5-20251001',
-  'gpt-5.1-codex-mini': 'claude-haiku-4-5-20251001',
+  'gpt-5.5':             'claude-opus-4-6',
+  'gpt-5.6':             'claude-opus-4-6',
+  'gpt-5.4':             'claude-opus-4-6',
+  'gpt-5.1-codex-max':   'claude-opus-4-6',
+  'gpt-5.1-codex':       'claude-sonnet-4-6',
+  'gpt-5.4-mini':        'claude-haiku-4-5-20251001',
+  'gpt-5.1-codex-mini':  'claude-haiku-4-5-20251001',
 };
 
 function isCapError(err) {
@@ -2544,6 +2565,8 @@ function startProxy() {
           models.push(
             { id: 'gpt-5.4', object: 'model', owned_by: 'indigo-collective' },
             { id: 'gpt-5.4-mini', object: 'model', owned_by: 'indigo-collective' },
+            { id: 'gpt-5.5', object: 'model', owned_by: 'indigo-collective' },
+            { id: 'gpt-5.6', object: 'model', owned_by: 'indigo-collective' },
             { id: 'gpt-5.1-codex', object: 'model', owned_by: 'indigo-collective' },
             { id: 'gpt-5.1-codex-mini', object: 'model', owned_by: 'indigo-collective' },
             { id: 'gpt-5.1-codex-max', object: 'model', owned_by: 'indigo-collective' },
@@ -2553,6 +2576,8 @@ function startProxy() {
             models.push(
               { id: `gpt-5.4:${t.id}`, object: 'model', owned_by: 'indigo-collective' },
               { id: `gpt-5.4-mini:${t.id}`, object: 'model', owned_by: 'indigo-collective' },
+              { id: `gpt-5.5:${t.id}`, object: 'model', owned_by: 'indigo-collective' },
+              { id: `gpt-5.6:${t.id}`, object: 'model', owned_by: 'indigo-collective' },
             );
           }
         }
@@ -3238,6 +3263,24 @@ const OPENAI_MODELS = [
     maxTokens: 64000,
   },
   {
+    id: 'gpt-5.5',
+    name: 'GPT 5.5 (SubStation)',
+    reasoning: false,
+    input: ['text'],
+    cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+    contextWindow: 200000,
+    maxTokens: 128000,
+  },
+  {
+    id: 'gpt-5.6',
+    name: 'GPT 5.6 (SubStation)',
+    reasoning: false,
+    input: ['text'],
+    cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+    contextWindow: 200000,
+    maxTokens: 128000,
+  },
+  {
     id: 'gpt-5.1-codex',
     name: 'GPT 5.1 Codex (SubStation)',
     reasoning: false,
@@ -3285,6 +3328,8 @@ function getAllModels() {
       models.push(
         { id: `gpt-5.4:${t.id}`, name: `GPT 5.4 — ${t.id}`, reasoning: false, input: ['text'], cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 }, contextWindow: 200000, maxTokens: 128000 },
         { id: `gpt-5.4-mini:${t.id}`, name: `GPT 5.4 Mini — ${t.id}`, reasoning: false, input: ['text'], cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 }, contextWindow: 200000, maxTokens: 64000 },
+        { id: `gpt-5.5:${t.id}`, name: `GPT 5.5 — ${t.id}`, reasoning: false, input: ['text'], cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 }, contextWindow: 200000, maxTokens: 128000 },
+        { id: `gpt-5.6:${t.id}`, name: `GPT 5.6 — ${t.id}`, reasoning: false, input: ['text'], cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 }, contextWindow: 200000, maxTokens: 128000 },
       );
     }
   }

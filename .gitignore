@@ -5,6 +5,7 @@ node_modules/
 # ignored (local-only, not for distribution).
 dist/*
 !dist/index.js
+!dist/auth-policy.js
 
 # Secrets — NEVER commit these
 token-pool.json

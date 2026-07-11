@@ -1,0 +1,30 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "model": "substation/opus-4-8",
+  "provider": {
+    "substation": {
+      "npm": "@ai-sdk/openai-compatible",
+      "name": "SubStation (local proxy)",
+      "options": {
+        "baseURL": "http://127.0.0.1:8403/v1",
+        "apiKey": "sk-substation-local-proxy"
+      },
+      "models": {
+        "opus-4-8":           { "name": "Claude Opus 4.8 (via SubStation)",   "limit": { "context": 1000000, "output": 128000 } },
+        "opus-4-7":           { "name": "Claude Opus 4.7 (via SubStation)",   "limit": { "context": 1000000, "output": 128000 } },
+        "opus-4-6":           { "name": "Claude Opus 4.6 (via SubStation)",   "limit": { "context": 1000000, "output": 128000 } },
+        "sonnet-4-6":         { "name": "Claude Sonnet 4.6 (via SubStation)", "limit": { "context": 1000000, "output": 64000 } },
+        "sonnet-5":           { "name": "Claude Sonnet 5 (via SubStation)",   "limit": { "context": 1000000, "output": 64000 } },
+        "fable-5":            { "name": "Claude Fable 5 (via SubStation)",    "limit": { "context": 1000000, "output": 128000 } },
+        "haiku-4-5":          { "name": "Claude Haiku 4.5 (via SubStation)",  "limit": { "context": 1000000, "output": 64000 } },
+        "gpt-5.4":            { "name": "GPT-5.4 (via SubStation)",          "limit": { "context": 200000, "output": 128000 } },
+        "gpt-5.4-mini":       { "name": "GPT-5.4 mini (via SubStation)",     "limit": { "context": 200000, "output": 64000 } },
+        "gpt-5.5":            { "name": "GPT-5.5 (via SubStation)",          "limit": { "context": 200000, "output": 128000 } },
+        "gpt-5.6":            { "name": "GPT-5.6 (via SubStation)",          "limit": { "context": 200000, "output": 128000 } },
+        "gpt-5.1-codex":      { "name": "GPT-5.1 Codex (via SubStation)",    "limit": { "context": 200000, "output": 128000 } },
+        "gpt-5.1-codex-mini": { "name": "GPT-5.1 Codex mini (via SubStation)", "limit": { "context": 128000, "output": 64000 } },
+        "gpt-5.1-codex-max":  { "name": "GPT-5.1 Codex max (via SubStation)", "limit": { "context": 200000, "output": 128000 } }
+      }
+    }
+  }
+}

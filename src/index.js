@@ -2294,19 +2294,26 @@ async function invokeCodex(openaiMessages, modelInfo, onDelta, tools) {
 // ---------------------------------------------------------------------------
 
 const FAILOVER_MAP = {
-  // Anthropic → OpenAI equivalents
-  'claude-fable-5':            'gpt-5.4',
-  'claude-opus-4-8':           'gpt-5.4',
-  'claude-opus-4-7':           'gpt-5.4',
-  'claude-opus-4-6':           'gpt-5.4',
-  'claude-sonnet-4-6':         'gpt-5.4',
+  // Anthropic → OpenAI equivalents. Points at gpt-5.5 (ChatGPT Pro tier,
+  // live-verified tool-calling), not gpt-5.4 -- when Anthropic caps out the
+  // orchestrator should fail over to the newest tool-capable model available,
+  // not a downgrade. gpt-5.6 is NOT used as a failover target: the ChatGPT-Pro
+  // Codex/Responses endpoint 400s it outright (see CODEX_CHATGPT_REMAP), so
+  // pointing failover at a model that hard-fails would break failover itself.
+  'claude-fable-5':            'gpt-5.5',
+  'claude-opus-4-8':           'gpt-5.5',
+  'claude-opus-4-7':           'gpt-5.5',
+  'claude-opus-4-6':           'gpt-5.5',
+  'claude-sonnet-4-6':         'gpt-5.5',
   'claude-haiku-4-5-20251001': 'gpt-5.4-mini',
   // OpenAI → Anthropic equivalents
-  'gpt-5.4':            'claude-opus-4-6',
-  'gpt-5.1-codex-max':  'claude-opus-4-6',
-  'gpt-5.1-codex':      'claude-sonnet-4-6',
-  'gpt-5.4-mini':       'claude-haiku-4-5-20251001',
-  'gpt-5.1-codex-mini': 'claude-haiku-4-5-20251001',
+  'gpt-5.5':             'claude-opus-4-6',
+  'gpt-5.6':             'claude-opus-4-6',
+  'gpt-5.4':             'claude-opus-4-6',
+  'gpt-5.1-codex-max':   'claude-opus-4-6',
+  'gpt-5.1-codex':       'claude-sonnet-4-6',
+  'gpt-5.4-mini':        'claude-haiku-4-5-20251001',
+  'gpt-5.1-codex-mini':  'claude-haiku-4-5-20251001',
 };
 
 function isCapError(err) {

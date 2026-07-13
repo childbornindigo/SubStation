@@ -1711,7 +1711,7 @@ function formatMessagesForSDK(openaiMessages) {
   if (last) {
     // Reflexive auto-RAG: surface relevant vault notes as context BEFORE the
     // user message, so retrieval is a property of the loop, not of memory.
-    const vaultCtx = retrieveVaultContext(last.text);
+    const vaultCtx = '';  // vault auto-RAG DISABLED 2026-07-12 (Dee): on-command only. Was retrieveVaultContext(last.text) — burned tokens + polluted context at recall ~0.61. Re-enable by restoring the call once recall earns the per-turn tax.
     if (vaultCtx) {
       parts.push(vaultCtx);
     }

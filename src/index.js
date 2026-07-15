@@ -29,7 +29,8 @@ These rules are enforced at the infrastructure level. Violations waste budget an
 4. After recovering from an error or rate limit, your FIRST action must be a tool call — not an apology, not a status update, not a summary of what happened.
 5. No summaries of work unless the work is verified complete with tool output as evidence. "Done" means you can point to the artifact.
 6. If a task will take multiple turns, write your plan to a file BEFORE announcing it. The file is the proof you started.
-7. If you are confused or stuck, say "BLOCKED: [reason]" and stop. Do not fill the gap with narration.`;
+7. If you are confused or stuck, say "BLOCKED: [reason]" and stop. Do not fill the gap with narration.
+8. SKILL ROUTING IS A PER-TASK LOOP, NOT A ONCE-PER-TURN CALL. If a skill router is available (route_skill / mcp_skillrouter_route_skill), call it BEFORE each distinct task or sub-task with a description of what you're about to do, and follow the result: "auto" → load and follow that SKILL.md; "suggest" → mention/load it; "none" → only now is inline work licensed. When that task finishes, route AGAIN before starting the next distinct task. A turn with three distinct tasks = at least three route calls, one before each. A turn that changes topic/tool/target mid-way is multiple tasks — re-route at each boundary. If you catch yourself doing inline work without having routed for the current task, STOP and route first. This rule is identical for every model on this proxy — primary and failover, no exceptions.`;
 const MAX_BODY_SIZE = 2 * 1024 * 1024; // 2MB request body limit
 const LOG_MAX_SIZE = 5 * 1024 * 1024; // 5MB log rotation
 const DEAD_REVIVE_MS = 30 * 60 * 1000;       // 30 min — auto-retry rate-limited tokens

@@ -140,9 +140,10 @@ const MODEL_MAP = {
 // Narration loop breaker — mechanical enforcement against apology loops
 // ---------------------------------------------------------------------------
 
-const NARRATION_PATTERNS = /\b(starting now|i will|i'll|about to|doing it now|i've been silent|apologies for|sorry for the|let me now|going to|working on it|i'm going to|right away|immediately)\b/i;
+const NARRATION_PATTERNS = /\b(starting now|i will|i'll|about to|doing it now|i've been silent|apologies for|sorry for the|let me now|going to|working on it|i'm going to|right away|immediately|try(?:ing)? again|re-?run(?:ning)?|retry(?:ing)?)\b/i;
 const MAX_CONSECUTIVE_NARRATIONS = 2;
 const narrationCounters = new Map(); // sessionKey → count
+const progressTracker = new Map(); // sessionKey → { lastCallHash, lastResultHash, repeat }
 
 function isNarrationOnly(text) {
   if (!text || text.length < 10) return false;
@@ -150,12 +151,12 @@ function isNarrationOnly(text) {
   return NARRATION_PATTERNS.test(text);
 }
 
-function trackNarration(sessionKey, hadToolUse, text) {
-  if (hadToolUse) {
+function trackNarration(sessionKey, hadToolUse, text, noProgress = false) {
+  if (hadToolUse && !noProgress) {
     narrationCounters.set(sessionKey, 0);
     return false;
   }
-  if (isNarrationOnly(text)) {
+  if (noProgress || isNarrationOnly(text)) {
     const count = (narrationCounters.get(sessionKey) || 0) + 1;
     narrationCounters.set(sessionKey, count);
     log(`Narration loop detector: ${sessionKey} — ${count}/${MAX_CONSECUTIVE_NARRATIONS} consecutive narrations`);
@@ -167,6 +168,62 @@ function trackNarration(sessionKey, hadToolUse, text) {
     narrationCounters.set(sessionKey, 0);
   }
   return false;
+}
+
+function stableToolArgs(rawArgs) {
+  if (typeof rawArgs !== 'string') return rawArgs || {};
+  try { return JSON.parse(rawArgs); } catch { return rawArgs; }
+}
+
+function textContent(content) {
+  if (typeof content === 'string') return content;
+  if (!Array.isArray(content)) return content == null ? '' : JSON.stringify(content);
+  return content.map(block => block?.text ?? block?.content ?? JSON.stringify(block)).join('\n');
+}
+
+function progressSessionKey(messages, model) {
+  const seed = (messages || []).find(message => message.role === 'user')
+    || (messages || []).find(message => message.role === 'system' || message.role === 'developer');
+  return createHash('sha1').update(`${model}\0${seed?.role || ''}\0${textContent(seed?.content)}`).digest('hex');
+}
+
+function latestToolProgress(messages) {
+  for (let i = (messages || []).length - 1; i >= 0; i--) {
+    const result = messages[i];
+    if (result.role !== 'tool' && result.role !== 'function') continue;
+    const callId = result.tool_call_id;
+    for (let j = i - 1; j >= 0; j--) {
+      const calls = messages[j].tool_calls;
+      if (!Array.isArray(calls)) continue;
+      const call = calls.find(candidate => !callId || candidate.id === callId);
+      if (!call) continue;
+      const toolName = call.function?.name || call.name || result.name || 'tool';
+      const normalizedArgs = stableToolArgs(call.function?.arguments ?? call.arguments);
+      return {
+        toolName,
+        callHash: createHash('sha1').update(toolName + JSON.stringify(normalizedArgs)).digest('hex'),
+        resultHash: createHash('sha1').update(textContent(result.content)).digest('hex'),
+      };
+    }
+  }
+  return null;
+}
+
+function enforceToolProgress(messages, model) {
+  const progress = latestToolProgress(messages);
+  if (!progress) return false;
+  const sessionKey = progressSessionKey(messages, model);
+  const previous = progressTracker.get(sessionKey);
+  const repeat = previous && previous.lastCallHash === progress.callHash && previous.lastResultHash === progress.resultHash
+    ? previous.repeat + 1
+    : 0;
+  progressTracker.set(sessionKey, { lastCallHash: progress.callHash, lastResultHash: progress.resultHash, repeat });
+  const noProgress = repeat >= 1;
+  if (noProgress) trackNarration(sessionKey, false, '', true);
+  if (repeat >= 2) {
+    throw new Error(`BLOCKED: repeated identical tool call with no state change (${progress.toolName}). Change approach — do not re-run the same call.`);
+  }
+  return noProgress;
 }
 
 function resolveModel(model) {
@@ -1852,6 +1909,7 @@ function normalizeToolCalls(toolCalls, registeredTools) {
 }
 
 async function invokeClaudeSDKWithTools(openaiMessages, tools, toolChoice, modelInfo, tokenAffinity, onServedModel, noFailover) {
+  enforceToolProgress(openaiMessages, modelInfo.modelId);
   const sdkMod = await loadAgentSDK();
   const z = await loadZod();
   const model = modelInfo.modelId;
@@ -2093,6 +2151,7 @@ async function invokeClaudeMessagesAPIWithTools(openaiMessages, tools, toolChoic
 }
 
 async function invokeClaudeSDK(openaiMessages, modelInfo, onDelta, tokenAffinity, onServedModel) {
+  enforceToolProgress(openaiMessages, modelInfo.modelId);
   const model = modelInfo.modelId;
   const tokens = getAnthropicOAuthTokens();
   if (tokens.length === 0) {
@@ -2305,6 +2364,7 @@ async function invokeClaudeSDK(openaiMessages, modelInfo, onDelta, tokenAffinity
 // ---------------------------------------------------------------------------
 
 async function invokeCodex(openaiMessages, modelInfo, onDelta, tools) {
+  enforceToolProgress(openaiMessages, modelInfo.modelId);
   const provider = 'openai';
   const providerTokens = pool.filter(t => t.provider === provider);
   if (providerTokens.length === 0) {
@@ -3381,7 +3441,7 @@ const indigoProvider = {
   auth: [],
 };
 
-export { normalizeToolCalls };
+export { enforceToolProgress, normalizeToolCalls, progressTracker };
 
 export default {
   id: 'substation',

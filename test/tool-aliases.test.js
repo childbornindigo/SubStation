@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { normalizeToolCalls } from '../src/index.js';
+import { enforceToolProgress, normalizeToolCalls, progressTracker } from '../src/index.js';
 
 const tool = name => ({ function: { name } });
 const call = (name, args) => ({ id: 'call-1', type: 'function', function: { name, arguments: JSON.stringify(args) } });
@@ -47,4 +47,28 @@ test('NotebookEdit is a clear hard error unless registered for real', () => {
   );
   const [result] = normalizeToolCalls([call('notebookedit', { cell: 1 })], [tool('NotebookEdit')]);
   assert.equal(result.function.name, 'NotebookEdit');
+});
+
+const progressMessages = result => [
+  { role: 'user', content: 'stable session seed' },
+  { role: 'assistant', tool_calls: [call('Bash', { command: 'git status' })] },
+  { role: 'tool', tool_call_id: 'call-1', content: result },
+];
+
+test('third identical tool call and result is mechanically blocked', () => {
+  progressTracker.clear();
+  assert.equal(enforceToolProgress(progressMessages('clean'), 'claude-test'), false);
+  assert.equal(enforceToolProgress(progressMessages('clean'), 'claude-test'), true);
+  assert.throws(
+    () => enforceToolProgress(progressMessages('clean'), 'claude-test'),
+    /BLOCKED: repeated identical tool call with no state change \(Bash\)\. Change approach — do not re-run the same call\./,
+  );
+});
+
+test('a changed tool result resets no-progress repetition', () => {
+  progressTracker.clear();
+  enforceToolProgress(progressMessages('first'), 'codex-test');
+  assert.equal(enforceToolProgress(progressMessages('first'), 'codex-test'), true);
+  assert.equal(enforceToolProgress(progressMessages('changed'), 'codex-test'), false);
+  assert.doesNotThrow(() => enforceToolProgress(progressMessages('changed'), 'codex-test'));
 });

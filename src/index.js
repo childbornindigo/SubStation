@@ -32,7 +32,9 @@ These rules are enforced at the infrastructure level. Violations waste budget an
 7. If you are confused or stuck, say "BLOCKED: [reason]" and stop. Do not fill the gap with narration.
 8. SKILL ROUTING IS A PER-TASK LOOP, NOT A ONCE-PER-TURN CALL. If a skill router is available (route_skill / mcp_skillrouter_route_skill), call it BEFORE each distinct task or sub-task with a description of what you're about to do, and follow the result: "auto" → load and follow that SKILL.md; "suggest" → mention/load it; "none" → only now is inline work licensed. When that task finishes, route AGAIN before starting the next distinct task. A turn with three distinct tasks = at least three route calls, one before each. A turn that changes topic/tool/target mid-way is multiple tasks — re-route at each boundary. If you catch yourself doing inline work without having routed for the current task, STOP and route first. This rule is identical for every model on this proxy — primary and failover, no exceptions.
 
-9. TOOL NAMES ARE FIXED TO THIS ENVIRONMENT — THIS IS NOT CLAUDE CODE. The ONLY callable tools are the ones in your tool schema for this session (e.g. terminal, read_file, search_files, patch, write_file, clarify, todo, skill_view, delegate_task). NEVER emit Claude-Code-style names — Bash, Read, Grep, Glob, Edit, Write, MultiEdit, AskUserQuestion, LS, NotebookEdit — they DO NOT EXIST here and every such call throws an error and burns a full round-trip. Map by function every time: shell/CLI → terminal; read a file → read_file; search file contents or find files → search_files; edit/replace in a file → patch; create/overwrite a file → write_file; ask the user a choice → clarify. If unsure of a tool name, check the schema; do not guess a capitalized CamelCase name.
+ORCHESTRATOR DEFAULT = DISPATCH. Heavy work (grounding, multi-file search, builds, image regen, audits, scrapes) is a WORK ORDER sent to a Right Hand lane with ~/.hermes/workspace/scripts/rh.sh send <lane> "<task>", not ground through inline where it burns operator-paid usage. Before a third exploratory tool call on one sub-task, dispatch it unless the work is only reading a known file, one targeted search, or composing the WO.
+
+9. USE THE TOOL NAMES IN THIS SESSION'S SCHEMA — THIS IS NOT CLAUDE CODE. Canonical names include terminal, read_file, search_files, patch, write_file, clarify, todo, skill_view, and delegate_task. A compatibility layer can recover common Claude-Code aliases, but relying on it hides mistakes; NotebookEdit has no equivalent and remains a hard error. Check the schema instead of guessing a capitalized name.
 
 10. DO NOT NARRATE BEFORE A TOOL CALL. Never preface a tool call with "let me look", "let me check", "reading now", "I'll verify", or a restatement of the plan. Emit the tool call directly. Speak only AFTER you have the result — and only to deliver the answer or a verified status. One short sentence of framing is allowed only when NOT accompanied by any tool call (a pure question or final report). Thinking out loud between tool calls is the token-burn the operator is paying for; cut it.
 
@@ -1792,6 +1794,63 @@ function jsonSchemaToZodShape(schema, z) {
   return shape;
 }
 
+const TOOL_ALIASES = new Map(Object.entries({
+  bash: 'terminal', shell: 'terminal', terminal: 'terminal',
+  read: 'read_file', readfile: 'read_file', view: 'read_file', cat: 'read_file',
+  grep: 'search_files', glob: 'search_files', search: 'search_files', find: 'search_files', ls: 'search_files', listdir: 'search_files',
+  edit: 'patch', multiedit: 'patch', strreplace: 'patch', patch: 'patch',
+  write: 'write_file', writefile: 'write_file', createfile: 'write_file',
+  askuserquestion: 'clarify', ask: 'clarify', clarify: 'clarify',
+  webfetch: 'web_extract', websearch: 'web_search',
+}));
+
+function normalizeToolCallArguments(target, rawArguments) {
+  let args;
+  try { args = JSON.parse(rawArguments || '{}'); } catch { return rawArguments; }
+  if (!args || typeof args !== 'object' || Array.isArray(args)) return rawArguments;
+  const compact = (entries) => Object.fromEntries(entries.filter(([, value]) => value !== undefined));
+  if (target === 'terminal') return JSON.stringify(compact([['command', args.command]]));
+  if (target === 'read_file') return JSON.stringify(compact([['path', args.path ?? args.file_path]]));
+  if (target === 'search_files') return JSON.stringify(compact([
+    ['pattern', args.pattern], ['path', args.path], ['file_glob', args.file_glob ?? args.glob],
+  ]));
+  if (target === 'patch') return JSON.stringify(compact([
+    ['path', args.path ?? args.file_path], ['old_string', args.old_string], ['new_string', args.new_string], ['mode', 'replace'],
+  ]));
+  if (target === 'write_file') return JSON.stringify(compact([['path', args.path ?? args.file_path], ['content', args.content]]));
+  if (target === 'clarify') return JSON.stringify(compact([['question', args.question], ['choices', args.choices]]));
+  return rawArguments;
+}
+
+function normalizeToolCalls(toolCalls, registeredTools) {
+  if (!Array.isArray(toolCalls)) return toolCalls;
+  const registered = new Map((registeredTools || []).map(t => {
+    const name = t.function?.name;
+    return [String(name || '').toLowerCase(), name];
+  }).filter(([, name]) => name));
+  return toolCalls.map(call => {
+    const emitted = call.function?.name;
+    const key = String(emitted || '').toLowerCase();
+    const realName = registered.get(key);
+    if (realName) return { ...call, function: { ...call.function, name: realName } };
+    if (key === 'notebookedit') {
+      throw Object.assign(new Error('Unsupported tool "NotebookEdit": SubStation has no notebook-editing equivalent; use read_file and patch on the notebook file explicitly.'), { code: 'SUBSTATION_UNSUPPORTED_TOOL' });
+    }
+    const target = TOOL_ALIASES.get(key);
+    if (!target || !registered.has(target)) return call;
+    const registeredTarget = registered.get(target);
+    log(`[toolalias] ${emitted} -> ${registeredTarget}`);
+    return {
+      ...call,
+      function: {
+        ...call.function,
+        name: registeredTarget,
+        arguments: normalizeToolCallArguments(target, call.function?.arguments),
+      },
+    };
+  });
+}
+
 async function invokeClaudeSDKWithTools(openaiMessages, tools, toolChoice, modelInfo, tokenAffinity, onServedModel, noFailover) {
   const sdkMod = await loadAgentSDK();
   const z = await loadZod();
@@ -1906,12 +1965,12 @@ async function invokeClaudeSDKWithTools(openaiMessages, tools, toolChoice, model
         }
       }
       markSuccess(token);
-      return { text, toolCalls: capturedCalls || undefined, usage, servedModel, modelMismatch: servedModel !== null && servedModel !== model };
+      return { text, toolCalls: normalizeToolCalls(capturedCalls, tools) || undefined, usage, servedModel, modelMismatch: servedModel !== null && servedModel !== model };
     } catch (err) {
       // If we already captured the tool call, an abort-triggered throw is success.
       if (capturedCalls) {
         markSuccess(token);
-        return { text, toolCalls: capturedCalls, usage, servedModel, modelMismatch: servedModel !== null && servedModel !== model };
+        return { text, toolCalls: normalizeToolCalls(capturedCalls, tools), usage, servedModel, modelMismatch: servedModel !== null && servedModel !== model };
       }
       lastErr = err;
       log(`invokeClaudeSDKWithTools: token ${token.id} failed: ${err.message}`);
@@ -1994,8 +2053,9 @@ async function invokeClaudeMessagesAPIWithTools(openaiMessages, tools, toolChoic
       const result = await makeAnthropicRequest(bodyStr, token);
       markSuccess(token);
       const { text, toolCalls } = anthropicContentToOpenAIToolCalls(result.content);
-      return { text, toolCalls, usage: result.usage };
+      return { text, toolCalls: normalizeToolCalls(toolCalls, tools), usage: result.usage };
     } catch (err) {
+      if (err.code === 'SUBSTATION_UNSUPPORTED_TOOL') throw err;
       lastErr = err;
       log(`invokeClaudeMessagesAPIWithTools: token ${token.id} failed: ${err.message}`);
       if (err.statusCode === 429) {
@@ -2270,9 +2330,10 @@ async function invokeCodex(openaiMessages, modelInfo, onDelta, tools) {
     try {
       const result = await makeCodexRequest(bodyStr, tokenEntry, wrappedDelta);
       markSuccess(tokenEntry);
-      return result;
+      return { ...result, toolCalls: normalizeToolCalls(result.toolCalls, tools) };
     } catch (err) {
       lastError = err;
+      if (err.code === 'SUBSTATION_UNSUPPORTED_TOOL') { markRequestEnd(tokenEntry); throw err; }
       if (streamStarted) { markRequestEnd(tokenEntry); throw err; }
       if (err.statusCode === 429) { markRateLimited(tokenEntry, parseInt(err.retryAfter || '60', 10)); continue; }
       if (err.statusCode === 401) {
@@ -2282,8 +2343,12 @@ async function invokeCodex(openaiMessages, modelInfo, onDelta, tools) {
             await refreshOpenAIToken(tokenEntry);
             const result = await makeCodexRequest(bodyStr, tokenEntry, wrappedDelta);
             markSuccess(tokenEntry);
-            return result;
-          } catch { markDead(tokenEntry); continue; }
+            return { ...result, toolCalls: normalizeToolCalls(result.toolCalls, tools) };
+          } catch (refreshErr) {
+            if (refreshErr.code === 'SUBSTATION_UNSUPPORTED_TOOL') { markRequestEnd(tokenEntry); throw refreshErr; }
+            markDead(tokenEntry);
+            continue;
+          }
         }
         markDead(tokenEntry);
         continue;
@@ -3315,6 +3380,8 @@ const indigoProvider = {
   },
   auth: [],
 };
+
+export { normalizeToolCalls };
 
 export default {
   id: 'substation',

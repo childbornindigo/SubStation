@@ -28,3 +28,8 @@ demo-board*
 *.vtt
 *.jpg
 ~
+
+# Source backup snapshots — local-only, never distribute (public repo)
+src/*.bak-*
+# Stray zero-byte scratch files from botched shell redirects
+0.[0-9]*

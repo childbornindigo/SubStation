@@ -449,19 +449,69 @@ function markSuccess(entry) {
   savePoolState();
 }
 
-function markRateLimited(entry, retryAfterSec) {
-  // Exponential backoff: consecutive 429s double the cooldown (60s → 120s → 240s → 480s, cap 30min)
-  const baseSec = retryAfterSec || 60;
-  const recentErrors = entry._consecutive429s || 0;
-  entry._consecutive429s = recentErrors + 1;
-  const backoffSec = Math.min(baseSec * Math.pow(2, recentErrors), 1800); // cap 30min
+function markRateLimited(entry, retryAfterSec, isKnownCap = false) {
+  // isKnownCap=true means retryAfterSec is an exact parsed reset time (e.g. a
+  // Claude Max daily/session cap) — use it directly instead of the generic
+  // exponential backoff, which was previously capping ALL cooldowns at 30min
+  // and causing repeated doomed retries against a token that can't succeed
+  // again until its real reset (sometimes hours away).
+  let backoffSec;
+  if (isKnownCap) {
+    backoffSec = Math.max(retryAfterSec, 30);
+    entry._consecutive429s = 0;
+  } else {
+    // Exponential backoff: consecutive 429s double the cooldown (60s → 120s → 240s → 480s, cap 30min)
+    const baseSec = retryAfterSec || 60;
+    const recentErrors = entry._consecutive429s || 0;
+    entry._consecutive429s = recentErrors + 1;
+    backoffSec = Math.min(baseSec * Math.pow(2, recentErrors), 1800); // cap 30min
+  }
   const cooldownMs = backoffSec * 1000;
   entry.cooldownUntil = Date.now() + cooldownMs;
   entry.lastUsed = Date.now();
   entry.errorCount++;
   entry.activeRequests = Math.max(0, entry.activeRequests - 1);
   savePoolState();
-  log(`Token ${entry.id} rate-limited, cooldown ${backoffSec}s (attempt ${entry._consecutive429s}), until ${new Date(entry.cooldownUntil).toISOString()}`);
+  log(`Token ${entry.id} rate-limited, cooldown ${backoffSec}s${isKnownCap ? ' (known cap, exact reset time)' : ` (attempt ${entry._consecutive429s})`}, until ${new Date(entry.cooldownUntil).toISOString()}`);
+}
+
+// Parses an exact reset time out of Anthropic/Claude-Code usage-cap error
+// messages so a token can be cooled down for the REAL duration instead of a
+// generic capped backoff. Handles both formats seen in practice:
+//   "resets at 2026-07-19T11:00:00.000Z"       (ISO, ms path)
+//   "You've hit your limit · resets 7am (America/Toronto)"  (SDK tool path)
+// Returns seconds-until-reset, or null if no reset time could be parsed.
+function parseKnownResetSeconds(message) {
+  if (!message) return null;
+  const isoMatch = message.match(/resets at (\d{4}-\d{2}-\d{2}T[\d:.]+Z?)/);
+  if (isoMatch) {
+    const t = new Date(isoMatch[1]).getTime();
+    if (!isNaN(t) && t > Date.now()) return Math.ceil((t - Date.now()) / 1000);
+  }
+  const localMatch = message.match(/resets (\d{1,2})(?::(\d{2}))?\s*(am|pm)\s*\(([\w/]+)\)/i);
+  if (localMatch) {
+    try {
+      let [, hh, mm, ap, tz] = localMatch;
+      hh = parseInt(hh, 10) % 12;
+      if (/pm/i.test(ap)) hh += 12;
+      mm = mm ? parseInt(mm, 10) : 0;
+      const now = new Date();
+      const dateFmt = new Intl.DateTimeFormat('en-US', { timeZone: tz, year: 'numeric', month: '2-digit', day: '2-digit' });
+      const dp = Object.fromEntries(dateFmt.formatToParts(now).map(p => [p.type, p.value]));
+      let guess = new Date(Date.UTC(+dp.year, +dp.month - 1, +dp.day, hh, mm, 0));
+      // guess is a UTC instant; find what wall-clock time that instant reads as
+      // in `tz`, then shift guess by the difference so it lands on hh:mm in tz.
+      const checkFmt = new Intl.DateTimeFormat('en-US', { timeZone: tz, hour12: false, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      const cp = Object.fromEntries(checkFmt.formatToParts(guess).map(p => [p.type, p.value]));
+      const asUtcIfLocal = Date.UTC(+cp.year, +cp.month - 1, +cp.day, cp.hour === '24' ? 0 : +cp.hour, +cp.minute, +cp.second);
+      const offsetMs = asUtcIfLocal - guess.getTime();
+      let resetAt = new Date(guess.getTime() - offsetMs);
+      if (resetAt.getTime() <= now.getTime()) resetAt = new Date(resetAt.getTime() + 24 * 3600 * 1000);
+      const secs = Math.ceil((resetAt.getTime() - now.getTime()) / 1000);
+      if (secs > 0) return secs;
+    } catch (e) { /* unknown tz or Intl failure — fall through to generic backoff */ }
+  }
+  return null;
 }
 
 function markDead(entry, deadType = 'rate') {
@@ -2034,7 +2084,13 @@ async function invokeClaudeSDKWithTools(openaiMessages, tools, toolChoice, model
       log(`invokeClaudeSDKWithTools: token ${token.id} failed: ${err.message}`);
       const el = (err.message || '').toLowerCase();
       if (el.includes('rate') || el.includes('limit') || el.includes('usage') || err.statusCode === 429) {
-        markRateLimited(token, 60);
+        const knownSecs = parseKnownResetSeconds(err.message);
+        if (knownSecs) {
+          log(`Token ${token.id} hit known usage cap — cooling until real reset (~${Math.ceil(knownSecs / 60)}min), skipping repeated doomed retries`);
+          markRateLimited(token, knownSecs, true);
+        } else {
+          markRateLimited(token, 60);
+        }
       } else {
         markRequestEnd(token);
       }
@@ -2230,6 +2286,7 @@ async function invokeClaudeSDK(openaiMessages, modelInfo, onDelta, tokenAffinity
 
     try {
       const iter = await querySDK(model, token.id, token.token, prompt);
+      const attemptStarted = Date.now();
 
       let text = '';
       let usage = {};
@@ -2248,8 +2305,27 @@ async function invokeClaudeSDK(openaiMessages, modelInfo, onDelta, tokenAffinity
       };
       resetIdleTimer();
 
+      // Hard wall-clock ceiling, independent of message activity. The idle
+      // timer above only fires if activity stops; if messages keep trickling
+      // in (or the underlying stream/process dies without ever surfacing a
+      // terminal message), a single attempt can otherwise run unbounded since
+      // maxTurns is Infinity. This is defense-in-depth, not a replacement.
+      let hardReject;
+      const hardPromise = new Promise((_, reject) => { hardReject = reject; });
+      const HARD_TIMEOUT_MS = Number(process.env.SUBSTATION_HARD_TIMEOUT_MS) || 1200000; // 20 min
+      const hardTimer = setTimeout(() => hardReject(new Error(`Agent SDK hard timeout — attempt exceeded ${HARD_TIMEOUT_MS/1000}s wall-clock`)), HARD_TIMEOUT_MS);
+
+      // Heartbeat so a stalled attempt is visible in the log instead of silent
+      // for 30+ minutes (this was previously undiagnosable without attaching
+      // a debugger — the loop below had zero per-message logging).
+      let msgCount = 0;
+      const heartbeatTimer = setInterval(() => {
+        log(`SDK query heartbeat (model=${model}, token=${token.id}): ${msgCount} messages, ${Math.round((Date.now()-attemptStarted)/1000)}s elapsed, toolRunning=${toolRunning}`);
+      }, 60000);
+
       const iteratorLoop = (async () => {
         for await (const msg of iter) {
+          msgCount++;
           resetIdleTimer();
           if (msg.type === 'system' && msg.subtype === 'init') {
             // Swap-detection guard: the Agent SDK's own init message reports
@@ -2274,6 +2350,7 @@ async function invokeClaudeSDK(openaiMessages, modelInfo, onDelta, tokenAffinity
                 hadToolUse = true;
                 toolRunning = true;
                 resetIdleTimer();
+                log(`SDK tool_use (model=${model}, token=${token.id}): ${block.name}`);
               }
               if (block.type === 'text' && block.text) {
                 text += block.text;
@@ -2295,8 +2372,23 @@ async function invokeClaudeSDK(openaiMessages, modelInfo, onDelta, tokenAffinity
         }
       })();
 
-      await Promise.race([iteratorLoop, idlePromise]);
-      if (idleTimer) clearTimeout(idleTimer);
+      let raceErr = null;
+      try {
+        await Promise.race([iteratorLoop, idlePromise, hardPromise]);
+      } catch (e) {
+        raceErr = e;
+      } finally {
+        if (idleTimer) clearTimeout(idleTimer);
+        clearTimeout(hardTimer);
+        clearInterval(heartbeatTimer);
+      }
+      if (raceErr) {
+        // Any exit here (idle timeout, hard timeout, or an error surfaced by
+        // the loop itself) means we're abandoning this query -- terminate the
+        // underlying process/connection instead of leaking it.
+        try { if (typeof iter.close === 'function') iter.close(); } catch {}
+        throw raceErr;
+      }
 
       if (!text) throw new Error('Empty response from Claude via Agent SDK');
 
@@ -2329,18 +2421,10 @@ async function invokeClaudeSDK(openaiMessages, modelInfo, onDelta, tokenAffinity
 
       // If genuinely rate/usage limited, cooldown for the actual window duration (not just 30 min)
       if (errLower.includes('rate') || errLower.includes('limit') || errLower.includes('usage') || errLower.includes('hit your') || errLower.includes('resets')) {
-        // Parse actual reset time from rate_limit_event error if available
-        let cooldownSec = DEAD_REVIVE_MS / 1000; // fallback: 30 min
-        const resetsMatch = err.message.match(/resets at (\d{4}-\d{2}-\d{2}T[\d:.]+Z?)/);
-        if (resetsMatch) {
-          const resetsAt = new Date(resetsMatch[1]).getTime();
-          if (!isNaN(resetsAt) && resetsAt > Date.now()) {
-            cooldownSec = Math.ceil((resetsAt - Date.now()) / 1000);
-          }
-        }
-        const cooldownMs = cooldownSec * 1000;
-        log(`Token ${token.id} hit usage/rate limit — cooldown ${Math.ceil(cooldownMs / 60000)}min (until ${new Date(Date.now() + cooldownMs).toISOString()}), failing over...`);
-        markRateLimited(token, cooldownSec);
+        const knownSecs = parseKnownResetSeconds(err.message);
+        const cooldownSec = knownSecs || (DEAD_REVIVE_MS / 1000);
+        log(`Token ${token.id} hit usage/rate limit — cooldown ${Math.ceil(cooldownSec / 60)}min (until ${new Date(Date.now() + cooldownSec * 1000).toISOString()}), failing over...`);
+        markRateLimited(token, cooldownSec, true);
         continue;
       }
 

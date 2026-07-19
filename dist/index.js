@@ -231,6 +231,13 @@ function enforceToolProgress(messages, model) {
   const noProgress = repeat >= 1;
   if (noProgress) trackNarration(sessionKey, false, '', true);
   if (repeat >= 2) {
+    // Reset tracked state before throwing. Without this, `repeat` never
+    // comes back down — every future request for this sessionKey still has
+    // the same stale tail tool_call/result (a client-side corrective notice
+    // is a user-role message, invisible to latestToolProgress), so it keeps
+    // matching `previous` and re-throws forever, permanently deadlocking the
+    // conversation even after the caller reacts to the error.
+    progressTracker.delete(sessionKey);
     throw new Error(`BLOCKED: repeated identical tool call with no state change (${progress.toolName}). Change approach — do not re-run the same call.`);
   }
   return noProgress;
@@ -1549,6 +1556,10 @@ async function querySDK(model, tokenId, oauthToken, prompt) {
     prompt,
     options: {
       model,
+      // See invokeClaudeSDKWithTools for why this uses the preset+append
+      // form instead of leaving systemPrompt unset — same identity bug,
+      // same fix, verified safe the same way.
+      systemPrompt: { type: 'preset', preset: 'claude_code', append: OPERATOR_SYSTEM_PROMPT },
       permissionMode: 'bypassPermissions',
       maxTurns: Infinity,
       env: queryEnv,
@@ -1946,7 +1957,7 @@ function normalizeToolCallArguments(target, rawArguments) {
   return rawArguments;
 }
 
-function normalizeToolCalls(toolCalls, registeredTools) {
+function normalizeToolCalls(toolCalls, registeredTools, aliasNotesOut) {
   if (!Array.isArray(toolCalls)) return toolCalls;
   const registered = new Map((registeredTools || []).map(t => {
     const name = t.function?.name;
@@ -1964,6 +1975,7 @@ function normalizeToolCalls(toolCalls, registeredTools) {
     if (!target || !registered.has(target)) return call;
     const registeredTarget = registered.get(target);
     log(`[toolalias] ${emitted} -> ${registeredTarget}`);
+    if (Array.isArray(aliasNotesOut)) aliasNotesOut.push({ emitted, target: registeredTarget });
     return {
       ...call,
       function: {
@@ -1973,6 +1985,28 @@ function normalizeToolCalls(toolCalls, registeredTools) {
       },
     };
   });
+}
+
+// Silently correcting a Claude-Code-native tool name (Bash/Read/Write/...) to
+// its registered equivalent gives the model zero signal anything was wrong —
+// the call just works. Over a long session that becomes self-reinforcing: the
+// model's own history fills up with successful "Bash" calls, which is a much
+// stronger in-context pull than any system prompt. Surfacing a visible note
+// (appended to the same assistant turn's text, same convention as the
+// existing "[SubStation] BLOCKED: ..." notices) turns each alias hit into a
+// real corrective signal instead of a free pass.
+function appendAliasNote(text, aliasNotes) {
+  if (!aliasNotes || aliasNotes.length === 0) return text;
+  const seen = new Set();
+  const lines = [];
+  for (const { emitted, target } of aliasNotes) {
+    const k = `${emitted}->${target}`;
+    if (seen.has(k)) continue;
+    seen.add(k);
+    lines.push(`'${emitted}' -> '${target}'`);
+  }
+  const note = `\n\n[SubStation] note: ${lines.join(', ')} — this session does not register Claude Code's native tool names. It was auto-mapped this time, but call the canonical name (check the tool schema) directly next time.`;
+  return (text || '') + note;
 }
 
 async function invokeClaudeSDKWithTools(openaiMessages, tools, toolChoice, modelInfo, tokenAffinity, onServedModel, noFailover) {
@@ -2047,12 +2081,25 @@ async function invokeClaudeSDKWithTools(openaiMessages, tools, toolChoice, model
           // tool-calling bridge, not a personal coding-assistant session;
           // measured breakdown (getContextUsage()) showed the inherited
           // environment, not the ~245-token system prompt itself, was the
-          // real cost driver. Deliberately does NOT touch `systemPrompt` --
-          // that stays unset (SDK default `claude_code` preset), which is
-          // what keeps this billed as normal Claude Code subscription usage
-          // (see the reverted ae06377/d89ccbc history above for why a
-          // custom systemPrompt string broke that).
+          // real cost driver.
           settingSources: [],
+          // Keep the `claude_code` preset (required for billing — a full
+          // custom-string replacement broke it, see the reverted
+          // ae06377/d89ccbc history) but `append` the operator identity
+          // directly onto the real system prompt instead of leaving it
+          // unset. Previously OPERATOR_SYSTEM_PROMPT was only prepended
+          // into the user-turn `prompt` text (formatMessagesForSDK), which
+          // is far weaker than the SDK's actual system-level "you are
+          // Claude Code" assertion it was competing against — in practice
+          // the model kept self-identifying as Claude Code and reaching
+          // for its native tool names (Bash/Read/Write), which is why
+          // normalizeToolCalls' alias table exists. `append` keeps this
+          // billed as normal claude_code preset usage (verified live via a
+          // standalone probe: real usage/cache numbers, no billing error,
+          // model correctly self-identified as SubStation and named
+          // `write_file` instead of `Write`) while giving the identity
+          // real system-level authority.
+          systemPrompt: { type: 'preset', preset: 'claude_code', append: OPERATOR_SYSTEM_PROMPT },
           permissionMode: 'bypassPermissions',
           maxTurns: 2,
           env: queryEnv,
@@ -2090,12 +2137,18 @@ async function invokeClaudeSDKWithTools(openaiMessages, tools, toolChoice, model
         }
       }
       markSuccess(token);
-      return { text, toolCalls: normalizeToolCalls(capturedCalls, tools) || undefined, usage, servedModel, modelMismatch: servedModel !== null && servedModel !== model };
+      {
+        const _aliasNotes = [];
+        const _normalized = normalizeToolCalls(capturedCalls, tools, _aliasNotes) || undefined;
+        return { text: appendAliasNote(text, _aliasNotes), toolCalls: _normalized, usage, servedModel, modelMismatch: servedModel !== null && servedModel !== model };
+      }
     } catch (err) {
       // If we already captured the tool call, an abort-triggered throw is success.
       if (capturedCalls) {
         markSuccess(token);
-        return { text, toolCalls: normalizeToolCalls(capturedCalls, tools), usage, servedModel, modelMismatch: servedModel !== null && servedModel !== model };
+        const _aliasNotes = [];
+        const _normalized = normalizeToolCalls(capturedCalls, tools, _aliasNotes);
+        return { text: appendAliasNote(text, _aliasNotes), toolCalls: _normalized, usage, servedModel, modelMismatch: servedModel !== null && servedModel !== model };
       }
       lastErr = err;
       log(`invokeClaudeSDKWithTools: token ${token.id} failed: ${err.message}`);
@@ -2184,7 +2237,9 @@ async function invokeClaudeMessagesAPIWithTools(openaiMessages, tools, toolChoic
       const result = await makeAnthropicRequest(bodyStr, token);
       markSuccess(token);
       const { text, toolCalls } = anthropicContentToOpenAIToolCalls(result.content);
-      return { text, toolCalls: normalizeToolCalls(toolCalls, tools), usage: result.usage };
+      const _aliasNotes = [];
+      const _normalized = normalizeToolCalls(toolCalls, tools, _aliasNotes);
+      return { text: appendAliasNote(text, _aliasNotes), toolCalls: _normalized, usage: result.usage };
     } catch (err) {
       if (err.code === 'SUBSTATION_UNSUPPORTED_TOOL') throw err;
       lastErr = err;
@@ -3573,7 +3628,7 @@ const indigoProvider = {
   auth: [],
 };
 
-export { enforceToolProgress, normalizeToolCalls, progressTracker };
+export { enforceToolProgress, normalizeToolCalls, progressTracker, appendAliasNote };
 
 export default {
   id: 'substation',

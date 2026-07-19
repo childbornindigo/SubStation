@@ -1,18 +1,14 @@
-> ⛔ HOLD — DO NOT SHIP TO HUDSON YET (Dee, 2026-07-10)
-> Reason: OAuth stopped working at ~07:00 today for BOTH the orchestrator AND
-> Claude Code terminal (which does NOT route through SubStation). That points at
-> an account/OAuth-level problem, not the SDK-vs-raw-REST transport this package
-> "fixes." Usage is also running higher than ever. Before shipping anyone a fix,
-> confirm our own operation is healthy and not at shutdown risk, and re-test
-> whether raw REST actually still 429s today (transport toggle theory). Do not
-> merge/push/tag or hand this to Hudson until Dee lifts this hold.
-
-> **Update (2026-07-11):** the OAuth daily-death in the banner above was root-caused and
-> FIXED in code (`b984a7d`, see "Auth-resilience fix" below). It was NOT an account/OAuth
-> problem and NOT the transport theory — it was an over-aggressive bench: a single transient
-> 401/403 benched the sole valid token for 24h. It now self-heals. This does not lift the
-> hold — that stays Dee's call — but it addresses the banner's stated blocker ("confirm our
-> own operation is healthy before shipping").
+> ✅ SHIP — HOLD LIFTED (Dee, 2026-07-19). The 2026-07-10 hold below was gated on
+> "confirm our own operation is healthy before shipping." That blocker (the OAuth
+> daily-death) was root-caused and fixed in `b984a7d` (auth-resilience — self-heals
+> now; it was an over-aggressive bench, NOT an account/OAuth problem and NOT the
+> transport theory). Dee gave the explicit go on 2026-07-19. This branch is cleared
+> to merge → `main`, push, and tag.
+>
+> _Original hold (2026-07-10), kept for the record:_ OAuth stopped working at ~07:00
+> for BOTH the orchestrator AND Claude Code terminal (which does NOT route through
+> SubStation), which looked account-level; usage was also elevated. Both concerns
+> were resolved before this ship — see the auth-resilience fix below.
 
 # SubStation Update Package — for Hudson
 
@@ -20,17 +16,18 @@ Audit date: 2026-07-10. This machine's SubStation has working fixes for Fable
 detection and OpenAI-shim tool-calling that Hudson's separate deployment
 doesn't have yet. This doc is the one-command path to get his box current.
 
-## Current state (as of this audit)
+## Current state (as of 2026-07-19 ship)
 
 - **Branch:** `fix/image-gen-pro-quality-2026-07-09`
-- **Latest commit (tip):** `b984a7d99d1c5a96c4815ee7ef552beebe85ee6e` (auth-resilience — see
-  "Auth-resilience fix" section below). Prior tip was `a8f02bb`.
-- **NOT on `main` yet, NOT tagged yet** — this branch is queued for a
-  batched merge/push/tag pass Dee runs separately. Do not point Hudson at
-  `main` until that lands; point him at this branch/SHA directly for now,
-  or wait for the tag if you're reading this after the merge happened
-  (check `git log main --oneline -1` first — if `b984a7d` or later is on
-  `main`, use `main` instead of the branch name below).
+- **Latest commit (tip):** `cb76d9f` (public-ship cleanup — untrack local `src/*.bak-*`
+  snapshots + remove stray zero-byte scratch files so nothing junk publishes). The
+  substantive tip is `0d3ca73` (system-level operator identity + alias-correction
+  notes + guard deadlock fix). Prior documented tip was `b984a7d`.
+- **Ship = merge this branch → `main`, push, tag.** Once that lands, point Hudson at
+  `main` (a plain `git pull`). Check `git log main --oneline -1` first — if `cb76d9f`
+  or later is on `main`, use `main`; otherwise point him at this branch/SHA directly.
+- **Deliverable tree is clean:** full `main..HEAD` diff was secret-scanned (no tokens,
+  keys, JWTs, or credential files) and de-junked before ship.
 
 ## Commit inventory (all verified present, all on the branch above)
 
@@ -44,7 +41,12 @@ doesn't have yet. This doc is the one-command path to get his box current.
 | `ae06377` | ~~systemPrompt fix~~ — **REVERTED by `d89ccbc`, DO NOT REAPPLY.** Broke live billing classification, see below. |
 | `d89ccbc` | Revert of `ae06377` — restores pre-fix behavior. |
 | `4edcdd6` | **settingSources fix — safe, verified, in effect now.** `invokeClaudeSDKWithTools` passes `settingSources: []` to isolate from the operator's personal `~/.claude` environment, without touching `systemPrompt` at all. See "settingSources fix — what and why" below. |
-| `b984a7d` | **Auth-resilience fix — safe, verified, in effect now (branch tip).** Stops a single transient 401/403 from benching the sole Anthropic token for 24h (the daily "No Anthropic OAuth tokens found" outage). Three sub-fixes; logic extracted to `dist/auth-policy.js` with TDD proof `test/auth-policy.test.mjs`. See "Auth-resilience fix — what and why" below. |
+| `b984a7d` | **Auth-resilience fix — safe, verified, in effect now.** Stops a single transient 401/403 from benching the sole Anthropic token for 24h (the daily "No Anthropic OAuth tokens found" outage). Three sub-fixes; logic extracted to `dist/auth-policy.js` with TDD proof `test/auth-policy.test.mjs`. See "Auth-resilience fix — what and why" below. |
+| `dbf4ba0` | **gpt-5.5 + gpt-5.6 (ChatGPT Pro) wired as selectable, tool-calling models** (`MODEL_CONFIG`/`MODEL_MAP`/`/v1/models`). |
+| `89ef33c` | **Orchestrator tool-alias normalization** — `normalizeToolCalls` maps Claude-Code-native tool names (Bash/Read/Write/…) to the session's registered equivalents. Unit test: `test/tool-aliases.test.js`. |
+| `120f5ca` | **No-progress guard** (`enforceToolProgress`) — blocks a repeated identical tool call with no state change, forcing the model to change approach instead of spinning. |
+| `0d3ca73` | **System-level operator identity + alias-correction notes + guard deadlock fix (substantive tip).** (a) `systemPrompt` now uses the `{preset:'claude_code', append: OPERATOR_SYSTEM_PROMPT}` form in `querySDK` + `invokeClaudeSDKWithTools`, giving the operator identity real system-level authority (stops self-ID as Claude Code / reaching for native tool names) while keeping `claude_code` billing. (b) `appendAliasNote` surfaces a visible note when a native tool name is auto-aliased, so it's a learning signal not a silent free pass. (c) `enforceToolProgress` clears its tracker before throwing — fixes a permanent deadlock where the stale tail kept re-matching and re-throwing forever. |
+| `cb76d9f` | **Public-ship cleanup (tip).** Untrack local `src/*.bak-*` snapshots (kept on disk, now gitignored) + delete stray zero-byte scratch files, so nothing junk publishes to the public repo. No runtime code change. |
 
 ### What `a8f02bb` backported (was dist-only hand-edits, now in `src` + committed)
 - **`invokeClaudeSDKWithTools`** — the tools-path now goes through the Claude
@@ -233,6 +235,52 @@ or the raw-REST 429 problem.
 **For Hudson:** `dist/auth-policy.js` is a new tracked file (added to the `dist/`
 gitignore exception alongside `dist/index.js`) — a plain `git pull` brings it. No build
 step, no extra action; the import is relative and resolves from `dist/`.
+
+## Companion components (the "full bundle")
+
+The SubStation proxy is the core of what Hudson gets, but the full agent-parity
+bundle Dee runs has three companion pieces. **None of them ship inside this public
+repo** — the proxy repo stays proxy-only, and the identity files are private
+(they reference the operator's personal vault/memory/infra and must not be
+published). This section is the install guide; the actual companion source +
+sanitized identity templates travel out-of-band (private transfer), not via this
+public `git pull`.
+
+1. **`skillrouter` OpenClaw extension** — forces skill routing before the model
+   replies instead of relying on the model to voluntarily scan `<available_skills>`.
+   Self-contained OpenClaw plugin (`openclaw.plugin.json` + `src/{index.js,
+   scorer.js,skill-index.js}`), no secrets, no build step.
+   - Install: drop the extension dir into `~/.openclaw/extensions/skillrouter/`.
+   - Config (all optional, see `openclaw.plugin.json` `configSchema`):
+     `skillDirs` (extra SKILL.md dirs), `autoRouteThreshold` (default 0.8),
+     `suggestThreshold` (default 0.5), `logRoutingDecisions` →
+     `~/.hermes/skillrouter/routing-log.jsonl`.
+   - It registers a tool the system prompt forces the model to call first (there's
+     no `registerHook`/middleware in OpenClaw, so routing is enforced via a
+     mandatory pre-step tool). See `skillrouter/SPEC.md` for the architecture.
+
+2. **Agent identity (`AGENTS.md` + `SOUL.md`)** — these define the agent's coding
+   guide and persona. Hudson needs his OWN, not copies of the operator's (they
+   encode operator-specific vault/memory/infra handles that are meaningless or
+   leaky on another box). Provide him **sanitized templates** to adapt:
+   - `SOUL.md` — persona/voice/boundaries. Keep the generic "core truths"
+     (be genuinely helpful, have opinions, be resourceful-then-ask, earn trust,
+     private-stays-private); strip every operator-specific handle (vault name,
+     memory paths, skill names).
+   - `AGENTS.md` — codebase/dev guide for whatever agent runtime he's on. Ours is
+     hermes-agent-specific; his should describe HIS project structure, test
+     command, and tool conventions.
+
+3. **Agent-instructions README** — the short "how these fit together" doc: proxy
+   (this repo) provides the model transport; `skillrouter` forces skill selection;
+   `AGENTS.md`/`SOUL.md` shape identity + behavior. Point the runtime's base URL at
+   the local SubStation proxy, install `skillrouter`, drop in his `AGENTS.md`/
+   `SOUL.md`, restart.
+
+> **Transport note (for whoever runs the ship):** the proxy half is `git pull` of
+> this public repo. The companion half (skillrouter source + sanitized identity
+> templates) is a private hand-off — do NOT vendor the operator's raw `AGENTS.md`/
+> `SOUL.md` into this public repo.
 
 ## Build story: there is no build step
 

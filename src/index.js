@@ -144,6 +144,7 @@ const NARRATION_PATTERNS = /\b(starting now|i will|i'll|about to|doing it now|i'
 const MAX_CONSECUTIVE_NARRATIONS = 2;
 const narrationCounters = new Map(); // sessionKey → count
 const progressTracker = new Map(); // sessionKey → { lastCallHash, lastResultHash, repeat }
+const sdkResumeCache = new Map(); // sessionKey → { sdkSessionId, token, model, messageCount, prefixHash }
 
 function isNarrationOnly(text) {
   if (!text || text.length < 10) return false;
@@ -185,6 +186,27 @@ function progressSessionKey(messages, model) {
   const seed = (messages || []).find(message => message.role === 'user')
     || (messages || []).find(message => message.role === 'system' || message.role === 'developer');
   return createHash('sha1').update(`${model}\0${seed?.role || ''}\0${textContent(seed?.content)}`).digest('hex');
+}
+
+// Byte-identity check over the first `count` messages -- used to verify a
+// cached Agent SDK session's known prefix hasn't drifted (edited, summarized
+// away by Hermes's own compaction, reordered) before trusting `resume` to
+// skip resending it. Any mismatch here means "don't resume, fall back to the
+// full prompt" -- never guess.
+function hashMessagesPrefix(messages, count) {
+  const h = createHash('sha1');
+  for (let i = 0; i < count; i++) {
+    const m = messages[i] || {};
+    h.update(m.role || '');
+    h.update('\0');
+    h.update(textContent(m.content));
+    h.update('\0');
+    if (m.tool_calls) h.update(JSON.stringify(m.tool_calls));
+    h.update('\0');
+    if (m.tool_call_id) h.update(m.tool_call_id);
+    h.update('');
+  }
+  return h.digest('hex');
 }
 
 function latestToolProgress(messages) {
@@ -1782,8 +1804,10 @@ function anthropicContentToOpenAIToolCalls(contentBlocks) {
   return { text, toolCalls };
 }
 
-function formatMessagesForSDK(openaiMessages) {
-  const parts = [];
+// Shared per-message text/image extraction used by both the full-history
+// formatter and the resume-mode tail-only formatter below, so the two paths
+// can never silently diverge in how they render a given message.
+function extractConversationParts(openaiMessages) {
   const systemParts = [];
   const conversationParts = [];
 
@@ -1819,6 +1843,13 @@ function formatMessagesForSDK(openaiMessages) {
     }
   }
 
+  return { systemParts, conversationParts };
+}
+
+function formatMessagesForSDK(openaiMessages) {
+  const { systemParts, conversationParts } = extractConversationParts(openaiMessages);
+  const parts = [];
+
   // Always inject operator identity, then any caller-provided system context
   parts.push(OPERATOR_SYSTEM_PROMPT);
   if (systemParts.length > 0) {
@@ -1845,6 +1876,28 @@ function formatMessagesForSDK(openaiMessages) {
     parts.push(last.text);
   }
 
+  return parts.join('\n\n');
+}
+
+// Lean formatter for a RESUMED Agent SDK session's new tail messages only.
+// No OPERATOR_SYSTEM_PROMPT reinjection (the SDK's systemPrompt option
+// already re-establishes it on every call, resumed or not) and no
+// <conversation_history> wrapper -- this genuinely is just the newest
+// turn(s) since the cached session was last used, not history.
+function formatTailForSDK(newMessages) {
+  const { systemParts, conversationParts } = extractConversationParts(newMessages);
+  const parts = [];
+  if (systemParts.length > 0) {
+    parts.push(systemParts.join('\n\n'));
+  }
+  if (conversationParts.length > 1) {
+    const earlier = conversationParts.slice(0, -1);
+    parts.push(earlier.map(m => `[${m.role}]: ${m.text}`).join('\n\n'));
+  }
+  const last = conversationParts[conversationParts.length - 1];
+  if (last) {
+    parts.push(last.text);
+  }
   return parts.join('\n\n');
 }
 
@@ -2033,14 +2086,15 @@ async function invokeClaudeSDKWithTools(openaiMessages, tools, toolChoice, model
   const allowedTools = [...nameMap.keys()];
 
   // Nudge tool usage when the caller demands it (SDK has no direct force-tool).
-  let prompt = formatMessagesForSDK(openaiMessages);
-  if (toolChoice === 'required' || toolChoice === 'any') {
-    prompt += '\n\nYou MUST call one of the provided tools to respond.';
-  } else if (typeof toolChoice === 'object' && toolChoice?.function?.name) {
-    prompt += `\n\nYou MUST call the tool named "${toolChoice.function.name}" to respond.`;
-  }
+  const toolChoiceNudge = toolChoice === 'required' || toolChoice === 'any'
+    ? '\n\nYou MUST call one of the provided tools to respond.'
+    : (typeof toolChoice === 'object' && toolChoice?.function?.name)
+      ? `\n\nYou MUST call the tool named "${toolChoice.function.name}" to respond.`
+      : '';
 
   const stripName = (n) => nameMap.get(n) || n.replace(/^mcp__[^_]*(?:__)?[^_]*__/, '') || n;
+
+  const sessionKey = progressSessionKey(openaiMessages, model);
 
   let lastErr;
   if (attemptTokens.length === 0) {
@@ -2051,10 +2105,44 @@ async function invokeClaudeSDKWithTools(openaiMessages, tools, toolChoice, model
     const ac = new AbortController();
     const queryEnv = { ...process.env };
     if (token.token) queryEnv.CLAUDE_CODE_OAUTH_TOKEN = token.token;
-    let text = '', usage = {}, servedModel = null, capturedCalls = null;
+    let text = '', usage = {}, servedModel = null, capturedCalls = null, sdkSessionId = null;
+    let iter;
+
+    // Resume eligibility: reuse a prior Agent SDK session for this exact
+    // sessionKey+model+token if the conversation prefix we're about to send
+    // is byte-identical to what that session last saw. This lets Anthropic
+    // cache-hit the (often huge, ever-growing) historical prefix instead of
+    // reprocessing the entire conversation from scratch every iteration --
+    // measured as the real driver of "extremely long turns" on deep
+    // sessions (context_length is intentionally 1M / compacts at 500K, so
+    // sessions get very deep before Hermes ever trims them). Verified safe
+    // against this codebase's exact capture-then-abort-mid-tool-call pattern
+    // via isolated testing before this was wired into the live path. Falls
+    // back to the full flattened prompt (proven-correct, unchanged behavior)
+    // on ANY cache miss or prefix mismatch -- never guesses.
+    const cached = sdkResumeCache.get(sessionKey);
+    let usingResume = false;
+    let prompt;
+    if (
+      cached &&
+      cached.model === model &&
+      cached.token === token.id &&
+      cached.messageCount <= openaiMessages.length &&
+      hashMessagesPrefix(openaiMessages, cached.messageCount) === cached.prefixHash
+    ) {
+      const tail = openaiMessages.slice(cached.messageCount);
+      if (tail.length > 0) {
+        prompt = formatTailForSDK(tail) + toolChoiceNudge;
+        usingResume = true;
+      }
+    }
+    if (!usingResume) {
+      prompt = formatMessagesForSDK(openaiMessages) + toolChoiceNudge;
+    }
+
     try {
-      log(`SDK tools query (model=${model}, token=${token.id})...`);
-      const iter = sdkMod.query({
+      log(`SDK tools query (model=${model}, token=${token.id})${usingResume ? ' [resumed]' : ''}...`);
+      iter = sdkMod.query({
         prompt,
         options: {
           model,
@@ -2089,37 +2177,82 @@ async function invokeClaudeSDKWithTools(openaiMessages, tools, toolChoice, model
           mcpServers: { [SERVER]: server },
           allowedTools,
           abortController: ac,
+          ...(usingResume ? { resume: cached.sdkSessionId } : {}),
         },
       });
-      for await (const msg of iter) {
-        if (msg.type === 'system' && msg.subtype === 'init') {
-          servedModel = msg.model;
-          if (servedModel !== model) {
-            modelSwapCount++;
-            log(`WARN: model swap detected -- requested "${model}" but SDK served "${servedModel}" (token=${token.id})`);
+
+      // This path (the one Hermes actually uses for every tool-calling turn)
+      // previously had NO timeout protection at all, unlike its sibling
+      // invokeClaudeSDK. A stalled attempt here blocked the whole turn
+      // indefinitely with zero visibility -- this was the real cause of
+      // "extremely long turns" even after invokeClaudeSDK was fixed.
+      const attemptStarted = Date.now();
+      let msgCount = 0;
+      let hardReject;
+      const hardPromise = new Promise((_, reject) => { hardReject = reject; });
+      const HARD_TIMEOUT_MS = Number(process.env.SUBSTATION_HARD_TIMEOUT_MS) || 1200000; // 20 min
+      const hardTimer = setTimeout(() => hardReject(new Error(`Agent SDK tools hard timeout — attempt exceeded ${HARD_TIMEOUT_MS/1000}s wall-clock`)), HARD_TIMEOUT_MS);
+      const heartbeatTimer = setInterval(() => {
+        log(`SDK tools query heartbeat (model=${model}, token=${token.id}): ${msgCount} messages, ${Math.round((Date.now()-attemptStarted)/1000)}s elapsed`);
+      }, 60000);
+
+      const iteratorLoop = (async () => {
+        for await (const msg of iter) {
+          msgCount++;
+          if (msg.type === 'system' && msg.subtype === 'init') {
+            servedModel = msg.model;
+            sdkSessionId = msg.session_id || sdkSessionId;
+            if (servedModel !== model) {
+              modelSwapCount++;
+              log(`WARN: model swap detected -- requested "${model}" but SDK served "${servedModel}" (token=${token.id})`);
+            }
+            if (onServedModel) { try { onServedModel(servedModel); } catch {} }
           }
-          if (onServedModel) { try { onServedModel(servedModel); } catch {} }
-        }
-        if (msg.type === 'assistant') {
-          const blocks = msg.message?.content || [];
-          for (const b of blocks) if (b.type === 'text' && b.text) text += b.text;
-          const toolUse = blocks.filter(b => b.type === 'tool_use');
-          if (toolUse.length) {
-            capturedCalls = toolUse.map(b => ({
-              id: b.id,
-              type: 'function',
-              function: { name: stripName(b.name), arguments: JSON.stringify(b.input || {}) },
-            }));
-            try { ac.abort(); } catch {}
-            break;
+          if (msg.type === 'assistant') {
+            const blocks = msg.message?.content || [];
+            for (const b of blocks) if (b.type === 'text' && b.text) text += b.text;
+            const toolUse = blocks.filter(b => b.type === 'tool_use');
+            if (toolUse.length) {
+              capturedCalls = toolUse.map(b => ({
+                id: b.id,
+                type: 'function',
+                function: { name: stripName(b.name), arguments: JSON.stringify(b.input || {}) },
+              }));
+              try { ac.abort(); } catch {}
+              break;
+            }
+          }
+          if (msg.type === 'result') {
+            if (msg.usage) usage = msg.usage;
+            if (!text && msg.result) text = msg.result;
           }
         }
-        if (msg.type === 'result') {
-          if (msg.usage) usage = msg.usage;
-          if (!text && msg.result) text = msg.result;
-        }
+      })();
+
+      let raceErr = null;
+      try {
+        await Promise.race([iteratorLoop, hardPromise]);
+      } catch (e) {
+        raceErr = e;
+      } finally {
+        clearTimeout(hardTimer);
+        clearInterval(heartbeatTimer);
       }
+      if (raceErr) {
+        // Timed out (or the loop itself threw) -- terminate the underlying
+        // process/connection instead of leaking it, mirroring invokeClaudeSDK.
+        try { if (typeof iter.close === 'function') iter.close(); } catch {}
+        throw raceErr;
+      }
+
       markSuccess(token);
+      if (sdkSessionId) {
+        sdkResumeCache.set(sessionKey, {
+          sdkSessionId, token: token.id, model,
+          messageCount: openaiMessages.length,
+          prefixHash: hashMessagesPrefix(openaiMessages, openaiMessages.length),
+        });
+      }
       {
         const _aliasNotes = [];
         const _normalized = normalizeToolCalls(capturedCalls, tools, _aliasNotes) || undefined;
@@ -2129,13 +2262,35 @@ async function invokeClaudeSDKWithTools(openaiMessages, tools, toolChoice, model
       // If we already captured the tool call, an abort-triggered throw is success.
       if (capturedCalls) {
         markSuccess(token);
+        if (sdkSessionId) {
+          sdkResumeCache.set(sessionKey, {
+            sdkSessionId, token: token.id, model,
+            messageCount: openaiMessages.length,
+            prefixHash: hashMessagesPrefix(openaiMessages, openaiMessages.length),
+          });
+        }
         const _aliasNotes = [];
         const _normalized = normalizeToolCalls(capturedCalls, tools, _aliasNotes);
         return { text: appendAliasNote(text, _aliasNotes), toolCalls: _normalized, usage, servedModel, modelMismatch: servedModel !== null && servedModel !== model };
       }
+      if (usingResume) {
+        // Resume-specific failure -- the cached session may be stale/gone.
+        // Clear it so the next attempt (next token, or Hermes's own retry)
+        // falls back cleanly to the full prompt instead of retrying the same
+        // broken resume. Never worse than pre-resume behavior.
+        sdkResumeCache.delete(sessionKey);
+        log(`Token ${token.id} resumed session failed (${err.message}) — cleared resume cache, next attempt uses full context`);
+      }
       lastErr = err;
       log(`invokeClaudeSDKWithTools: token ${token.id} failed: ${err.message}`);
       const el = (err.message || '').toLowerCase();
+      if (el.includes('timeout')) {
+        // Transient stall, not an account cap -- move to the next Anthropic
+        // bar with no cooldown (mirrors invokeClaudeSDK's handling).
+        log(`Token ${token.id} transient tools-query timeout (not a cap) — trying next Anthropic bar, no cooldown`);
+        markRequestEnd(token);
+        continue;
+      }
       if (el.includes('rate') || el.includes('limit') || el.includes('usage') || err.statusCode === 429) {
         const knownSecs = parseKnownResetSeconds(err.message);
         if (knownSecs) {
@@ -3580,7 +3735,7 @@ const indigoProvider = {
   auth: [],
 };
 
-export { enforceToolProgress, normalizeToolCalls, progressTracker, appendAliasNote };
+export { enforceToolProgress, normalizeToolCalls, progressTracker, appendAliasNote, hashMessagesPrefix, progressSessionKey, formatMessagesForSDK, formatTailForSDK, sdkResumeCache };
 
 export default {
   id: 'substation',

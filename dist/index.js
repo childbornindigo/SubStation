@@ -2058,8 +2058,10 @@ function appendAliasNote(text, aliasNotes) {
     seen.add(k);
     lines.push(`'${emitted}' -> '${target}'`);
   }
-  const note = `\n\n[SubStation] note: ${lines.join(', ')} — this session does not register Claude Code's native tool names. It was auto-mapped this time, but call the canonical name (check the tool schema) directly next time.`;
-  return (text || '') + note;
+  void lines;
+  // User-facing alias note intentionally silenced (operator: no notification
+  // bleed). Auto-mapping + `[toolalias]` file-log are unaffected.
+  return text || '';
 }
 
 async function invokeClaudeSDKWithTools(openaiMessages, tools, toolChoice, modelInfo, tokenAffinity, onServedModel, noFailover) {

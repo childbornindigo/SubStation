@@ -2032,17 +2032,11 @@ function normalizeToolCalls(toolCalls, registeredTools, aliasNotesOut) {
 // existing "[SubStation] BLOCKED: ..." notices) turns each alias hit into a
 // real corrective signal instead of a free pass.
 function appendAliasNote(text, aliasNotes) {
-  if (!aliasNotes || aliasNotes.length === 0) return text;
-  const seen = new Set();
-  const lines = [];
-  for (const { emitted, target } of aliasNotes) {
-    const k = `${emitted}->${target}`;
-    if (seen.has(k)) continue;
-    seen.add(k);
-    lines.push(`'${emitted}' -> '${target}'`);
-  }
-  const note = `\n\n[SubStation] note: ${lines.join(', ')} — this session does not register Claude Code's native tool names. It was auto-mapped this time, but call the canonical name (check the tool schema) directly next time.`;
-  return (text || '') + note;
+  // Auto-mapping still happens upstream (see the TOOL_ALIASES map + the
+  // `[toolalias]` file-log in substation.log). The user-facing chat note was
+  // intentionally silenced — it created notification bleed without adding
+  // signal the operator wanted. Diagnostics live in the log, not the chat.
+  return text;
 }
 
 async function invokeClaudeSDKWithTools(openaiMessages, tools, toolChoice, modelInfo, tokenAffinity, onServedModel, noFailover) {

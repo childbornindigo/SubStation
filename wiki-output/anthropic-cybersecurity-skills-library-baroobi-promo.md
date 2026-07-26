@@ -1,0 +1,73 @@
+---
+title: Anthropic Cybersecurity Skills Library (Baroobi Promo)
+type: wiki-page
+domain: ai-agents
+status: active
+created: 2026-07-25
+updated: 2026-07-25
+confidence: medium
+retention: durable
+tags:
+  - island/knowledge
+  - island/ai-agent
+  - island/creator
+  - island/web-builder
+  - island/security
+  - type/intelligence
+  - ai-agents
+  - cybersecurity
+  - skills-library
+  - mitre-attack
+  - nist-csf
+  - claude-code
+parent: "[[Security Island]]"
+---
+
+> **TLDR:** Third-party ~700-skill security pack for AI agents — open-source claimed, provenance unconfirmed; find the repo directly, skip the DM funnel.
+
+## Summary
+
+A Baroobi (@baroobi.inc) Instagram reel promotes what it calls the largest open-source cybersecurity skills library built for AI agents, citing ~700–754 structured skills mapped to MITRE ATT&CK, NIST CSF 2.0, MITRE ATLAS, D3FEND, and NIST AI RMF across 26 domains. The pitch targets AI coding agents that write security code with zero security context — this pack claims to close that gap. The actual repo is gated behind a comment-"SECURITY" DM lead-magnet, making provenance unverified and the "open-source" framing suspect. Despite the audio saying "Anthropic finally did it," this is a **third-party** library, not an official Anthropic release.
+
+## Claims
+
+| Attribute | Detail |
+|---|---|
+| Skill count | ~700–754 structured skills |
+| Frameworks mapped | MITRE ATT&CK, NIST CSF 2.0, MITRE ATLAS, D3FEND, NIST AI RMF |
+| Domains | 26 — cloud security, threat hunting, threat intel, web-app vulns, IR, red team, DevSecOps, and more |
+| Compatible platforms | Claude Code, Cursor, Copilot, and 20+ others |
+| Access model | Instagram reel → comment "SECURITY" → DM link (repo never directly linked) |
+
+## Relevance to Active Projects
+
+The Hermes harness already uses Claude Code's native Skill system for the `security` worker lane. A framework-mapped skills pack slots into the same mechanism and could harden the pre-deploy gate used on LuxuryLane, MyPeptide, and Sales Compass — specifically relevant to RLS/service-key checks and LLM pentest tooling already in use.
+
+## Action Items
+
+- **If real + open-source:** evaluate importing a subset — web-app vulns, cloud/Supabase checks, secret-leak detection — as Claude Code skills for the security lane.
+- **Before any install:** find via GitHub search (`Claude Code cybersecurity skills MITRE ATT&CK NIST CSF D3FEND`) rather than engaging the post's DM funnel.
+- **Meta-learning:** framework mapping (ATT&CK/NIST/D3FEND) is the credibility signal for any security skill pack — when packaging internal security checks as skills, map them to known catalogs.
+
+## ⚠️ Unconfirmed
+
+- "Anthropic finally did it" framing — this is **not** an official Anthropic release.
+- "Open-source" claim unverified; repo gated behind DM funnel; may be paywalled or affiliate-linked.
+- Do not install or trust agent output from these skills without confirming provenance and reviewing individual skill accuracy.
+
+## Counter-Arguments
+
+- ISC2 4.8M unfilled roles stat is a common marketing hook; does not validate library quality.
+- Framework mapping can be superficial — individual skill accuracy still requires manual review.
+- Lead-magnet gating on "open-source" is a red flag; legitimate OSS projects link directly to the repo.
+
+## Sources
+
+- [[Wiki/Domains/_shared/anthropic-cybersecurity-skills-library-baroobi-promo.md|Anthropic Cybersecurity Skills Library (Baroobi Promo)]]
+
+## Related
+
+- [[Wiki/Domains/_shared/anthropic-released-a-700-cybersecurity-skill-set|Anthropic Released A 700 Cybersecurity Skill Set]]
+- [[Wiki/Domains/_shared/anthropic-cybersecurity-skills-library-700-skills-baroobi-pr|Anthropic Cybersecurity Skills Library 700 Skills Baroobi Pr]]
+- [[Wiki/Domains/_shared/anthropic-cybersecurity-skills-library-baroobi|Anthropic Cybersecurity Skills Library Baroobi]]
+- [[Wiki/Domains/_shared/anthropic-700-cybersecurity-skills-release|Anthropic 700 Cybersecurity Skills Release]]

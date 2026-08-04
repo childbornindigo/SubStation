@@ -102,6 +102,10 @@ const MODEL_CONFIG = {
   // OpenAI (Codex) — ordered fastest to slowest
   'gpt-5.4-mini':       { maxTokens: 64000,  adaptive: false, provider: 'openai', contextWindow: 200000 },
   'gpt-5.4':            { maxTokens: 128000, adaptive: false, provider: 'openai', contextWindow: 200000 },
+  // ChatGPT Pro tier. gpt-5.6 is selectable but the ChatGPT Codex endpoint
+  // rejects it, so CODEX_CHATGPT_REMAP serves it through gpt-5.5.
+  'gpt-5.5':            { maxTokens: 128000, adaptive: false, provider: 'openai', contextWindow: 200000 },
+  'gpt-5.6':            { maxTokens: 128000, adaptive: false, provider: 'openai', contextWindow: 200000 },
   'gpt-5.1-codex':      { maxTokens: 128000, adaptive: false, provider: 'openai', contextWindow: 200000 },
   'gpt-5.1-codex-mini': { maxTokens: 64000,  adaptive: false, provider: 'openai', contextWindow: 128000 },
   'gpt-5.1-codex-max':  { maxTokens: 128000, adaptive: false, provider: 'openai', contextWindow: 200000 },
@@ -128,6 +132,8 @@ const MODEL_MAP = {
   // OpenAI aliases
   'gpt-5.4': 'gpt-5.4',
   'gpt-5.4-mini': 'gpt-5.4-mini',
+  'gpt-5.5': 'gpt-5.5',
+  'gpt-5.6': 'gpt-5.6',
   'gpt-5.1-codex-max': 'gpt-5.1-codex-max',
   'gpt-5.1-codex': 'gpt-5.1-codex',
   'gpt-5.1-codex-mini': 'gpt-5.1-codex-mini',
@@ -917,6 +923,7 @@ const CODEX_CHATGPT_REMAP = {
   'gpt-5.1-codex':      'gpt-5.4',
   'gpt-5.1-codex-max':  'gpt-5.4',
   'gpt-5.1-codex-mini': 'gpt-5.4-mini',
+  'gpt-5.6':            'gpt-5.5',
 };
 
 // Best-effort OpenAI chat-completions tool schema -> Responses API tool shape.
@@ -2961,6 +2968,8 @@ function startProxy() {
           models.push(
             { id: 'gpt-5.4', object: 'model', owned_by: 'indigo-collective' },
             { id: 'gpt-5.4-mini', object: 'model', owned_by: 'indigo-collective' },
+            { id: 'gpt-5.5', object: 'model', owned_by: 'indigo-collective' },
+            { id: 'gpt-5.6', object: 'model', owned_by: 'indigo-collective' },
             { id: 'gpt-5.1-codex', object: 'model', owned_by: 'indigo-collective' },
             { id: 'gpt-5.1-codex-mini', object: 'model', owned_by: 'indigo-collective' },
             { id: 'gpt-5.1-codex-max', object: 'model', owned_by: 'indigo-collective' },
@@ -2970,6 +2979,7 @@ function startProxy() {
             models.push(
               { id: `gpt-5.4:${t.id}`, object: 'model', owned_by: 'indigo-collective' },
               { id: `gpt-5.4-mini:${t.id}`, object: 'model', owned_by: 'indigo-collective' },
+              { id: `gpt-5.5:${t.id}`, object: 'model', owned_by: 'indigo-collective' },
             );
           }
         }
@@ -3655,6 +3665,24 @@ const OPENAI_MODELS = [
     maxTokens: 64000,
   },
   {
+    id: 'gpt-5.5',
+    name: 'GPT 5.5 (SubStation)',
+    reasoning: false,
+    input: ['text'],
+    cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+    contextWindow: 200000,
+    maxTokens: 128000,
+  },
+  {
+    id: 'gpt-5.6',
+    name: 'GPT 5.6 (SubStation)',
+    reasoning: false,
+    input: ['text'],
+    cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+    contextWindow: 200000,
+    maxTokens: 128000,
+  },
+  {
     id: 'gpt-5.1-codex',
     name: 'GPT 5.1 Codex (SubStation)',
     reasoning: false,
@@ -3702,6 +3730,7 @@ function getAllModels() {
       models.push(
         { id: `gpt-5.4:${t.id}`, name: `GPT 5.4 — ${t.id}`, reasoning: false, input: ['text'], cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 }, contextWindow: 200000, maxTokens: 128000 },
         { id: `gpt-5.4-mini:${t.id}`, name: `GPT 5.4 Mini — ${t.id}`, reasoning: false, input: ['text'], cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 }, contextWindow: 200000, maxTokens: 64000 },
+        { id: `gpt-5.5:${t.id}`, name: `GPT 5.5 — ${t.id}`, reasoning: false, input: ['text'], cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 }, contextWindow: 200000, maxTokens: 128000 },
       );
     }
   }

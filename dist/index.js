@@ -12,7 +12,13 @@ import { isAuthError, recordAuthFailure, resetAuthFailures, AUTH_FAIL_THRESHOLD,
 // ---------------------------------------------------------------------------
 
 const VERSION = '0.6.4';
-const TIMEOUT = 600000; // 10 min — large context prefills (400K+) need time
+const TIMEOUT = Number(process.env.SUBSTATION_CODEX_TIMEOUT_MS) || 540000; // Stay below Hermes' 600s idle watchdog.
+const CODEX_ATTEMPT_TIMEOUT = Number(process.env.SUBSTATION_CODEX_ATTEMPT_TIMEOUT_MS) || 300000;
+const CODEX_FIRST_BYTE_TIMEOUT = Number(process.env.SUBSTATION_CODEX_FIRST_BYTE_TIMEOUT_MS) || 30000;
+const CODEX_PROGRESS_TIMEOUT = Number(process.env.SUBSTATION_CODEX_PROGRESS_TIMEOUT_MS) || 90000;
+const CODEX_MAX_TOKEN_ATTEMPTS = Number(process.env.SUBSTATION_CODEX_MAX_TOKEN_ATTEMPTS) || 1;
+const CODEX_IDENTICAL_FAILURE_COOLDOWN = Number(process.env.SUBSTATION_CODEX_IDENTICAL_FAILURE_COOLDOWN_MS) || 600000;
+const codexRequestFailureCache = new Map();
 
 // Operator system prompt — replaces Claude Code's default system prompt
 const OPERATOR_SYSTEM_PROMPT = `You are an AI assistant powered by SubStation.
@@ -101,18 +107,18 @@ const MODEL_CONFIG = {
   'claude-sonnet-4-6':         { maxTokens: 64000,  adaptive: true,  provider: 'anthropic', contextWindow: 1000000 },
   'claude-haiku-4-5-20251001': { maxTokens: 64000,  adaptive: false, provider: 'anthropic', contextWindow: 1000000 },
   // OpenAI (Codex) — ordered fastest to slowest
-  'gpt-5.4-mini':       { maxTokens: 64000,  adaptive: false, provider: 'openai', contextWindow: 200000 },
-  'gpt-5.4':            { maxTokens: 128000, adaptive: false, provider: 'openai', contextWindow: 200000 },
+  'gpt-5.4-mini':       { maxTokens: 64000,  adaptive: false, provider: 'openai', contextWindow: 400000 },
+  'gpt-5.4':            { maxTokens: 128000, adaptive: false, provider: 'openai', contextWindow: 400000 },
   // ChatGPT Pro tier (unlocked 2026-07-11). gpt-5.5 verified live on the
   // chatgpt.com Codex/Responses endpoint (HTTP 200). gpt-5.6 is registered as
   // selectable but that same endpoint 400s it ("not supported when using Codex
   // with a ChatGPT account") -- same rejection class as the gpt-5.1-codex*
   // family below -- so it's served via CODEX_CHATGPT_REMAP -> gpt-5.5, not 5.4.
-  'gpt-5.5':            { maxTokens: 128000, adaptive: false, provider: 'openai', contextWindow: 200000 },
-  'gpt-5.6':            { maxTokens: 128000, adaptive: false, provider: 'openai', contextWindow: 200000 },
-  'gpt-5.1-codex':      { maxTokens: 128000, adaptive: false, provider: 'openai', contextWindow: 200000 },
+  'gpt-5.5':            { maxTokens: 128000, adaptive: false, provider: 'openai', contextWindow: 400000 },
+  'gpt-5.6':            { maxTokens: 128000, adaptive: false, provider: 'openai', contextWindow: 400000 },
+  'gpt-5.1-codex':      { maxTokens: 128000, adaptive: false, provider: 'openai', contextWindow: 400000 },
   'gpt-5.1-codex-mini': { maxTokens: 64000,  adaptive: false, provider: 'openai', contextWindow: 128000 },
-  'gpt-5.1-codex-max':  { maxTokens: 128000, adaptive: false, provider: 'openai', contextWindow: 200000 },
+  'gpt-5.1-codex-max':  { maxTokens: 128000, adaptive: false, provider: 'openai', contextWindow: 400000 },
 };
 
 const MODEL_MAP = {
@@ -588,6 +594,43 @@ function markDead(entry, deadType = 'rate') {
 
 // isAuthError now imported from ./auth-policy.js
 
+function isCodexTransientError(err) {
+  const msg = (err.message || '').toLowerCase();
+  return err.statusCode === 0 ||
+    (err.statusCode >= 500 && err.statusCode < 600) ||
+    msg.includes('server_error') ||
+	    msg.includes('network error calling codex') ||
+	    msg.includes('empty response from codex') ||
+	    msg.includes('produced no stream data') ||
+	    msg.includes('produced no usable output') ||
+	    msg.includes('stream stalled') ||
+	    msg.includes('request to codex timed out');
+}
+
+function codexRequestHash(bodyStr) {
+  return createHash('sha256').update(bodyStr).digest('hex').slice(0, 16);
+}
+
+function getCachedCodexFailure(hash) {
+  const cached = codexRequestFailureCache.get(hash);
+  if (!cached) return null;
+  if (cached.until <= Date.now()) {
+    codexRequestFailureCache.delete(hash);
+    return null;
+  }
+  return cached;
+}
+
+function rememberCodexFailure(hash, err) {
+  if (!hash || !err || !isCodexTransientError(err)) return;
+  const existing = codexRequestFailureCache.get(hash);
+  codexRequestFailureCache.set(hash, {
+    until: Date.now() + CODEX_IDENTICAL_FAILURE_COOLDOWN,
+    failures: (existing?.failures || 0) + 1,
+    message: err.message || 'upstream Codex request stalled',
+  });
+}
+
 function markRequestStart(entry) {
   entry.activeRequests++;
   entry.lastUsed = Date.now();
@@ -766,12 +809,14 @@ function extractImageBlocks(contentArray) {
   const images = [];
   if (!Array.isArray(contentArray)) return images;
   for (const block of contentArray) {
-    if (block.type === 'image_url' && block.image_url?.url) {
-      const match = block.image_url.url.match(/^data:(image\/\w+);base64,(.+)$/s);
+    if ((block.type === 'image_url' || block.type === 'input_image') && block.image_url) {
+      const imageUrl = typeof block.image_url === 'string' ? block.image_url : block.image_url.url;
+      if (!imageUrl) continue;
+      const match = imageUrl.match(/^data:(image\/\w+);base64,(.+)$/s);
       if (match) {
         images.push({ mediaType: match[1], data: match[2] });
       } else {
-        images.push({ url: block.image_url.url });
+        images.push({ url: imageUrl });
       }
     } else if (block.type === 'image' && block.source?.data) {
       images.push({ mediaType: block.source.media_type || 'image/png', data: block.source.data });
@@ -804,6 +849,98 @@ function convertImageToAnthropic(imageBlock) {
     };
   }
   return null;
+}
+
+function codexTextPartType(role) {
+  return role === 'assistant' ? 'output_text' : 'input_text';
+}
+
+function addCodexImagePart(parts, imageUrl, detail) {
+  if (!imageUrl || typeof imageUrl !== 'string') return;
+  const normalizedUrl = normalizeCodexImageUrl(imageUrl);
+  if (!normalizedUrl) return;
+  const imagePart = { type: 'input_image', image_url: normalizedUrl };
+  if (typeof detail === 'string' && detail.trim()) {
+    imagePart.detail = detail.trim();
+  }
+  parts.push(imagePart);
+}
+
+function imageMimeTypeForPath(filepath) {
+  const lower = filepath.toLowerCase();
+  if (lower.endsWith('.jpg') || lower.endsWith('.jpeg')) return 'image/jpeg';
+  if (lower.endsWith('.png')) return 'image/png';
+  if (lower.endsWith('.webp')) return 'image/webp';
+  if (lower.endsWith('.gif')) return 'image/gif';
+  return 'image/png';
+}
+
+function normalizeCodexImageUrl(imageUrl) {
+  const trimmed = imageUrl.trim();
+  if (!trimmed) return '';
+  if (/^(data:image\/|https?:\/\/)/i.test(trimmed)) return trimmed;
+
+  let filepath = trimmed;
+  if (/^file:\/\//i.test(trimmed)) {
+    try {
+      filepath = new URL(trimmed).pathname;
+    } catch {
+      return trimmed;
+    }
+  }
+
+  if (!filepath.startsWith('/')) return trimmed;
+  try {
+    const st = statSync(filepath);
+    if (!st.isFile() || st.size > 25 * 1024 * 1024) return trimmed;
+    const mimeType = imageMimeTypeForPath(filepath);
+    return `data:${mimeType};base64,${readFileSync(filepath).toString('base64')}`;
+  } catch {
+    return trimmed;
+  }
+}
+
+function convertContentToCodexParts(content, role = 'user', options = {}) {
+  const parts = [];
+  const textType = codexTextPartType(role);
+  const allowImages = options.allowImages !== false && role !== 'assistant';
+
+  if (!Array.isArray(content)) {
+    const text = content == null ? '' : String(content);
+    if (text) parts.push({ type: textType, text });
+    return parts;
+  }
+
+  for (const block of content) {
+    if (typeof block === 'string') {
+      if (block) parts.push({ type: textType, text: block });
+      continue;
+    }
+    if (!block || typeof block !== 'object') continue;
+
+    const blockType = String(block.type || '').toLowerCase();
+    if (blockType === 'text' || blockType === 'input_text' || blockType === 'output_text') {
+      if (typeof block.text === 'string' && block.text) {
+        parts.push({ type: textType, text: block.text });
+      }
+    } else if (allowImages && (blockType === 'image_url' || blockType === 'input_image')) {
+      let imageUrl = '';
+      let detail = block.detail;
+      const imageRef = block.image_url;
+      if (typeof imageRef === 'string') {
+        imageUrl = imageRef;
+      } else if (imageRef && typeof imageRef === 'object') {
+        imageUrl = imageRef.url || '';
+        detail = imageRef.detail || detail;
+      }
+      addCodexImagePart(parts, imageUrl, detail);
+    } else if (allowImages && blockType === 'image' && block.source?.data) {
+      const mediaType = block.source.media_type || 'image/png';
+      addCodexImagePart(parts, `data:${mediaType};base64,${block.source.data}`, block.detail);
+    }
+  }
+
+  return parts;
 }
 
 // ---------------------------------------------------------------------------
@@ -872,26 +1009,37 @@ function convertForAnthropic(openaiMessages) {
 function convertForCodex(openaiMessages) {
   const input = [];
   for (const m of openaiMessages) {
-    const text = Array.isArray(m.content)
-      ? m.content.filter(b => b.type === 'text').map(b => b.text).join('\n')
-      : (m.content || '');
-
     if (m.role === 'system' || m.role === 'developer') {
       // developer/system → typed message item
-      input.push({ type: 'message', role: 'developer', content: [{ type: 'input_text', text }] });
+      const parts = convertContentToCodexParts(m.content, 'developer', { allowImages: false });
+      input.push({ type: 'message', role: 'developer', content: parts.length ? parts : [{ type: 'input_text', text: '' }] });
     } else if (m.role === 'assistant') {
       // assistant messages use output_text content type
-      input.push({ type: 'message', role: 'assistant', content: [{ type: 'output_text', text }] });
+      const parts = convertContentToCodexParts(m.content, 'assistant', { allowImages: false });
+      input.push({ type: 'message', role: 'assistant', content: parts.length ? parts : [{ type: 'output_text', text: '' }] });
     } else if (m.role === 'user') {
-      input.push({ type: 'message', role: 'user', content: [{ type: 'input_text', text }] });
+      const parts = convertContentToCodexParts(m.content, 'user');
+      input.push({ type: 'message', role: 'user', content: parts.length ? parts : [{ type: 'input_text', text: '' }] });
     } else if (m.role === 'tool' || m.role === 'function') {
       // Tool results may carry Anthropic call_ids that Codex won't recognize.
       // Always fold into user context instead of sending as function_call_output.
       const label = m.name ? `[tool: ${m.name}]` : `[${m.role} result]`;
-      input.push({ type: 'message', role: 'user', content: [{ type: 'input_text', text: `${label}: ${text}` }] });
+      const parts = convertContentToCodexParts(m.content, 'user');
+      if (parts.length && parts[0].type === 'input_text') {
+        parts[0] = { ...parts[0], text: `${label}: ${parts[0].text}` };
+      } else {
+        parts.unshift({ type: 'input_text', text: `${label}:` });
+      }
+      input.push({ type: 'message', role: 'user', content: parts });
     } else {
       // unknown role — fold into user
-      input.push({ type: 'message', role: 'user', content: [{ type: 'input_text', text: `[${m.role}]: ${text}` }] });
+      const parts = convertContentToCodexParts(m.content, 'user');
+      if (parts.length && parts[0].type === 'input_text') {
+        parts[0] = { ...parts[0], text: `[${m.role}]: ${parts[0].text}` };
+      } else {
+        parts.unshift({ type: 'input_text', text: `[${m.role}]:` });
+      }
+      input.push({ type: 'message', role: 'user', content: parts });
     }
   }
   if (input.length === 0) {
@@ -981,6 +1129,22 @@ function buildCodexBody(openaiMessages, modelInfo, tools) {
   const codexTools = convertOpenAIToolsToCodexResponses(tools);
   if (codexTools) body.tools = codexTools;
   return body;
+}
+
+function extractCodexOutputText(value) {
+  if (!value) return '';
+  if (typeof value === 'string') return value;
+  if (Array.isArray(value)) return value.map(extractCodexOutputText).filter(Boolean).join('');
+  if (typeof value !== 'object') return '';
+
+  if (typeof value.text === 'string') return value.text;
+  if (typeof value.output_text === 'string') return value.output_text;
+  if (typeof value.content === 'string') return value.content;
+  if (Array.isArray(value.content)) return extractCodexOutputText(value.content);
+  if (Array.isArray(value.output)) return extractCodexOutputText(value.output);
+  if (value.type === 'message' && Array.isArray(value.content)) return extractCodexOutputText(value.content);
+  if ((value.type === 'output_text' || value.type === 'text') && typeof value.text === 'string') return value.text;
+  return '';
 }
 
 // ---------------------------------------------------------------------------
@@ -1103,6 +1267,37 @@ function makeAnthropicRequest(bodyStr, tokenEntry, onDelta) {
 
 function makeCodexRequest(bodyStr, tokenEntry, onDelta) {
   return new Promise((resolve, reject) => {
+    let timer = null;
+    let firstByteTimer = null;
+    let progressTimer = null;
+    let firstByteSeen = false;
+    let settled = false;
+
+    const cleanupTimers = () => {
+      if (timer) clearTimeout(timer);
+      if (firstByteTimer) clearTimeout(firstByteTimer);
+      if (progressTimer) clearTimeout(progressTimer);
+    };
+    const fail = (err) => {
+      if (settled) return;
+      settled = true;
+      cleanupTimers();
+      reject(err);
+    };
+    const succeed = (value) => {
+      if (settled) return;
+      settled = true;
+      cleanupTimers();
+      resolve(value);
+    };
+    const resetProgressTimer = () => {
+      if (progressTimer) clearTimeout(progressTimer);
+      progressTimer = setTimeout(() => {
+        req.destroy();
+        fail(Object.assign(new Error(`Request to Codex stream stalled after ${Math.round(CODEX_PROGRESS_TIMEOUT / 1000)}s without events`), { statusCode: 0 }));
+      }, CODEX_PROGRESS_TIMEOUT);
+    };
+
     const options = {
       hostname: 'chatgpt.com',
       path: '/backend-api/codex/responses',
@@ -1121,19 +1316,21 @@ function makeCodexRequest(bodyStr, tokenEntry, onDelta) {
         res.on('data', c => data += c);
         res.on('end', () => {
           if (res.statusCode === 403) {
-            reject(Object.assign(
+            fail(Object.assign(
               new Error('Codex API returned 403 — your ChatGPT subscription may not include Codex access, or the token expired. Run "substation-auth chatgpt" to re-authenticate.'),
               { statusCode: 401, retryAfter: null }
             ));
           } else {
-            reject(Object.assign(
+            fail(Object.assign(
               new Error(`Codex API error ${res.statusCode}: ${data.slice(0, 300)}`),
               { statusCode: res.statusCode, retryAfter: res.headers['retry-after'] }
             ));
           }
         });
+        res.on('error', e => fail(Object.assign(new Error(`Network error reading Codex error response: ${e.message}`), { statusCode: 0 })));
         return;
       }
+      resetProgressTimer();
 
       // Stream SSE — parse incrementally
       let text = '';
@@ -1143,8 +1340,40 @@ function makeCodexRequest(bodyStr, tokenEntry, onDelta) {
       // backend surfaces them (see convertOpenAIToolsToCodexResponses above).
       // Unverified live — may end up empty even when tools were sent.
       const toolCalls = [];
+      const toolCallById = new Map();
+
+      const rememberToolCall = (item = {}) => {
+        const key = item.id || item.call_id;
+        if (!key) return null;
+        let call = toolCallById.get(key);
+        if (!call) {
+          call = {
+            id: item.call_id || item.id,
+            type: 'function',
+            function: { name: item.name || '', arguments: item.arguments || '' },
+          };
+          toolCallById.set(key, call);
+          toolCalls.push(call);
+        } else {
+          call.id = item.call_id || call.id || item.id;
+          if (item.name) call.function.name = item.name;
+          if (typeof item.arguments === 'string') call.function.arguments = item.arguments;
+        }
+        return call;
+      };
+
+      const findToolCallForEvent = (event) => {
+        if (event.item_id && toolCallById.has(event.item_id)) return toolCallById.get(event.item_id);
+        if (event.call_id && toolCallById.has(event.call_id)) return toolCallById.get(event.call_id);
+        if (toolCalls.length === 1) return toolCalls[0];
+        return null;
+      };
 
       res.on('data', (chunk) => {
+        if (!firstByteSeen) {
+          firstByteSeen = true;
+          if (firstByteTimer) clearTimeout(firstByteTimer);
+        }
         buf += chunk;
         // Process complete lines
         let nlIdx;
@@ -1156,38 +1385,45 @@ function makeCodexRequest(bodyStr, tokenEntry, onDelta) {
           if (payload === '[DONE]') continue;
           try {
             const event = JSON.parse(payload);
+            resetProgressTimer();
             if (event.type === 'response.output_text.delta' && event.delta) {
               text += event.delta;
               if (onDelta) onDelta(event.delta);
             } else if (event.type === 'response.output_text.done') {
               if (event.text) text = event.text;
-            } else if (event.type === 'response.output_item.done' && event.item?.type === 'function_call') {
-              const item = event.item;
-              toolCalls.push({
-                id: item.call_id || item.id,
-                type: 'function',
-                function: { name: item.name, arguments: item.arguments || '{}' },
-              });
-            } else if (event.type === 'response.completed' && event.response?.usage) {
-              usage = event.response.usage;
-              // Fallback: some backends only surface function_call items in the
+	            } else if (event.type === 'response.output_item.added' && event.item?.type === 'function_call') {
+	              rememberToolCall(event.item);
+	            } else if (event.type === 'response.output_item.done' && event.item?.type === 'function_call') {
+	              rememberToolCall(event.item);
+	            } else if (event.type === 'response.output_item.done') {
+	              const itemText = extractCodexOutputText(event.item);
+	              if (!text && itemText) text = itemText;
+	            } else if (event.type === 'response.function_call_arguments.delta') {
+	              const call = findToolCallForEvent(event);
+	              if (call && event.delta) call.function.arguments += event.delta;
+	            } else if (event.type === 'response.function_call_arguments.done') {
+	              const call = findToolCallForEvent(event);
+	              if (call && typeof event.arguments === 'string') call.function.arguments = event.arguments;
+	            } else if (event.type === 'response.completed') {
+	              if (event.response?.usage) usage = event.response.usage;
+	              if (!text) {
+	                const finalText = extractCodexOutputText(event.response?.output);
+	                if (finalText) text = finalText;
+	              }
+	              // Fallback: some backends only surface function_call items in the
               // final response.completed payload's output array, not as their
               // own output_item.done events.
               if (!toolCalls.length && Array.isArray(event.response.output)) {
                 for (const item of event.response.output) {
                   if (item.type === 'function_call') {
-                    toolCalls.push({
-                      id: item.call_id || item.id,
-                      type: 'function',
-                      function: { name: item.name, arguments: item.arguments || '{}' },
-                    });
+                    rememberToolCall(item);
                   }
                 }
               }
             } else if (event.type === 'response.failed') {
               const errMsg = event.response?.error?.message || 'Unknown Codex error';
               const errCode = event.response?.error?.code || '';
-              reject(Object.assign(new Error(`Codex API error: ${errMsg} (${errCode})`), { statusCode: 0 }));
+              fail(Object.assign(new Error(`Codex API error: ${errMsg} (${errCode})`), { statusCode: 0 }));
               return;
             }
           } catch {}
@@ -1196,15 +1432,23 @@ function makeCodexRequest(bodyStr, tokenEntry, onDelta) {
 
       res.on('end', () => {
         if (text || toolCalls.length) {
-          resolve({ text, usage, toolCalls: toolCalls.length ? toolCalls : undefined });
+          succeed({ text, usage, toolCalls: toolCalls.length ? toolCalls : undefined });
         } else {
-          reject(Object.assign(new Error('Empty response from Codex API — check your ChatGPT subscription status'), { statusCode: 0 }));
+          fail(Object.assign(new Error('Empty response from Codex API — check your ChatGPT subscription status'), { statusCode: 0 }));
         }
       });
+      res.on('aborted', () => fail(Object.assign(new Error('Codex response aborted before completion'), { statusCode: 0 })));
+      res.on('error', e => fail(Object.assign(new Error(`Network error reading Codex response: ${e.message}`), { statusCode: 0 })));
     });
-    req.on('error', e => reject(Object.assign(new Error(`Network error calling Codex: ${e.message}`), { statusCode: 0 })));
-    const timer = setTimeout(() => { req.destroy(); reject(Object.assign(new Error('Request to Codex timed out after 5 minutes'), { statusCode: 0 })); }, TIMEOUT);
-    req.on('close', () => clearTimeout(timer));
+    req.on('error', e => fail(Object.assign(new Error(`Network error calling Codex: ${e.message}`), { statusCode: 0 })));
+    timer = setTimeout(() => {
+      req.destroy();
+      fail(Object.assign(new Error(`Request to Codex timed out after ${Math.round(CODEX_ATTEMPT_TIMEOUT / 1000)}s`), { statusCode: 0 }));
+    }, CODEX_ATTEMPT_TIMEOUT);
+    firstByteTimer = setTimeout(() => {
+      req.destroy();
+      fail(Object.assign(new Error(`Request to Codex produced no stream data after ${Math.round(CODEX_FIRST_BYTE_TIMEOUT / 1000)}s`), { statusCode: 0 }));
+    }, CODEX_FIRST_BYTE_TIMEOUT);
     req.write(bodyStr);
     req.end();
   });
@@ -2692,9 +2936,17 @@ async function invokeCodex(openaiMessages, modelInfo, onDelta, tools) {
   }
 
   const bodyStr = JSON.stringify(buildCodexBody(openaiMessages, modelInfo, tools));
-  log(`Codex request (model=${modelInfo.modelId}, body=${bodyStr.length}b)`);
+  const requestHash = codexRequestHash(bodyStr);
+  const cachedFailure = getCachedCodexFailure(requestHash);
+  if (cachedFailure) {
+    throw Object.assign(
+      new Error(`Repeated Codex request blocked for ${Math.ceil((cachedFailure.until - Date.now()) / 1000)}s after ${cachedFailure.failures} recent upstream stall(s): ${cachedFailure.message}`),
+      { statusCode: 0 }
+    );
+  }
+  log(`Codex request (model=${modelInfo.modelId}, body=${bodyStr.length}b, hash=${requestHash})`);
 
-  const maxAttempts = providerTokens.length;
+  const maxAttempts = Math.max(1, Math.min(providerTokens.length, CODEX_MAX_TOKEN_ATTEMPTS));
   let lastError = null;
   let streamStarted = false;
 
@@ -2709,6 +2961,7 @@ async function invokeCodex(openaiMessages, modelInfo, onDelta, tools) {
 
     try {
       const result = await makeCodexRequest(bodyStr, tokenEntry, wrappedDelta);
+      codexRequestFailureCache.delete(requestHash);
       markSuccess(tokenEntry);
       return { ...result, toolCalls: normalizeToolCalls(result.toolCalls, tools) };
     } catch (err) {
@@ -2722,6 +2975,7 @@ async function invokeCodex(openaiMessages, modelInfo, onDelta, tools) {
             log(`Token ${tokenEntry.id} got 401, attempting refresh...`);
             await refreshOpenAIToken(tokenEntry);
             const result = await makeCodexRequest(bodyStr, tokenEntry, wrappedDelta);
+            codexRequestFailureCache.delete(requestHash);
             markSuccess(tokenEntry);
             return { ...result, toolCalls: normalizeToolCalls(result.toolCalls, tools) };
           } catch (refreshErr) {
@@ -2733,11 +2987,18 @@ async function invokeCodex(openaiMessages, modelInfo, onDelta, tools) {
         markDead(tokenEntry);
         continue;
       }
+      if (isCodexTransientError(err) && attempt < maxAttempts - 1) {
+        markRateLimited(tokenEntry, 30);
+        log(`Token ${tokenEntry.id} transient Codex failure — rotating to next token: ${err.message}`);
+        continue;
+      }
+      rememberCodexFailure(requestHash, err);
       markRequestEnd(tokenEntry);
       throw err;
     }
   }
 
+  rememberCodexFailure(requestHash, lastError);
   throw lastError || new Error('All ChatGPT tokens exhausted. Run "substation-auth chatgpt" to re-authenticate.');
 }
 
@@ -3095,10 +3356,10 @@ function startProxy() {
         };
         const invokeOpts = { ...(tokenAffinity ? { tokenAffinity } : {}), ...(noFailover ? { noFailover } : {}), onServedModel };
 
-        try {
-          const id = `chatcmpl-ss-${randomUUID().slice(0, 12)}`;
-          const created = Math.floor(Date.now() / 1000);
+        const id = `chatcmpl-ss-${randomUUID().slice(0, 12)}`;
+        const created = Math.floor(Date.now() / 1000);
 
+        try {
           if (stream) {
             if (useAnthropicToolsPath) {
               // Tool-calling responses aren't incrementally streamed (the SDK
@@ -3132,9 +3393,8 @@ function startProxy() {
               // same one-shot-completed-chunk pattern as the Anthropic tools path.
               let headersSentCx = false;
               let textSoFar = '';
-              const onDeltaCx = (delta) => {
+              const sendCodexToolHeaders = () => {
                 if (res.destroyed) return;
-                textSoFar += delta;
                 if (!headersSentCx) {
                   headersSentCx = true;
                   res.writeHead(200, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', 'Connection': 'keep-alive' });
@@ -3144,6 +3404,12 @@ function startProxy() {
                     choices: [{ index: 0, delta: { role: 'assistant' }, logprobs: null, finish_reason: null }]
                   })}\n\n`);
                 }
+              };
+              sendCodexToolHeaders();
+              const onDeltaCx = (delta) => {
+                if (res.destroyed) return;
+                textSoFar += delta;
+                sendCodexToolHeaders();
                 res.write(`data: ${JSON.stringify({
                   id, object: 'chat.completion.chunk', created,
                   model, system_fingerprint: null,
@@ -3160,13 +3426,22 @@ function startProxy() {
                   model, system_fingerprint: null,
                   choices: [{ index: 0, delta: deltaPayload, logprobs: null, finish_reason: null }]
                 })}\n\n`);
-              } else if (cxResult.toolCalls) {
+              } else {
+                if (!textSoFar && cxResult.text) {
+                  res.write(`data: ${JSON.stringify({
+                    id, object: 'chat.completion.chunk', created,
+                    model, system_fingerprint: null,
+                    choices: [{ index: 0, delta: { content: cxResult.text }, logprobs: null, finish_reason: null }]
+                  })}\n\n`);
+                }
                 // Tool calls only known after the stream finished — emit them now.
-                res.write(`data: ${JSON.stringify({
-                  id, object: 'chat.completion.chunk', created,
-                  model, system_fingerprint: null,
-                  choices: [{ index: 0, delta: { tool_calls: cxResult.toolCalls }, logprobs: null, finish_reason: null }]
-                })}\n\n`);
+                if (cxResult.toolCalls) {
+                  res.write(`data: ${JSON.stringify({
+                    id, object: 'chat.completion.chunk', created,
+                    model, system_fingerprint: null,
+                    choices: [{ index: 0, delta: { tool_calls: cxResult.toolCalls }, logprobs: null, finish_reason: null }]
+                  })}\n\n`);
+                }
               }
               res.write(`data: ${JSON.stringify({
                 id, object: 'chat.completion.chunk', created,
@@ -3298,8 +3573,19 @@ function startProxy() {
             }
             safeEnd(res, status, { error: { message: e.message } });
           } else {
-            // Already streaming — send error as final SSE event and close
-            res.write(`data: ${JSON.stringify({ error: { message: e.message } })}\n\n`);
+            // Already streaming. Some OpenAI-compatible clients ignore raw
+            // `error` SSE payloads after a 200, so surface the blocker as a
+            // normal assistant content chunk before closing.
+            res.write(`data: ${JSON.stringify({
+              id, object: 'chat.completion.chunk', created,
+              model, system_fingerprint: null,
+              choices: [{ index: 0, delta: { content: `BLOCKED: upstream model failed: ${e.message}` }, logprobs: null, finish_reason: null }]
+            })}\n\n`);
+            res.write(`data: ${JSON.stringify({
+              id, object: 'chat.completion.chunk', created,
+              model, system_fingerprint: null,
+              choices: [{ index: 0, delta: {}, logprobs: null, finish_reason: 'stop' }]
+            })}\n\n`);
             res.write('data: [DONE]\n\n');
             res.end();
           }
@@ -3678,7 +3964,7 @@ const OPENAI_MODELS = [
     reasoning: false,
     input: ['text'],
     cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
-    contextWindow: 200000,
+    contextWindow: 400000,
     maxTokens: 128000,
   },
   {
@@ -3687,7 +3973,7 @@ const OPENAI_MODELS = [
     reasoning: false,
     input: ['text'],
     cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
-    contextWindow: 200000,
+    contextWindow: 400000,
     maxTokens: 64000,
   },
   {
@@ -3696,7 +3982,7 @@ const OPENAI_MODELS = [
     reasoning: false,
     input: ['text'],
     cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
-    contextWindow: 200000,
+    contextWindow: 400000,
     maxTokens: 128000,
   },
   {
@@ -3705,7 +3991,7 @@ const OPENAI_MODELS = [
     reasoning: false,
     input: ['text'],
     cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
-    contextWindow: 200000,
+    contextWindow: 400000,
     maxTokens: 128000,
   },
   {
@@ -3714,7 +4000,7 @@ const OPENAI_MODELS = [
     reasoning: false,
     input: ['text'],
     cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
-    contextWindow: 200000,
+    contextWindow: 400000,
     maxTokens: 128000,
   },
   {
@@ -3732,7 +4018,7 @@ const OPENAI_MODELS = [
     reasoning: false,
     input: ['text'],
     cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
-    contextWindow: 200000,
+    contextWindow: 400000,
     maxTokens: 128000,
   },
 ];
@@ -3754,10 +4040,10 @@ function getAllModels() {
     const openaiPoolTokens = pool.filter(t => t.provider === 'openai' && !t.dead);
     for (const t of openaiPoolTokens) {
       models.push(
-        { id: `gpt-5.4:${t.id}`, name: `GPT 5.4 — ${t.id}`, reasoning: false, input: ['text'], cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 }, contextWindow: 200000, maxTokens: 128000 },
-        { id: `gpt-5.4-mini:${t.id}`, name: `GPT 5.4 Mini — ${t.id}`, reasoning: false, input: ['text'], cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 }, contextWindow: 200000, maxTokens: 64000 },
-        { id: `gpt-5.5:${t.id}`, name: `GPT 5.5 — ${t.id}`, reasoning: false, input: ['text'], cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 }, contextWindow: 200000, maxTokens: 128000 },
-        { id: `gpt-5.6:${t.id}`, name: `GPT 5.6 — ${t.id}`, reasoning: false, input: ['text'], cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 }, contextWindow: 200000, maxTokens: 128000 },
+        { id: `gpt-5.4:${t.id}`, name: `GPT 5.4 — ${t.id}`, reasoning: false, input: ['text'], cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 }, contextWindow: 400000, maxTokens: 128000 },
+        { id: `gpt-5.4-mini:${t.id}`, name: `GPT 5.4 Mini — ${t.id}`, reasoning: false, input: ['text'], cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 }, contextWindow: 400000, maxTokens: 64000 },
+        { id: `gpt-5.5:${t.id}`, name: `GPT 5.5 — ${t.id}`, reasoning: false, input: ['text'], cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 }, contextWindow: 400000, maxTokens: 128000 },
+        { id: `gpt-5.6:${t.id}`, name: `GPT 5.6 — ${t.id}`, reasoning: false, input: ['text'], cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 }, contextWindow: 400000, maxTokens: 128000 },
       );
     }
   }

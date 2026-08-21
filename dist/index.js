@@ -16,7 +16,7 @@ const TIMEOUT = Number(process.env.SUBSTATION_CODEX_TIMEOUT_MS) || 540000; // St
 const CODEX_ATTEMPT_TIMEOUT = Number(process.env.SUBSTATION_CODEX_ATTEMPT_TIMEOUT_MS) || 300000;
 const CODEX_FIRST_BYTE_TIMEOUT = Number(process.env.SUBSTATION_CODEX_FIRST_BYTE_TIMEOUT_MS) || 30000;
 const CODEX_PROGRESS_TIMEOUT = Number(process.env.SUBSTATION_CODEX_PROGRESS_TIMEOUT_MS) || 90000;
-const CODEX_MAX_TOKEN_ATTEMPTS = Number(process.env.SUBSTATION_CODEX_MAX_TOKEN_ATTEMPTS) || 1;
+const CODEX_MAX_TOKEN_ATTEMPTS = Number(process.env.SUBSTATION_CODEX_MAX_TOKEN_ATTEMPTS) || 2;
 const CODEX_IDENTICAL_FAILURE_COOLDOWN = Number(process.env.SUBSTATION_CODEX_IDENTICAL_FAILURE_COOLDOWN_MS) || 600000;
 const codexRequestFailureCache = new Map();
 
@@ -109,13 +109,13 @@ const MODEL_CONFIG = {
   // OpenAI (Codex) — ordered fastest to slowest
   'gpt-5.4-mini':       { maxTokens: 64000,  adaptive: false, provider: 'openai', contextWindow: 400000 },
   'gpt-5.4':            { maxTokens: 128000, adaptive: false, provider: 'openai', contextWindow: 400000 },
-  // ChatGPT Pro tier (unlocked 2026-07-11). gpt-5.5 verified live on the
-  // chatgpt.com Codex/Responses endpoint (HTTP 200). gpt-5.6 is registered as
-  // selectable but that same endpoint 400s it ("not supported when using Codex
-  // with a ChatGPT account") -- same rejection class as the gpt-5.1-codex*
-  // family below -- so it's served via CODEX_CHATGPT_REMAP -> gpt-5.5, not 5.4.
+  // ChatGPT Pro tier. GPT-5.6 Sol is the flagship GPT-5.6 model; gpt-5.6
+  // remains as an alias for callers that use the family-level name.
   'gpt-5.5':            { maxTokens: 128000, adaptive: false, provider: 'openai', contextWindow: 400000 },
-  'gpt-5.6':            { maxTokens: 128000, adaptive: false, provider: 'openai', contextWindow: 400000 },
+  'gpt-5.6-sol':        { maxTokens: 128000, adaptive: false, provider: 'openai', contextWindow: 1050000, apiModel: 'gpt-5.6-sol', reasoningEffort: 'max' },
+  'gpt-5.6':            { maxTokens: 128000, adaptive: false, provider: 'openai', contextWindow: 1050000, apiModel: 'gpt-5.6-sol', reasoningEffort: 'max' },
+  'gpt-5.6-sol-pro':    { maxTokens: 128000, adaptive: false, provider: 'openai', contextWindow: 1050000, apiModel: 'gpt-5.6-sol', reasoningEffort: 'max' },
+  'gpt-5.6-pro':        { maxTokens: 128000, adaptive: false, provider: 'openai', contextWindow: 1050000, apiModel: 'gpt-5.6-sol', reasoningEffort: 'max' },
   'gpt-5.1-codex':      { maxTokens: 128000, adaptive: false, provider: 'openai', contextWindow: 400000 },
   'gpt-5.1-codex-mini': { maxTokens: 64000,  adaptive: false, provider: 'openai', contextWindow: 128000 },
   'gpt-5.1-codex-max':  { maxTokens: 128000, adaptive: false, provider: 'openai', contextWindow: 400000 },
@@ -143,7 +143,13 @@ const MODEL_MAP = {
   'gpt-5.4': 'gpt-5.4',
   'gpt-5.4-mini': 'gpt-5.4-mini',
   'gpt-5.5': 'gpt-5.5',
-  'gpt-5.6': 'gpt-5.6',
+  'gpt-5.6-sol': 'gpt-5.6-sol',
+  'gpt-5.6': 'gpt-5.6-sol',
+  'gpt-5.6-sol-pro': 'gpt-5.6-sol-pro',
+  'gpt-5.6-pro': 'gpt-5.6-pro',
+  'sol': 'gpt-5.6-sol',
+  'sol-pro': 'gpt-5.6-sol-pro',
+  'pro': 'gpt-5.6-sol-pro',
   'gpt-5.1-codex-max': 'gpt-5.1-codex-max',
   'gpt-5.1-codex': 'gpt-5.1-codex',
   'gpt-5.1-codex-mini': 'gpt-5.1-codex-mini',
@@ -159,7 +165,7 @@ const MODEL_MAP = {
 const NARRATION_PATTERNS = /\b(starting now|i will|i'll|about to|doing it now|i've been silent|apologies for|sorry for the|let me now|going to|working on it|i'm going to|right away|immediately|try(?:ing)? again|re-?run(?:ning)?|retry(?:ing)?)\b/i;
 const MAX_CONSECUTIVE_NARRATIONS = 2;
 const narrationCounters = new Map(); // sessionKey → count
-const progressTracker = new Map(); // sessionKey → { lastCallHash, lastResultHash, repeat }
+const progressTracker = new Map(); // sessionKey → { lastCallHash, lastResultHash, tailHash, repeat }
 const sdkResumeCache = new Map(); // sessionKey → { sdkSessionId, token, model, messageCount, prefixHash }
 
 function isNarrationOnly(text) {
@@ -237,10 +243,21 @@ function latestToolProgress(messages) {
       if (!call) continue;
       const toolName = call.function?.name || call.name || result.name || 'tool';
       const normalizedArgs = stableToolArgs(call.function?.arguments ?? call.arguments);
+      const tail = createHash('sha1');
+      for (let k = i + 1; k < (messages || []).length; k++) {
+        const message = messages[k] || {};
+        tail.update(message.role || '');
+        tail.update('\0');
+        tail.update(textContent(message.content));
+        tail.update('\0');
+        if (message.tool_calls) tail.update(JSON.stringify(message.tool_calls));
+        tail.update('\0');
+      }
       return {
         toolName,
         callHash: createHash('sha1').update(toolName + JSON.stringify(normalizedArgs)).digest('hex'),
         resultHash: createHash('sha1').update(textContent(result.content)).digest('hex'),
+        tailHash: tail.digest('hex'),
       };
     }
   }
@@ -252,13 +269,17 @@ function enforceToolProgress(messages, model) {
   if (!progress) return false;
   const sessionKey = progressSessionKey(messages, model);
   const previous = progressTracker.get(sessionKey);
-  const repeat = previous && previous.lastCallHash === progress.callHash && previous.lastResultHash === progress.resultHash
+  const repeat = previous
+    && previous.lastCallHash === progress.callHash
+    && previous.lastResultHash === progress.resultHash
+    && previous.tailHash === progress.tailHash
     ? previous.repeat + 1
     : 0;
-  progressTracker.set(sessionKey, { lastCallHash: progress.callHash, lastResultHash: progress.resultHash, repeat });
+  progressTracker.set(sessionKey, { lastCallHash: progress.callHash, lastResultHash: progress.resultHash, tailHash: progress.tailHash, repeat });
   const noProgress = repeat >= 1;
   if (noProgress) trackNarration(sessionKey, false, '', true);
-  if (repeat >= 2) {
+  const maxRepeats = progress.toolName === 'execute_code' ? 4 : 2;
+  if (repeat >= maxRepeats) {
     // Reset tracked state before throwing. Without this, `repeat` never
     // comes back down — every future request for this sessionKey still has
     // the same stale tail tool_call/result (a client-side corrective notice
@@ -1077,11 +1098,6 @@ const CODEX_CHATGPT_REMAP = {
   'gpt-5.1-codex':      'gpt-5.4',
   'gpt-5.1-codex-max':  'gpt-5.4',
   'gpt-5.1-codex-mini': 'gpt-5.4-mini',
-  // gpt-5.6 hits the identical "not supported when using Codex with a ChatGPT
-  // account" HTTP 400 as the codex-family above (live-verified 2026-07-11).
-  // Remap to gpt-5.5 (the newest model that actually works on this endpoint)
-  // rather than gpt-5.4, so requests for 5.6 don't silently downgrade a tier.
-  'gpt-5.6':            'gpt-5.5',
 };
 
 // Best-effort OpenAI chat-completions tool schema -> Responses API tool shape.
@@ -1119,13 +1135,18 @@ function buildCodexBody(openaiMessages, modelInfo, tools) {
     filteredInput.push({ type: 'message', role: 'user', content: [{ type: 'input_text', text: '(empty)' }] });
   }
   const body = {
-    model: CODEX_CHATGPT_REMAP[modelInfo.modelId] || modelInfo.modelId,
+    model: CODEX_CHATGPT_REMAP[modelInfo.modelId] || modelInfo.apiModel || modelInfo.modelId,
     instructions,
     input: filteredInput,
     store: false,
     stream: true,
     service_tier: 'priority',
   };
+  if (modelInfo.reasoningMode || modelInfo.reasoningEffort) {
+    body.reasoning = {};
+    if (modelInfo.reasoningMode) body.reasoning.mode = modelInfo.reasoningMode;
+    if (modelInfo.reasoningEffort) body.reasoning.effort = modelInfo.reasoningEffort;
+  }
   const codexTools = convertOpenAIToolsToCodexResponses(tools);
   if (codexTools) body.tools = codexTools;
   return body;
@@ -1434,7 +1455,7 @@ function makeCodexRequest(bodyStr, tokenEntry, onDelta) {
         if (text || toolCalls.length) {
           succeed({ text, usage, toolCalls: toolCalls.length ? toolCalls : undefined });
         } else {
-          fail(Object.assign(new Error('Empty response from Codex API — check your ChatGPT subscription status'), { statusCode: 0 }));
+          fail(Object.assign(new Error('Empty response from Codex API — upstream stream ended without text or tool calls; treating as transient and retrying/failing over'), { statusCode: 0 }));
         }
       });
       res.on('aborted', () => fail(Object.assign(new Error('Codex response aborted before completion'), { statusCode: 0 })));
@@ -3007,20 +3028,17 @@ async function invokeCodex(openaiMessages, modelInfo, onDelta, tools) {
 // ---------------------------------------------------------------------------
 
 const FAILOVER_MAP = {
-  // Anthropic → OpenAI equivalents. Points at gpt-5.5 (ChatGPT Pro tier,
-  // live-verified tool-calling), not gpt-5.4 -- when Anthropic caps out the
-  // orchestrator should fail over to the newest tool-capable model available,
-  // not a downgrade. gpt-5.6 is NOT used as a failover target: the ChatGPT-Pro
-  // Codex/Responses endpoint 400s it outright (see CODEX_CHATGPT_REMAP), so
-  // pointing failover at a model that hard-fails would break failover itself.
-  'claude-fable-5':            'gpt-5.5',
-  'claude-opus-4-8':           'gpt-5.5',
-  'claude-opus-4-7':           'gpt-5.5',
-  'claude-opus-4-6':           'gpt-5.5',
-  'claude-sonnet-4-6':         'gpt-5.5',
+  // Anthropic → OpenAI equivalents. Use GPT-5.6 Sol as the flagship OpenAI
+  // failover target when Anthropic caps out.
+  'claude-fable-5':            'gpt-5.6-sol',
+  'claude-opus-4-8':           'gpt-5.6-sol',
+  'claude-opus-4-7':           'gpt-5.6-sol',
+  'claude-opus-4-6':           'gpt-5.6-sol',
+  'claude-sonnet-4-6':         'gpt-5.6-sol',
   'claude-haiku-4-5-20251001': 'gpt-5.4-mini',
   // OpenAI → Anthropic equivalents
   'gpt-5.5':             'claude-opus-4-6',
+  'gpt-5.6-sol':         'claude-opus-4-6',
   'gpt-5.6':             'claude-opus-4-6',
   'gpt-5.4':             'claude-opus-4-6',
   'gpt-5.1-codex-max':   'claude-opus-4-6',
@@ -3255,6 +3273,11 @@ function startProxy() {
             { id: 'gpt-5.4', object: 'model', owned_by: 'indigo-collective' },
             { id: 'gpt-5.4-mini', object: 'model', owned_by: 'indigo-collective' },
             { id: 'gpt-5.5', object: 'model', owned_by: 'indigo-collective' },
+            { id: 'gpt-5.6-sol', object: 'model', owned_by: 'indigo-collective' },
+            { id: 'gpt-5.6-sol-pro', object: 'model', owned_by: 'indigo-collective' },
+            { id: 'gpt-5.6-pro', object: 'model', owned_by: 'indigo-collective' },
+            { id: 'pro', object: 'model', owned_by: 'indigo-collective' },
+            { id: 'sol-pro', object: 'model', owned_by: 'indigo-collective' },
             { id: 'gpt-5.6', object: 'model', owned_by: 'indigo-collective' },
             { id: 'gpt-5.1-codex', object: 'model', owned_by: 'indigo-collective' },
             { id: 'gpt-5.1-codex-mini', object: 'model', owned_by: 'indigo-collective' },
@@ -3266,6 +3289,9 @@ function startProxy() {
               { id: `gpt-5.4:${t.id}`, object: 'model', owned_by: 'indigo-collective' },
               { id: `gpt-5.4-mini:${t.id}`, object: 'model', owned_by: 'indigo-collective' },
               { id: `gpt-5.5:${t.id}`, object: 'model', owned_by: 'indigo-collective' },
+              { id: `gpt-5.6-sol:${t.id}`, object: 'model', owned_by: 'indigo-collective' },
+              { id: `gpt-5.6-sol-pro:${t.id}`, object: 'model', owned_by: 'indigo-collective' },
+              { id: `gpt-5.6-pro:${t.id}`, object: 'model', owned_by: 'indigo-collective' },
               { id: `gpt-5.6:${t.id}`, object: 'model', owned_by: 'indigo-collective' },
             );
           }
@@ -3986,12 +4012,39 @@ const OPENAI_MODELS = [
     maxTokens: 128000,
   },
   {
-    id: 'gpt-5.6',
-    name: 'GPT 5.6 (SubStation)',
-    reasoning: false,
+    id: 'gpt-5.6-sol',
+    name: 'GPT 5.6 Sol Pro (SubStation)',
+    reasoning: true,
     input: ['text'],
     cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
-    contextWindow: 400000,
+    contextWindow: 1050000,
+    maxTokens: 128000,
+  },
+  {
+    id: 'gpt-5.6-sol-pro',
+    name: 'GPT 5.6 Sol Pro Explicit (SubStation)',
+    reasoning: true,
+    input: ['text'],
+    cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+    contextWindow: 1050000,
+    maxTokens: 128000,
+  },
+  {
+    id: 'gpt-5.6-pro',
+    name: 'GPT 5.6 Pro Alias (SubStation)',
+    reasoning: true,
+    input: ['text'],
+    cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+    contextWindow: 1050000,
+    maxTokens: 128000,
+  },
+  {
+    id: 'gpt-5.6',
+    name: 'GPT 5.6 / Sol Pro Alias (SubStation)',
+    reasoning: true,
+    input: ['text'],
+    cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+    contextWindow: 1050000,
     maxTokens: 128000,
   },
   {
@@ -4043,7 +4096,10 @@ function getAllModels() {
         { id: `gpt-5.4:${t.id}`, name: `GPT 5.4 — ${t.id}`, reasoning: false, input: ['text'], cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 }, contextWindow: 400000, maxTokens: 128000 },
         { id: `gpt-5.4-mini:${t.id}`, name: `GPT 5.4 Mini — ${t.id}`, reasoning: false, input: ['text'], cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 }, contextWindow: 400000, maxTokens: 64000 },
         { id: `gpt-5.5:${t.id}`, name: `GPT 5.5 — ${t.id}`, reasoning: false, input: ['text'], cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 }, contextWindow: 400000, maxTokens: 128000 },
-        { id: `gpt-5.6:${t.id}`, name: `GPT 5.6 — ${t.id}`, reasoning: false, input: ['text'], cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 }, contextWindow: 400000, maxTokens: 128000 },
+        { id: `gpt-5.6-sol:${t.id}`, name: `GPT 5.6 Sol Pro — ${t.id}`, reasoning: true, input: ['text'], cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 }, contextWindow: 1050000, maxTokens: 128000 },
+        { id: `gpt-5.6-sol-pro:${t.id}`, name: `GPT 5.6 Sol Pro Explicit — ${t.id}`, reasoning: true, input: ['text'], cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 }, contextWindow: 1050000, maxTokens: 128000 },
+        { id: `gpt-5.6-pro:${t.id}`, name: `GPT 5.6 Pro Alias — ${t.id}`, reasoning: true, input: ['text'], cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 }, contextWindow: 1050000, maxTokens: 128000 },
+        { id: `gpt-5.6:${t.id}`, name: `GPT 5.6 / Sol Pro Alias — ${t.id}`, reasoning: true, input: ['text'], cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 }, contextWindow: 1050000, maxTokens: 128000 },
       );
     }
   }

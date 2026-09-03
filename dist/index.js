@@ -109,9 +109,11 @@ const MODEL_CONFIG = {
   // OpenAI (Codex) — ordered fastest to slowest
   'gpt-5.4-mini':       { maxTokens: 64000,  adaptive: false, provider: 'openai', contextWindow: 400000 },
   'gpt-5.4':            { maxTokens: 128000, adaptive: false, provider: 'openai', contextWindow: 400000 },
-  // ChatGPT Pro tier. GPT-5.6 Sol is the flagship GPT-5.6 model; gpt-5.6
+  // ChatGPT Pro tier. GPT-5.6 Sol is the flagship GPT-5.6 model; Terra is
+  // the faster balanced tier for orchestration and routine work. gpt-5.6
   // remains as an alias for callers that use the family-level name.
   'gpt-5.5':            { maxTokens: 128000, adaptive: false, provider: 'openai', contextWindow: 400000 },
+  'gpt-5.6-terra':      { maxTokens: 128000, adaptive: false, provider: 'openai', contextWindow: 1050000, apiModel: 'gpt-5.6-terra', reasoningEffort: 'medium' },
   'gpt-5.6-sol':        { maxTokens: 128000, adaptive: false, provider: 'openai', contextWindow: 1050000, apiModel: 'gpt-5.6-sol', reasoningEffort: 'max' },
   'gpt-5.6':            { maxTokens: 128000, adaptive: false, provider: 'openai', contextWindow: 1050000, apiModel: 'gpt-5.6-sol', reasoningEffort: 'max' },
   'gpt-5.6-sol-pro':    { maxTokens: 128000, adaptive: false, provider: 'openai', contextWindow: 1050000, apiModel: 'gpt-5.6-sol', reasoningEffort: 'max' },
@@ -143,6 +145,8 @@ const MODEL_MAP = {
   'gpt-5.4': 'gpt-5.4',
   'gpt-5.4-mini': 'gpt-5.4-mini',
   'gpt-5.5': 'gpt-5.5',
+  'gpt-5.6-terra': 'gpt-5.6-terra',
+  'terra': 'gpt-5.6-terra',
   'gpt-5.6-sol': 'gpt-5.6-sol',
   'gpt-5.6': 'gpt-5.6-sol',
   'gpt-5.6-sol-pro': 'gpt-5.6-sol-pro',
@@ -3038,6 +3042,7 @@ const FAILOVER_MAP = {
   'claude-haiku-4-5-20251001': 'gpt-5.4-mini',
   // OpenAI → Anthropic equivalents
   'gpt-5.5':             'claude-opus-4-6',
+  'gpt-5.6-terra':       'claude-opus-4-6',
   'gpt-5.6-sol':         'claude-opus-4-6',
   'gpt-5.6':             'claude-opus-4-6',
   'gpt-5.4':             'claude-opus-4-6',
@@ -3273,6 +3278,8 @@ function startProxy() {
             { id: 'gpt-5.4', object: 'model', owned_by: 'indigo-collective' },
             { id: 'gpt-5.4-mini', object: 'model', owned_by: 'indigo-collective' },
             { id: 'gpt-5.5', object: 'model', owned_by: 'indigo-collective' },
+            { id: 'gpt-5.6-terra', object: 'model', owned_by: 'indigo-collective' },
+            { id: 'terra', object: 'model', owned_by: 'indigo-collective' },
             { id: 'gpt-5.6-sol', object: 'model', owned_by: 'indigo-collective' },
             { id: 'gpt-5.6-sol-pro', object: 'model', owned_by: 'indigo-collective' },
             { id: 'gpt-5.6-pro', object: 'model', owned_by: 'indigo-collective' },
@@ -3289,6 +3296,7 @@ function startProxy() {
               { id: `gpt-5.4:${t.id}`, object: 'model', owned_by: 'indigo-collective' },
               { id: `gpt-5.4-mini:${t.id}`, object: 'model', owned_by: 'indigo-collective' },
               { id: `gpt-5.5:${t.id}`, object: 'model', owned_by: 'indigo-collective' },
+              { id: `gpt-5.6-terra:${t.id}`, object: 'model', owned_by: 'indigo-collective' },
               { id: `gpt-5.6-sol:${t.id}`, object: 'model', owned_by: 'indigo-collective' },
               { id: `gpt-5.6-sol-pro:${t.id}`, object: 'model', owned_by: 'indigo-collective' },
               { id: `gpt-5.6-pro:${t.id}`, object: 'model', owned_by: 'indigo-collective' },
@@ -4012,6 +4020,15 @@ const OPENAI_MODELS = [
     maxTokens: 128000,
   },
   {
+    id: 'gpt-5.6-terra',
+    name: 'GPT 5.6 Terra (SubStation)',
+    reasoning: true,
+    input: ['text'],
+    cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+    contextWindow: 1050000,
+    maxTokens: 128000,
+  },
+  {
     id: 'gpt-5.6-sol',
     name: 'GPT 5.6 Sol Pro (SubStation)',
     reasoning: true,
@@ -4096,6 +4113,7 @@ function getAllModels() {
         { id: `gpt-5.4:${t.id}`, name: `GPT 5.4 — ${t.id}`, reasoning: false, input: ['text'], cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 }, contextWindow: 400000, maxTokens: 128000 },
         { id: `gpt-5.4-mini:${t.id}`, name: `GPT 5.4 Mini — ${t.id}`, reasoning: false, input: ['text'], cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 }, contextWindow: 400000, maxTokens: 64000 },
         { id: `gpt-5.5:${t.id}`, name: `GPT 5.5 — ${t.id}`, reasoning: false, input: ['text'], cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 }, contextWindow: 400000, maxTokens: 128000 },
+        { id: `gpt-5.6-terra:${t.id}`, name: `GPT 5.6 Terra — ${t.id}`, reasoning: true, input: ['text'], cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 }, contextWindow: 1050000, maxTokens: 128000 },
         { id: `gpt-5.6-sol:${t.id}`, name: `GPT 5.6 Sol Pro — ${t.id}`, reasoning: true, input: ['text'], cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 }, contextWindow: 1050000, maxTokens: 128000 },
         { id: `gpt-5.6-sol-pro:${t.id}`, name: `GPT 5.6 Sol Pro Explicit — ${t.id}`, reasoning: true, input: ['text'], cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 }, contextWindow: 1050000, maxTokens: 128000 },
         { id: `gpt-5.6-pro:${t.id}`, name: `GPT 5.6 Pro Alias — ${t.id}`, reasoning: true, input: ['text'], cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 }, contextWindow: 1050000, maxTokens: 128000 },

@@ -478,6 +478,7 @@ function loadPoolState() {
         entry.dead = s.dead || false;
         entry.deadSince = s.deadSince || null;
         entry.deadType = s.deadType || null;
+        entry.usage = s.usage || null;
       }
     }
   } catch {}
@@ -502,6 +503,7 @@ function savePoolState() {
           dead: t.dead,
           deadSince: t.deadSince,
           deadType: t.deadType || null,
+          usage: t.usage || null,
         })),
       }, null, 2);
       const tmp = POOL_STATE_FILE + '.tmp';
@@ -538,6 +540,80 @@ function markSuccess(entry) {
   resetAuthFailures(entry);   // reset consecutive-auth-fail counter on success
   entry.activeRequests = Math.max(0, entry.activeRequests - 1);
   savePoolState();
+}
+
+// Captures Anthropic's `anthropic-ratelimit-unified-*` response headers off real
+// traffic and stores them on the entry so the status server can report per-token
+// usage. The dedicated GET /api/oauth/usage endpoint is hard-429'd (and needs a
+// live-refreshed token + Claude-Code framing to answer at all), but these headers
+// ride along free on every successful inference call. Fully guarded — a malformed
+// header can never throw into the hot response path.
+function recordUsageHeaders(entry, headers) {
+  try {
+    if (!entry || !headers) return;
+    const get = (k) => headers['anthropic-ratelimit-unified-' + k];
+    const toPct = (v) => {
+      const n = parseFloat(v);
+      if (isNaN(n)) return null;
+      return n <= 1 ? n * 100 : n; // headers seen as 0..1 fraction; tolerate 0..100 too
+    };
+    const toIso = (v) => {
+      const n = parseFloat(v);
+      if (isNaN(n)) return null;
+      const ms = n > 1e12 ? n : n * 1000; // epoch seconds (or ms) → ISO
+      const d = new Date(ms);
+      return isNaN(d.getTime()) ? null : d.toISOString();
+    };
+    const fiveHourPct = toPct(get('5h-utilization'));
+    const sevenDayPct = toPct(get('7d-utilization'));
+    if (fiveHourPct === null && sevenDayPct === null) return; // nothing to record
+    entry.usage = {
+      capturedAt: Date.now(),
+      fiveHourPct,
+      fiveHourReset: toIso(get('5h-reset')),
+      sevenDayPct,
+      sevenDayReset: toIso(get('7d-reset')),
+      status: get('status') || null,
+    };
+    savePoolState();
+  } catch { /* usage capture is best-effort; never disturb the response */ }
+}
+
+// Live traffic is served by the SDK subprocess path, which never exposes raw
+// HTTP response headers — so recordUsageHeaders would otherwise never fire and
+// each account's 5h/7d usage would stay blank. This keeps entry.usage fresh by
+// making one tiny fully-framed max_tokens:1 call per active Anthropic account on
+// an interval; makeAnthropicRequest's 200 branch captures the headers. Cheap,
+// best-effort, and it skips any account already in cooldown.
+const USAGE_PROBE_INTERVAL_MS = 3 * 60 * 1000;
+async function probeUsageOnce() {
+  try {
+    const tokens = getAnthropicOAuthTokens();
+    const now = Date.now();
+    for (const token of tokens) {
+      if (token.cooldownUntil && token.cooldownUntil > now) continue;
+      const body = JSON.stringify({
+        model: 'claude-sonnet-4-5-20250929',
+        max_tokens: 1,
+        system: CLAUDE_CODE_SYSTEM_PREFIX,
+        messages: [{ role: 'user', content: 'ping' }],
+      });
+      try {
+        await makeAnthropicRequest(body, token); // 200 branch records usage headers
+      } catch (e) {
+        // A cap here is real signal, not a probe artifact — cool the token down
+        // exactly like live traffic would, so it isn't hammered.
+        if (e && e.statusCode === 429) {
+          const knownSecs = parseKnownResetSeconds(e.message);
+          markRateLimited(token, knownSecs || parseInt(e.retryAfter || '60', 10), !!knownSecs);
+        }
+      }
+    }
+  } catch { /* never let the probe loop throw */ }
+}
+function startUsageProbeLoop() {
+  setTimeout(() => { probeUsageOnce(); }, 8000);
+  setInterval(() => { probeUsageOnce(); }, USAGE_PROBE_INTERVAL_MS);
 }
 
 function markRateLimited(entry, retryAfterSec, isKnownCap = false) {
@@ -1223,6 +1299,11 @@ function makeAnthropicRequest(bodyStr, tokenEntry, onDelta) {
         });
         return;
       }
+
+      // Capture per-account 5h/7d usage off this real 200. makeAnthropicRequest
+      // sends full Claude-Code framing, so unlike a bare probe it isn't edge-429'd
+      // and the anthropic-ratelimit-unified-* headers ride along on the response.
+      recordUsageHeaders(tokenEntry, res.headers);
 
       if (onDelta) {
         // Streaming mode — parse SSE incrementally
@@ -3745,6 +3826,7 @@ function startProxy() {
 
           proxyRes.on('end', () => {
             if (statusCode >= 200 && statusCode < 300) {
+              recordUsageHeaders(targetToken, proxyRes.headers);
               markSuccess(targetToken);
             } else if (statusCode === 429) {
               markRateLimited(targetToken, parseInt(proxyRes.headers['retry-after'] || '60', 10));
@@ -3923,6 +4005,7 @@ function startProxy() {
   proxyServer.listen(PORT, '127.0.0.1', () => {
     const status = getPoolStatus();
     log(`SubStation v${VERSION} on http://127.0.0.1:${PORT} (pool=${status.total}, anthropic=${status.byProvider.anthropic}, openai=${status.byProvider.openai}, cc=${VERSION})`);
+    startUsageProbeLoop();
   });
 
   function gracefulShutdown() {

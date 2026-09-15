@@ -35,6 +35,8 @@ check('statusCode 403 → true', () => assert.equal(isAuthError({ statusCode: 40
 check('statusCode 401 → true', () => assert.equal(isAuthError({ statusCode: 401 }), true));
 check("'organization does not have access' → true", () =>
   assert.equal(isAuthError({ message: 'organization does not have access' }), true));
+check("'no_biscuit_no_service' → false (Codex session stall, not dead token)", () =>
+  assert.equal(isAuthError({ message: 'Codex API error: no_biscuit_no_service (unknown)' }), false));
 check("'request timeout' → false", () =>
   assert.equal(isAuthError({ message: 'request timeout' }), false));
 check('empty {} → false', () => assert.equal(isAuthError({}), false));

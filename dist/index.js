@@ -46,6 +46,7 @@ ORCHESTRATOR DEFAULT = DISPATCH. Heavy work (grounding, multi-file search, build
 10. DO NOT NARRATE BEFORE A TOOL CALL. Never preface a tool call with "let me look", "let me check", "reading now", "I'll verify", or a restatement of the plan. Emit the tool call directly. Speak only AFTER you have the result — and only to deliver the answer or a verified status. One short sentence of framing is allowed only when NOT accompanied by any tool call (a pure question or final report). Thinking out loud between tool calls is the token-burn the operator is paying for; cut it.
 
 11. YOU ARE THE PROMPT MASTER — HAND WORKERS REAL INPUTS, NEVER YOUR PARAPHRASE OF THEM. A worker's output is only as good as the input you give it. The #1 time-waster on this proxy is broken-telephone translation: the user gives a reference image / design-system doc / dieline / example, and instead of passing the ACTUAL ASSET to the worker or image model, you write a prose DESCRIPTION of it into the work order. The model then generates from your paraphrase and produces garbage — wrong labels, wrong layout, "not the reference." This is YOUR failure, not the worker's. RULES: (a) When the user references an asset (image, mockup, dieline, design-system file, competitor page, reference render), the work order MUST carry that asset by real absolute file path passed as an actual input (input_image / attached file / verbatim template block), NOT a sentence describing what it looks like. (b) When a design-system, template, or spec file already exists on disk, quote it VERBATIM or point the worker at its exact path — never summarize it. (c) Before dispatching any WO that says "match/like/port the reference," verify the WO names the real source paths as inputs; if it only describes them in words, STOP and rewrite it. (d) Restating the user's ask in your own softer words to the worker loses fidelity — carry their exact intent, exact constraints, exact asset paths. If the user gave you a file, the worker gets the file, not your book report on it.`;
+const HERMES_RUNTIME_PROMPT = `\n\n## Hermes runtime contract\n\nYou are running inside Hermes through SubStation, not inside your native Codex/Claude desktop. Treat the request's tool schema as the whole truth. Do not invent unavailable functions, capitalized aliases, notebook tools, browser tools, MCP tools, or Agent tools unless they are explicitly present in the schema for this request. If a desired tool is absent, use the closest available tool from the schema or state the exact missing capability as BLOCKED.`;
 const MAX_BODY_SIZE = 2 * 1024 * 1024; // 2MB request body limit
 const LOG_MAX_SIZE = 5 * 1024 * 1024; // 5MB log rotation
 // DEAD_REVIVE_MS (30m), AUTH_DEAD_REVIVE_MS (5m), isAuthError, AUTH_FAIL_THRESHOLD
@@ -684,16 +685,24 @@ function parseKnownResetSeconds(message) {
 function markDead(entry, deadType = 'rate') {
   entry.dead = true;
   entry.deadSince = Date.now();
-  entry.deadType = deadType; // 'auth' = 24h bench, 'rate' = 30min bench
+  entry.deadType = deadType; // 'auth' = 5min bench, 'rate' = 30min bench
   entry.lastUsed = Date.now();
   entry.errorCount++;
   entry.activeRequests = Math.max(0, entry.activeRequests - 1);
   savePoolState();
-  const retryIn = deadType === 'auth' ? '24h' : '30m';
+  const retryIn = deadType === 'auth' ? '5m' : '30m';
   log(`Token ${entry.id} marked DEAD (${deadType} failure) — will auto-retry in ${retryIn}`);
 }
 
 // isAuthError now imported from ./auth-policy.js
+
+function isCodexSessionStallError(err) {
+  const msg = (err.message || '').toLowerCase();
+  return err.statusCode === 404 ||
+    msg.includes('no_biscuit_no_service') ||
+    msg.includes('no biscuit') ||
+    (msg.includes('biscuit') && msg.includes('service'));
+}
 
 function isCodexTransientError(err) {
   const msg = (err.message || '').toLowerCase();
@@ -796,11 +805,11 @@ setInterval(() => {
       t.cooldownUntil = null;
       savePoolState();
     }
-    // Auto-revive dead tokens (30m for rate failures, 24h for auth failures)
+    // Auto-revive dead tokens (30m for rate failures, 5m for auth/session failures)
     if (t.dead && t.deadSince) {
       const ttl = t.deadType === 'auth' ? AUTH_DEAD_REVIVE_MS : DEAD_REVIVE_MS;
       if ((now - t.deadSince) > ttl) {
-        log(`Token ${t.id} was dead for ${t.deadType === 'auth' ? '24h' : '30m'}+ — reviving for retry`);
+        log(`Token ${t.id} was dead for ${t.deadType === 'auth' ? '5m' : '30m'}+ — reviving for retry`);
         t.dead = false;
         t.deadSince = null;
         t.deadType = null;
@@ -1211,6 +1220,13 @@ function buildCodexBody(openaiMessages, modelInfo, tools) {
   if (!instructions) {
     instructions = 'You are a helpful coding assistant.';
   }
+  const toolNames = (tools || [])
+    .map(t => t?.function?.name)
+    .filter(Boolean);
+  instructions += HERMES_RUNTIME_PROMPT;
+  if (toolNames.length) {
+    instructions += `\n\nAvailable tool names in this request: ${toolNames.join(', ')}.`;
+  }
   if (filteredInput.length === 0) {
     filteredInput.push({ type: 'message', role: 'user', content: [{ type: 'input_text', text: '(empty)' }] });
   }
@@ -1423,8 +1439,13 @@ function makeCodexRequest(bodyStr, tokenEntry, onDelta) {
         res.on('end', () => {
           if (res.statusCode === 403) {
             fail(Object.assign(
-              new Error('Codex API returned 403 — your ChatGPT subscription may not include Codex access, or the token expired. Run "substation-auth chatgpt" to re-authenticate.'),
+              new Error('Codex API returned 403 — the ChatGPT/Codex auth session may be expired. Run "substation-auth chatgpt" if refresh fails.'),
               { statusCode: 401, retryAfter: null }
+            ));
+          } else if (res.statusCode === 404) {
+            fail(Object.assign(
+              new Error('Codex API returned 404 — the ChatGPT/Codex backend path or session is temporarily unavailable; keeping token alive.'),
+              { statusCode: 404, retryAfter: res.headers['retry-after'] }
             ));
           } else {
             fail(Object.assign(
@@ -1529,7 +1550,8 @@ function makeCodexRequest(bodyStr, tokenEntry, onDelta) {
             } else if (event.type === 'response.failed') {
               const errMsg = event.response?.error?.message || 'Unknown Codex error';
               const errCode = event.response?.error?.code || '';
-              fail(Object.assign(new Error(`Codex API error: ${errMsg} (${errCode})`), { statusCode: 0 }));
+              const err = new Error(`Codex API error: ${errMsg} (${errCode})`);
+              fail(Object.assign(err, { statusCode: isCodexSessionStallError(err) ? 0 : 0 }));
               return;
             }
           } catch {}
@@ -3075,10 +3097,10 @@ async function invokeCodex(openaiMessages, modelInfo, onDelta, tools) {
       if (err.code === 'SUBSTATION_UNSUPPORTED_TOOL') { markRequestEnd(tokenEntry); throw err; }
       if (streamStarted) { markRequestEnd(tokenEntry); throw err; }
       if (err.statusCode === 429) { markRateLimited(tokenEntry, parseInt(err.retryAfter || '60', 10)); continue; }
-      if (err.statusCode === 401) {
+      if (isCodexSessionStallError(err)) {
         if (tokenEntry.refreshToken) {
           try {
-            log(`Token ${tokenEntry.id} got 401, attempting refresh...`);
+            log(`Token ${tokenEntry.id} got Codex session stall (${err.message}), refreshing and retrying once without benching token...`);
             await refreshOpenAIToken(tokenEntry);
             const result = await makeCodexRequest(bodyStr, tokenEntry, wrappedDelta);
             codexRequestFailureCache.delete(requestHash);
@@ -3086,11 +3108,31 @@ async function invokeCodex(openaiMessages, modelInfo, onDelta, tools) {
             return { ...result, toolCalls: normalizeToolCalls(result.toolCalls, tools) };
           } catch (refreshErr) {
             if (refreshErr.code === 'SUBSTATION_UNSUPPORTED_TOOL') { markRequestEnd(tokenEntry); throw refreshErr; }
-            markDead(tokenEntry);
+            log(`Token ${tokenEntry.id} Codex session stall persisted after refresh; keeping token alive: ${refreshErr.message}`);
+            markRequestEnd(tokenEntry);
+            throw refreshErr;
+          }
+        }
+        markRequestEnd(tokenEntry);
+        throw err;
+      }
+      if (err.statusCode === 401) {
+        if (tokenEntry.refreshToken) {
+          try {
+            log(`Token ${tokenEntry.id} got Codex auth failure, attempting refresh...`);
+            await refreshOpenAIToken(tokenEntry);
+            const result = await makeCodexRequest(bodyStr, tokenEntry, wrappedDelta);
+            codexRequestFailureCache.delete(requestHash);
+            markSuccess(tokenEntry);
+            return { ...result, toolCalls: normalizeToolCalls(result.toolCalls, tools) };
+          } catch (refreshErr) {
+            if (refreshErr.code === 'SUBSTATION_UNSUPPORTED_TOOL') { markRequestEnd(tokenEntry); throw refreshErr; }
+            log(`Token ${tokenEntry.id} refresh did not clear Codex auth failure: ${refreshErr.message}`);
+            markDead(tokenEntry, 'auth');
             continue;
           }
         }
-        markDead(tokenEntry);
+        markDead(tokenEntry, 'auth');
         continue;
       }
       if (isCodexTransientError(err) && attempt < maxAttempts - 1) {

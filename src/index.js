@@ -5,6 +5,12 @@ import { randomUUID, randomBytes, createHash } from 'node:crypto';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
 import { readFileSync, writeFileSync, mkdirSync, renameSync, statSync, existsSync, watch } from 'node:fs';
+import {
+  normalizeReasoningEffort,
+  resolveRequestedReasoningEffort,
+  resolveClaudeReasoningEffort,
+  resolveCodexReasoningEffort,
+} from './reasoning-effort.js';
 
 // ---------------------------------------------------------------------------
 // Config
@@ -1183,8 +1189,14 @@ function convertForCodex(openaiMessages) {
 // Request body builders
 // ---------------------------------------------------------------------------
 
+function logEffectiveEffort(model, path, resolved) {
+  const effort = resolved?.effort || 'none';
+  const source = resolved?.source || 'default';
+  log(`Reasoning effort (model=${model}, path=${path}, effort=${effort}, source=${source})`);
+}
+
 // buildAnthropicBody kept for fallback only (not used in primary Agent SDK path)
-function buildAnthropicBody(openaiMessages, modelInfo) {
+function buildAnthropicBody(openaiMessages, modelInfo, requestedEffort = null) {
   const { system, messages } = convertForAnthropic(openaiMessages);
   const body = {
     model: modelInfo.modelId,
@@ -1193,8 +1205,9 @@ function buildAnthropicBody(openaiMessages, modelInfo) {
     messages,
   };
   if (modelInfo.adaptive) {
+    const effort = resolveClaudeReasoningEffort(requestedEffort);
     body.thinking = { type: 'adaptive' };
-    body.output_config = { effort: 'high' };
+    body.output_config = { effort: effort.effort };
   }
   return body;
 }
@@ -1226,7 +1239,7 @@ function convertOpenAIToolsToCodexResponses(tools) {
   }));
 }
 
-function buildCodexBody(openaiMessages, modelInfo, tools) {
+function buildCodexBody(openaiMessages, modelInfo, tools, requestedEffort = null) {
   const input = convertForCodex(openaiMessages);
   // Extract instructions from developer messages, remaining go in input
   let instructions = '';
@@ -1260,10 +1273,11 @@ function buildCodexBody(openaiMessages, modelInfo, tools) {
     stream: true,
     service_tier: 'priority',
   };
-  if (modelInfo.reasoningMode || modelInfo.reasoningEffort) {
+  const resolvedEffort = resolveCodexReasoningEffort(requestedEffort, modelInfo);
+  if (modelInfo.reasoningMode || resolvedEffort.effort) {
     body.reasoning = {};
     if (modelInfo.reasoningMode) body.reasoning.mode = modelInfo.reasoningMode;
-    if (modelInfo.reasoningEffort) body.reasoning.effort = modelInfo.reasoningEffort;
+    if (resolvedEffort.effort) body.reasoning.effort = resolvedEffort.effort;
   }
   const codexTools = convertOpenAIToolsToCodexResponses(tools);
   if (codexTools) body.tools = codexTools;
@@ -1892,7 +1906,7 @@ function makeAnthropicDirectRequest(bodyStr, tokenEntry, onDelta) {
   });
 }
 
-async function invokeClaudeDirect(openaiMessages, modelInfo, tokenAffinity, onDelta) {
+async function invokeClaudeDirect(openaiMessages, modelInfo, tokenAffinity, onDelta, requestedEffort = null) {
   // Find the specific token by affinity (e.g., "backup" matches tokens with "backup" in id, or non-primary anthropic tokens)
   const anthropicTokens = pool.filter(t => t.provider === 'anthropic' && !t.dead);
   let targetToken = null;
@@ -1914,7 +1928,9 @@ async function invokeClaudeDirect(openaiMessages, modelInfo, tokenAffinity, onDe
   if (!targetToken) throw new Error('No Anthropic tokens available for direct API call');
 
   // Build request body (non-streaming for simplicity — secondary agents don't need real-time streaming)
-  const body = buildAnthropicBody(openaiMessages, modelInfo);
+  const effort = resolveClaudeReasoningEffort(requestedEffort);
+  logEffectiveEffort(modelInfo.modelId, 'claude-direct', effort);
+  const body = buildAnthropicBody(openaiMessages, modelInfo, requestedEffort);
   // Force non-streaming for direct path
   body.stream = false;
   const bodyStr = JSON.stringify(body);
@@ -1961,25 +1977,27 @@ let anthropicRRIndex = 0; // Round-robin counter for Anthropic token selection
 // Neither hard-fails on a mismatch -- this is observability, not enforcement.
 let modelSwapCount = 0;
 
-async function querySDK(model, tokenId, oauthToken, prompt) {
+async function querySDK(model, tokenId, oauthToken, prompt, effort = null) {
   const sdk = await loadAgentSDK();
   log(`SDK query (model=${model}, token=${tokenId})...`);
   const queryEnv = { ...process.env };
   if (oauthToken) {
     queryEnv.CLAUDE_CODE_OAUTH_TOKEN = oauthToken;
   }
+  const options = {
+    model,
+    // See invokeClaudeSDKWithTools for why this uses the preset+append
+    // form instead of leaving systemPrompt unset — same identity bug,
+    // same fix, verified safe the same way.
+    systemPrompt: { type: 'preset', preset: 'claude_code', append: OPERATOR_SYSTEM_PROMPT },
+    permissionMode: 'bypassPermissions',
+    maxTurns: Infinity,
+    env: queryEnv,
+  };
+  if (effort?.effort) options.effort = effort.effort;
   return sdk.query({
     prompt,
-    options: {
-      model,
-      // See invokeClaudeSDKWithTools for why this uses the preset+append
-      // form instead of leaving systemPrompt unset — same identity bug,
-      // same fix, verified safe the same way.
-      systemPrompt: { type: 'preset', preset: 'claude_code', append: OPERATOR_SYSTEM_PROMPT },
-      permissionMode: 'bypassPermissions',
-      maxTurns: Infinity,
-      env: queryEnv,
-    },
+    options,
   });
 }
 
@@ -2450,11 +2468,13 @@ function appendAliasNote(text, aliasNotes) {
   return text;
 }
 
-async function invokeClaudeSDKWithTools(openaiMessages, tools, toolChoice, modelInfo, tokenAffinity, onServedModel, noFailover) {
+async function invokeClaudeSDKWithTools(openaiMessages, tools, toolChoice, modelInfo, tokenAffinity, onServedModel, noFailover, requestedEffort = null) {
   enforceToolProgress(openaiMessages, modelInfo.modelId);
   const sdkMod = await loadAgentSDK();
   const z = await loadZod();
   const model = modelInfo.modelId;
+  const effort = resolveClaudeReasoningEffort(requestedEffort);
+  logEffectiveEffort(model, 'claude-sdk-tools', effort);
 
   const tokens = getAnthropicOAuthTokens();
   if (tokens.length === 0) {
@@ -2547,43 +2567,45 @@ async function invokeClaudeSDKWithTools(openaiMessages, tools, toolChoice, model
 
     try {
       log(`SDK tools query (model=${model}, token=${token.id})${usingResume ? ' [resumed]' : ''}...`);
+      const options = {
+        model,
+        // SDK isolation mode -- do NOT inherit the operator's personal
+        // ~/.claude/settings.json (global MCP servers, skills, custom
+        // agents, memory files). This is a shared multi-tenant
+        // tool-calling bridge, not a personal coding-assistant session;
+        // measured breakdown (getContextUsage()) showed the inherited
+        // environment, not the ~245-token system prompt itself, was the
+        // real cost driver.
+        settingSources: [],
+        // Keep the `claude_code` preset (required for billing — a full
+        // custom-string replacement broke it, see the reverted
+        // ae06377/d89ccbc history) but `append` the operator identity
+        // directly onto the real system prompt instead of leaving it
+        // unset. Previously OPERATOR_SYSTEM_PROMPT was only prepended
+        // into the user-turn `prompt` text (formatMessagesForSDK), which
+        // is far weaker than the SDK's actual system-level "you are
+        // Claude Code" assertion it was competing against — in practice
+        // the model kept self-identifying as Claude Code and reaching
+        // for its native tool names (Bash/Read/Write), which is why
+        // normalizeToolCalls' alias table exists. `append` keeps this
+        // billed as normal claude_code preset usage (verified live via a
+        // standalone probe: real usage/cache numbers, no billing error,
+        // model correctly self-identified as SubStation and named
+        // `write_file` instead of `Write`) while giving the identity
+        // real system-level authority.
+        systemPrompt: { type: 'preset', preset: 'claude_code', append: OPERATOR_SYSTEM_PROMPT },
+        permissionMode: 'bypassPermissions',
+        maxTurns: 2,
+        env: queryEnv,
+        mcpServers: { [SERVER]: server },
+        allowedTools,
+        abortController: ac,
+        ...(usingResume ? { resume: cached.sdkSessionId } : {}),
+      };
+      if (effort.effort) options.effort = effort.effort;
       iter = sdkMod.query({
         prompt,
-        options: {
-          model,
-          // SDK isolation mode -- do NOT inherit the operator's personal
-          // ~/.claude/settings.json (global MCP servers, skills, custom
-          // agents, memory files). This is a shared multi-tenant
-          // tool-calling bridge, not a personal coding-assistant session;
-          // measured breakdown (getContextUsage()) showed the inherited
-          // environment, not the ~245-token system prompt itself, was the
-          // real cost driver.
-          settingSources: [],
-          // Keep the `claude_code` preset (required for billing — a full
-          // custom-string replacement broke it, see the reverted
-          // ae06377/d89ccbc history) but `append` the operator identity
-          // directly onto the real system prompt instead of leaving it
-          // unset. Previously OPERATOR_SYSTEM_PROMPT was only prepended
-          // into the user-turn `prompt` text (formatMessagesForSDK), which
-          // is far weaker than the SDK's actual system-level "you are
-          // Claude Code" assertion it was competing against — in practice
-          // the model kept self-identifying as Claude Code and reaching
-          // for its native tool names (Bash/Read/Write), which is why
-          // normalizeToolCalls' alias table exists. `append` keeps this
-          // billed as normal claude_code preset usage (verified live via a
-          // standalone probe: real usage/cache numbers, no billing error,
-          // model correctly self-identified as SubStation and named
-          // `write_file` instead of `Write`) while giving the identity
-          // real system-level authority.
-          systemPrompt: { type: 'preset', preset: 'claude_code', append: OPERATOR_SYSTEM_PROMPT },
-          permissionMode: 'bypassPermissions',
-          maxTurns: 2,
-          env: queryEnv,
-          mcpServers: { [SERVER]: server },
-          allowedTools,
-          abortController: ac,
-          ...(usingResume ? { resume: cached.sdkSessionId } : {}),
-        },
+        options,
       });
 
       // This path (the one Hermes actually uses for every tool-calling turn)
@@ -2721,7 +2743,7 @@ async function invokeClaudeSDKWithTools(openaiMessages, tools, toolChoice, model
       const failoverInfo = resolveModel(failoverModelId);
       log(`>>> FAILOVER: Anthropic SDK tools-path capped → ${failoverModelId} (OpenAI)`);
       try {
-        return await invokeCodex(openaiMessages, failoverInfo, null, tools);
+        return await invokeCodex(openaiMessages, failoverInfo, null, tools, requestedEffort);
       } catch (codexErr) {
         log(`OpenAI failover also failed: ${codexErr.message}`);
       }
@@ -2821,9 +2843,11 @@ async function invokeClaudeMessagesAPIWithTools(openaiMessages, tools, toolChoic
   throw allFailedErr;
 }
 
-async function invokeClaudeSDK(openaiMessages, modelInfo, onDelta, tokenAffinity, onServedModel) {
+async function invokeClaudeSDK(openaiMessages, modelInfo, onDelta, tokenAffinity, onServedModel, requestedEffort = null) {
   enforceToolProgress(openaiMessages, modelInfo.modelId);
   const model = modelInfo.modelId;
+  const effort = resolveClaudeReasoningEffort(requestedEffort);
+  logEffectiveEffort(model, 'claude-sdk', effort);
   const tokens = getAnthropicOAuthTokens();
   if (tokens.length === 0) {
     throw new Error('No Anthropic OAuth tokens found. Log into Claude Code or add tokens to auth-profiles.json.');
@@ -2900,7 +2924,7 @@ async function invokeClaudeSDK(openaiMessages, modelInfo, onDelta, tokenAffinity
     markRequestStart(token);
 
     try {
-      const iter = await querySDK(model, token.id, token.token, prompt);
+      const iter = await querySDK(model, token.id, token.token, prompt, effort);
       const attemptStarted = Date.now();
 
       let text = '';
@@ -3062,7 +3086,7 @@ async function invokeClaudeSDK(openaiMessages, modelInfo, onDelta, tokenAffinity
 // Codex API caller with pool rotation
 // ---------------------------------------------------------------------------
 
-async function invokeCodex(openaiMessages, modelInfo, onDelta, tools) {
+async function invokeCodex(openaiMessages, modelInfo, onDelta, tools, requestedEffort = null) {
   enforceToolProgress(openaiMessages, modelInfo.modelId);
   const provider = 'openai';
   const providerTokens = pool.filter(t => t.provider === provider);
@@ -3070,7 +3094,9 @@ async function invokeCodex(openaiMessages, modelInfo, onDelta, tools) {
     throw new Error('No ChatGPT tokens configured. Run "substation-auth chatgpt" to set up authentication.');
   }
 
-  const bodyStr = JSON.stringify(buildCodexBody(openaiMessages, modelInfo, tools));
+  const effort = resolveCodexReasoningEffort(requestedEffort, modelInfo);
+  logEffectiveEffort(modelInfo.modelId, 'codex', effort);
+  const bodyStr = JSON.stringify(buildCodexBody(openaiMessages, modelInfo, tools, requestedEffort));
   const requestHash = codexRequestHash(bodyStr);
   const cachedFailure = getCachedCodexFailure(requestHash);
   if (cachedFailure) {
@@ -3219,7 +3245,7 @@ async function invokeModel(openaiMessages, model, onDelta, opts = {}) {
   if (modelInfo.provider === 'anthropic') {
     // --- Agent SDK (Claude OAuth) — only path for Anthropic models ---
     try {
-      return await invokeClaudeSDK(openaiMessages, modelInfo, onDelta, opts.tokenAffinity || null, opts.onServedModel);
+      return await invokeClaudeSDK(openaiMessages, modelInfo, onDelta, opts.tokenAffinity || null, opts.onServedModel, opts.reasoningEffort || null);
     } catch (err) {
       const isSdkBroken = err.message && (err.message.includes('is not a function') || err.message.includes('not installed'));
       if (!isCapError(err) && !isSdkBroken) throw err;
@@ -3234,7 +3260,7 @@ async function invokeModel(openaiMessages, model, onDelta, opts = {}) {
         const failoverInfo = resolveModel(failoverModelId);
         log(`>>> FAILOVER: Anthropic capped → ${failoverModelId} (OpenAI)`);
         try {
-          return await invokeCodex(openaiMessages, failoverInfo, onDelta);
+          return await invokeCodex(openaiMessages, failoverInfo, onDelta, undefined, opts.reasoningEffort || null);
         } catch (codexErr) {
           log(`OpenAI failover also failed: ${codexErr.message}`);
         }
@@ -3246,7 +3272,7 @@ async function invokeModel(openaiMessages, model, onDelta, opts = {}) {
 
   // --- OpenAI primary path with reverse failover to Anthropic ---
   try {
-    return await invokeCodex(openaiMessages, modelInfo, onDelta);
+    return await invokeCodex(openaiMessages, modelInfo, onDelta, undefined, opts.reasoningEffort || null);
   } catch (err) {
     if (!isCapError(err)) throw err;
 
@@ -3256,7 +3282,7 @@ async function invokeModel(openaiMessages, model, onDelta, opts = {}) {
     const failoverInfo = resolveModel(failoverModelId);
     log(`>>> FAILOVER: Codex capped → ${failoverModelId} (Anthropic)`);
     try {
-      return await invokeClaudeSDK(openaiMessages, failoverInfo, onDelta, null, opts.onServedModel);
+      return await invokeClaudeSDK(openaiMessages, failoverInfo, onDelta, null, opts.onServedModel, opts.reasoningEffort || null);
     } catch (anthropicErr) {
       log(`Anthropic failover also failed: ${anthropicErr.message}`);
       throw err;
@@ -3487,6 +3513,7 @@ function startProxy() {
         }
 
         const { messages = [], model = 'sonnet-4-6', stream = false, tools, tool_choice } = parsed;
+        const requestedReasoningEffort = resolveRequestedReasoningEffort(parsed);
         if (!messages.length) {
           safeEnd(res, 400, { error: { message: 'No messages in request — include at least one message' } });
           return;
@@ -3539,7 +3566,7 @@ function startProxy() {
         const onServedModel = (servedModel) => {
           if (!res.headersSent) res.setHeader('x-substation-served-model', servedModel);
         };
-        const invokeOpts = { ...(tokenAffinity ? { tokenAffinity } : {}), ...(noFailover ? { noFailover } : {}), onServedModel };
+        const invokeOpts = { ...(tokenAffinity ? { tokenAffinity } : {}), ...(noFailover ? { noFailover } : {}), onServedModel, reasoningEffort: requestedReasoningEffort };
 
         const id = `chatcmpl-ss-${randomUUID().slice(0, 12)}`;
         const created = Math.floor(Date.now() / 1000);
@@ -3552,7 +3579,7 @@ function startProxy() {
               // completed delta chunk with the full content/tool_calls, then
               // finish_reason. Uses the SDK transport (not raw REST) to dodge
               // the OAuth-edge 429; onServedModel surfaces the real served model.
-              const { text, toolCalls, usage } = await invokeClaudeSDKWithTools(messages, tools, tool_choice, resolvedModelInfo, toolsPathTokenAffinity, onServedModel, noFailover);
+              const { text, toolCalls, usage } = await invokeClaudeSDKWithTools(messages, tools, tool_choice, resolvedModelInfo, toolsPathTokenAffinity, onServedModel, noFailover, requestedReasoningEffort);
               res.writeHead(200, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', 'Connection': 'keep-alive' });
               const deltaPayload = { role: 'assistant', content: text || null };
               if (toolCalls) deltaPayload.tool_calls = toolCalls;
@@ -3601,7 +3628,7 @@ function startProxy() {
                   choices: [{ index: 0, delta: { content: delta }, logprobs: null, finish_reason: null }]
                 })}\n\n`);
               };
-              const cxResult = await invokeCodex(messages, resolvedModelInfo, onDeltaCx, tools);
+              const cxResult = await invokeCodex(messages, resolvedModelInfo, onDeltaCx, tools, requestedReasoningEffort);
               if (!headersSentCx) {
                 res.writeHead(200, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', 'Connection': 'keep-alive' });
                 const deltaPayload = { role: 'assistant', content: cxResult.text || null };
@@ -3686,7 +3713,7 @@ function startProxy() {
           } else if (useAnthropicToolsPath) {
             // Non-streaming tool-calling path — SDK transport (dodges OAuth-edge
             // 429), arbitrary caller tools bridged via createSdkMcpServer.
-            const { text, toolCalls, usage } = await invokeClaudeSDKWithTools(messages, tools, tool_choice, resolvedModelInfo, toolsPathTokenAffinity, onServedModel, noFailover);
+            const { text, toolCalls, usage } = await invokeClaudeSDKWithTools(messages, tools, tool_choice, resolvedModelInfo, toolsPathTokenAffinity, onServedModel, noFailover, requestedReasoningEffort);
             const promptTokens = usage?.input_tokens || usage?.prompt_tokens || Math.max(1, JSON.stringify(messages).split(/\s+/).length);
             const completionTokens = usage?.output_tokens || usage?.completion_tokens || Math.max(1, (text || '').split(/\s+/).length);
             const message = { role: 'assistant', content: text || null };
@@ -3708,7 +3735,7 @@ function startProxy() {
           } else if (useCodexToolsPath) {
             // Non-streaming best-effort GPT/codex tool-calling path — see
             // buildCodexBody / makeCodexRequest function_call handling.
-            const cxResult = await invokeCodex(messages, resolvedModelInfo, null, tools);
+            const cxResult = await invokeCodex(messages, resolvedModelInfo, null, tools, requestedReasoningEffort);
             const promptTokens = cxResult.usage?.input_tokens || cxResult.usage?.prompt_tokens || Math.max(1, JSON.stringify(messages).split(/\s+/).length);
             const completionTokens = cxResult.usage?.output_tokens || cxResult.usage?.completion_tokens || Math.max(1, (cxResult.text || '').split(/\s+/).length);
             const message = { role: 'assistant', content: cxResult.text || null };
@@ -4388,7 +4415,23 @@ const indigoProvider = {
   auth: [],
 };
 
-export { enforceToolProgress, normalizeToolCalls, progressTracker, appendAliasNote, hashMessagesPrefix, progressSessionKey, formatMessagesForSDK, formatTailForSDK, sdkResumeCache };
+export {
+  enforceToolProgress,
+  normalizeToolCalls,
+  progressTracker,
+  appendAliasNote,
+  hashMessagesPrefix,
+  progressSessionKey,
+  formatMessagesForSDK,
+  formatTailForSDK,
+  sdkResumeCache,
+  normalizeReasoningEffort,
+  resolveRequestedReasoningEffort,
+  resolveClaudeReasoningEffort,
+  resolveCodexReasoningEffort,
+  buildAnthropicBody,
+  buildCodexBody,
+};
 
 export default {
   id: 'substation',

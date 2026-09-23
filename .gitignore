@@ -6,6 +6,7 @@ node_modules/
 dist/*
 !dist/index.js
 !dist/auth-policy.js
+!dist/reasoning-effort.js
 
 # Secrets — NEVER commit these
 token-pool.json

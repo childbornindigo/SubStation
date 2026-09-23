@@ -21,6 +21,16 @@ data/
 .vercel
 
 # Non-SubStation artifacts (prevent backup drift)
+/graphify-out/
+/scripts/*
+!/scripts/substation-auth
+/wiki-output/
+/memory/
+/market-intelligence/
+/screenshots/
+/fb-marketplace-listings/
+/wiki-output.md
+*.db
 video-test/
 Wiki/
 demo-board*

@@ -5,7 +5,6 @@ import { randomUUID, randomBytes, createHash } from 'node:crypto';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
 import { readFileSync, writeFileSync, mkdirSync, renameSync, statSync, existsSync, watch } from 'node:fs';
-import { isAuthError, recordAuthFailure, resetAuthFailures, AUTH_FAIL_THRESHOLD, DEAD_REVIVE_MS, AUTH_DEAD_REVIVE_MS } from './auth-policy.js';
 
 // ---------------------------------------------------------------------------
 // Config
@@ -49,8 +48,8 @@ ORCHESTRATOR DEFAULT = DISPATCH. Heavy work (grounding, multi-file search, build
 const HERMES_RUNTIME_PROMPT = `\n\n## Hermes runtime contract\n\nYou are running inside Hermes through SubStation, not inside your native Codex/Claude desktop. Treat the request's tool schema as the whole truth. Do not invent unavailable functions, capitalized aliases, notebook tools, browser tools, MCP tools, or Agent tools unless they are explicitly present in the schema for this request. If a desired tool is absent, use the closest available tool from the schema or state the exact missing capability as BLOCKED.`;
 const MAX_BODY_SIZE = 2 * 1024 * 1024; // 2MB request body limit
 const LOG_MAX_SIZE = 5 * 1024 * 1024; // 5MB log rotation
-// DEAD_REVIVE_MS (30m), AUTH_DEAD_REVIVE_MS (5m), isAuthError, AUTH_FAIL_THRESHOLD
-// now imported from ./auth-policy.js (extracted for unit testing — see auth-policy.js).
+const DEAD_REVIVE_MS = 30 * 60 * 1000;       // 30 min — auto-retry rate-limited tokens
+const AUTH_DEAD_REVIVE_MS = 5 * 60 * 1000; // 5 min — retry auth/session failures soon on single-account setups
 const DATA_DIR = join(homedir(), '.substation', 'data');
 const PORT = parseInt(process.env.SUBSTATION_PORT || '8403');
 const AUTH_KEY = process.env.SUBSTATION_API_KEY || 'sk-substation-local-proxy';
@@ -100,7 +99,10 @@ process.on('unhandledRejection', (reason) => {
 
 const MODEL_CONFIG = {
   // Anthropic
-  'claude-sonnet-5':           { maxTokens: 64000,  adaptive: true,  provider: 'anthropic', contextWindow: 1000000 },
+  'claude-fable-5-1':          { maxTokens: 128000, adaptive: true,  provider: 'anthropic', contextWindow: 1000000 },
+  'claude-opus-5-5':           { maxTokens: 128000, adaptive: true,  provider: 'anthropic', contextWindow: 1000000 },
+  'claude-opus-5':             { maxTokens: 128000, adaptive: true,  provider: 'anthropic', contextWindow: 1000000 },
+  'claude-sonnet-5':           { maxTokens: 128000, adaptive: true,  provider: 'anthropic', contextWindow: 1000000 },
   'claude-fable-5':            { maxTokens: 128000, adaptive: true,  provider: 'anthropic', contextWindow: 1000000 },
   'claude-opus-4-8':           { maxTokens: 128000, adaptive: true,  provider: 'anthropic', contextWindow: 1000000 },
   'claude-opus-4-7':           { maxTokens: 128000, adaptive: true,  provider: 'anthropic', contextWindow: 1000000 },
@@ -108,6 +110,9 @@ const MODEL_CONFIG = {
   'claude-sonnet-4-6':         { maxTokens: 64000,  adaptive: true,  provider: 'anthropic', contextWindow: 1000000 },
   'claude-haiku-4-5-20251001': { maxTokens: 64000,  adaptive: false, provider: 'anthropic', contextWindow: 1000000 },
   // OpenAI (Codex) — ordered fastest to slowest
+  'gpt-6-luna':         { maxTokens: 128000, adaptive: false, provider: 'openai', contextWindow: 1050000, apiModel: 'gpt-6-luna', reasoningEffort: 'medium' },
+  'gpt-6-sol':          { maxTokens: 128000, adaptive: false, provider: 'openai', contextWindow: 1050000, apiModel: 'gpt-6-sol', reasoningEffort: 'max' },
+  'gpt-6-astra':        { maxTokens: 128000, adaptive: false, provider: 'openai', contextWindow: 1050000, apiModel: 'gpt-6-astra', reasoningEffort: 'high' },
   'gpt-5.4-mini':       { maxTokens: 64000,  adaptive: false, provider: 'openai', contextWindow: 400000 },
   'gpt-5.4':            { maxTokens: 128000, adaptive: false, provider: 'openai', contextWindow: 400000 },
   // ChatGPT Pro tier. GPT-5.6 Sol is the flagship GPT-5.6 model; Terra is
@@ -119,6 +124,7 @@ const MODEL_CONFIG = {
   'gpt-5.6':            { maxTokens: 128000, adaptive: false, provider: 'openai', contextWindow: 1050000, apiModel: 'gpt-5.6-sol', reasoningEffort: 'max' },
   'gpt-5.6-sol-pro':    { maxTokens: 128000, adaptive: false, provider: 'openai', contextWindow: 1050000, apiModel: 'gpt-5.6-sol', reasoningEffort: 'max' },
   'gpt-5.6-pro':        { maxTokens: 128000, adaptive: false, provider: 'openai', contextWindow: 1050000, apiModel: 'gpt-5.6-sol', reasoningEffort: 'max' },
+  'gpt-5.3-codex':      { maxTokens: 128000, adaptive: false, provider: 'openai', contextWindow: 400000, apiModel: 'gpt-5.3-codex', reasoningEffort: 'high' },
   'gpt-5.1-codex':      { maxTokens: 128000, adaptive: false, provider: 'openai', contextWindow: 400000 },
   'gpt-5.1-codex-mini': { maxTokens: 64000,  adaptive: false, provider: 'openai', contextWindow: 128000 },
   'gpt-5.1-codex-max':  { maxTokens: 128000, adaptive: false, provider: 'openai', contextWindow: 400000 },
@@ -126,10 +132,18 @@ const MODEL_CONFIG = {
 
 const MODEL_MAP = {
   // Anthropic aliases
+  'fable-5-1': 'claude-fable-5-1',
+  'fable-5.1': 'claude-fable-5-1',
+  'claude-fable-5-1': 'claude-fable-5-1',
+  'opus-5-5': 'claude-opus-5-5',
+  'opus-5.5': 'claude-opus-5-5',
+  'claude-opus-5-5': 'claude-opus-5-5',
+  'opus-5': 'claude-opus-5',
+  'claude-opus-5': 'claude-opus-5',
   'sonnet-5': 'claude-sonnet-5',
   'claude-sonnet-5': 'claude-sonnet-5',
   'fable-5': 'claude-fable-5',
-  'fable': 'claude-fable-5',
+  'fable': 'claude-fable-5-1',
   'claude-fable-5': 'claude-fable-5',
   'opus-4-8': 'claude-opus-4-8',
   'claude-opus-4-8': 'claude-opus-4-8',
@@ -143,6 +157,13 @@ const MODEL_MAP = {
   'claude-haiku-4.5': 'claude-haiku-4-5-20251001',
   'claude-haiku-4-5-20251001': 'claude-haiku-4-5-20251001',
   // OpenAI aliases
+  'gpt-6-luna': 'gpt-6-luna',
+  'luna': 'gpt-6-luna',
+  'gpt-6-sol': 'gpt-6-sol',
+  'gpt-6': 'gpt-6-sol',
+  'gpt-latest': 'gpt-6-sol',
+  'gpt-6-astra': 'gpt-6-astra',
+  'astra': 'gpt-6-astra',
   'gpt-5.4': 'gpt-5.4',
   'gpt-5.4-mini': 'gpt-5.4-mini',
   'gpt-5.5': 'gpt-5.5',
@@ -155,6 +176,8 @@ const MODEL_MAP = {
   'sol': 'gpt-5.6-sol',
   'sol-pro': 'gpt-5.6-sol-pro',
   'pro': 'gpt-5.6-sol-pro',
+  'gpt-5.3-codex': 'gpt-5.3-codex',
+  'codex-latest': 'gpt-5.3-codex',
   'gpt-5.1-codex-max': 'gpt-5.1-codex-max',
   'gpt-5.1-codex': 'gpt-5.1-codex',
   'gpt-5.1-codex-mini': 'gpt-5.1-codex-mini',
@@ -231,7 +254,7 @@ function hashMessagesPrefix(messages, count) {
     if (m.tool_calls) h.update(JSON.stringify(m.tool_calls));
     h.update('\0');
     if (m.tool_call_id) h.update(m.tool_call_id);
-    h.update('');
+    h.update('');
   }
   return h.digest('hex');
 }
@@ -328,26 +351,6 @@ async function loadAgentSDK() {
 function getAnthropicOAuthTokens() {
   const tokens = pool.filter(t => t.provider === 'anthropic' && !t.dead);
   if (tokens.length === 0) {
-    // Fix 3: every Anthropic token is benched. Before failing, pull the LIVE token that
-    // terminal Claude Code keeps auto-refreshed in ~/.claude/.credentials.json. If it's
-    // NEWER than what we hold (a genuine rotation), adopt it and revive the pool entry —
-    // self-heals without a manual re-sync. If it's the same token, we don't spin here;
-    // the 5-min AUTH_DEAD_REVIVE_MS timer will retry it.
-    try {
-      const cred = JSON.parse(readFileSync(join(homedir(), '.claude', '.credentials.json'), 'utf8'))?.claudeAiOauth;
-      if (cred?.accessToken) {
-        const entry = pool.find(t => t.provider === 'anthropic');
-        if (entry && entry.token !== cred.accessToken) {
-          entry.token = cred.accessToken;
-          if (cred.refreshToken) entry.refreshToken = cred.refreshToken;
-          entry.dead = false; entry.deadSince = null; entry.deadType = null;
-          entry.errorCount = 0; entry._consecutiveAuthFails = 0; entry.cooldownUntil = null;
-          savePoolState();
-          log(`Anthropic pool empty — reloaded live token from ~/.claude/.credentials.json, revived ${entry.id}`);
-          return [entry];
-        }
-      }
-    } catch { /* no live creds — fall through to auth-profiles */ }
     // Fallback: check auth-profiles directly
     try {
       const ap = JSON.parse(readFileSync(AUTH_PROFILES_PATH, 'utf8'));
@@ -538,7 +541,6 @@ function markSuccess(entry) {
   entry.requestCount++;
   entry.errorCount = 0;
   entry._consecutive429s = 0; // reset backoff on success
-  resetAuthFailures(entry);   // reset consecutive-auth-fail counter on success
   entry.activeRequests = Math.max(0, entry.activeRequests - 1);
   savePoolState();
 }
@@ -694,7 +696,26 @@ function markDead(entry, deadType = 'rate') {
   log(`Token ${entry.id} marked DEAD (${deadType} failure) — will auto-retry in ${retryIn}`);
 }
 
-// isAuthError now imported from ./auth-policy.js
+function isAuthError(err) {
+  const msg = (err.message || '').toLowerCase();
+  return msg.includes('401') ||
+    msg.includes('403') ||
+    msg.includes('unauthorized') ||
+    msg.includes('unauthenticated') ||
+    msg.includes('authentication') ||
+    msg.includes('invalid token') ||
+    msg.includes('token expired') ||
+    msg.includes('not logged in') ||
+    msg.includes('please log in') ||
+    msg.includes('sign in') ||
+    msg.includes('invalid_grant') ||
+    msg.includes('invalid credentials') ||
+    msg.includes('organization does not have access') ||
+    msg.includes('contact your administrator') ||
+    msg.includes('please login again') ||
+    (err.statusCode === 401) ||
+    (err.statusCode === 403);
+}
 
 function isCodexSessionStallError(err) {
   const msg = (err.message || '').toLowerCase();
@@ -1184,6 +1205,7 @@ function buildAnthropicBody(openaiMessages, modelInfo) {
 // gpt-5.4 / gpt-5.4-mini ARE accepted. Remap any codex model to its supported
 // equivalent so failover never dead-ends on a blocked model. Verified 2026-06-04.
 const CODEX_CHATGPT_REMAP = {
+  'gpt-5.3-codex':      'gpt-5.3-codex',
   'gpt-5.1-codex':      'gpt-5.4',
   'gpt-5.1-codex-max':  'gpt-5.4',
   'gpt-5.1-codex-mini': 'gpt-5.4-mini',
@@ -2421,19 +2443,11 @@ function normalizeToolCalls(toolCalls, registeredTools, aliasNotesOut) {
 // existing "[SubStation] BLOCKED: ..." notices) turns each alias hit into a
 // real corrective signal instead of a free pass.
 function appendAliasNote(text, aliasNotes) {
-  if (!aliasNotes || aliasNotes.length === 0) return text;
-  const seen = new Set();
-  const lines = [];
-  for (const { emitted, target } of aliasNotes) {
-    const k = `${emitted}->${target}`;
-    if (seen.has(k)) continue;
-    seen.add(k);
-    lines.push(`'${emitted}' -> '${target}'`);
-  }
-  void lines;
-  // User-facing alias note intentionally silenced (operator: no notification
-  // bleed). Auto-mapping + `[toolalias]` file-log are unaffected.
-  return text || '';
+  // Auto-mapping still happens upstream (see the TOOL_ALIASES map + the
+  // `[toolalias]` file-log in substation.log). The user-facing chat note was
+  // intentionally silenced — it created notification bleed without adding
+  // signal the operator wanted. Diagnostics live in the log, not the chat.
+  return text;
 }
 
 async function invokeClaudeSDKWithTools(openaiMessages, tools, toolChoice, modelInfo, tokenAffinity, onServedModel, noFailover) {
@@ -3029,16 +3043,9 @@ async function invokeClaudeSDK(openaiMessages, modelInfo, onDelta, tokenAffinity
         continue;
       }
 
-      // Auth error — but a single transient 401/403 from Anthropic's edge is NOT a dead
-      // token (edge bucketing throws spurious 401/403 independent of token validity).
-      // Only bench after AUTH_FAIL_THRESHOLD *consecutive* auth failures; reset on success.
+      // Auth error — bench this token for 24h and try next
       if (isAuthError(err)) {
-        if (recordAuthFailure(token)) {
-          markDead(token, 'auth'); // marks dead + decrements activeRequests
-        } else {
-          log(`Token ${token.id} transient auth error ${token._consecutiveAuthFails}/${AUTH_FAIL_THRESHOLD} — NOT benching, trying next bar`);
-          markRequestEnd(token);
-        }
+        markDead(token, 'auth'); // marks dead + decrements activeRequests
         continue;
       }
 
@@ -3157,6 +3164,7 @@ async function invokeCodex(openaiMessages, modelInfo, onDelta, tools) {
 const FAILOVER_MAP = {
   // Anthropic → OpenAI equivalents. Use GPT-5.6 Sol as the flagship OpenAI
   // failover target when Anthropic caps out.
+  'claude-opus-5-5':           'gpt-5.6-sol',
   'claude-fable-5':            'gpt-5.6-sol',
   'claude-opus-4-8':           'gpt-5.6-sol',
   'claude-opus-4-7':           'gpt-5.6-sol',
@@ -3164,13 +3172,17 @@ const FAILOVER_MAP = {
   'claude-sonnet-4-6':         'gpt-5.6-sol',
   'claude-haiku-4-5-20251001': 'gpt-5.4-mini',
   // OpenAI → Anthropic equivalents
-  'gpt-5.5':             'claude-opus-4-6',
-  'gpt-5.6-terra':       'claude-opus-4-6',
-  'gpt-5.6-sol':         'claude-opus-4-6',
-  'gpt-5.6':             'claude-opus-4-6',
-  'gpt-5.4':             'claude-opus-4-6',
-  'gpt-5.1-codex-max':   'claude-opus-4-6',
-  'gpt-5.1-codex':       'claude-sonnet-4-6',
+  'gpt-6-astra':         'claude-opus-5-5',
+  'gpt-6-sol':           'claude-opus-5-5',
+  'gpt-6-luna':          'claude-sonnet-5',
+  'gpt-5.5':             'claude-opus-5-5',
+  'gpt-5.6-terra':       'claude-opus-5-5',
+  'gpt-5.6-sol':         'claude-opus-5-5',
+  'gpt-5.6':             'claude-opus-5-5',
+  'gpt-5.4':             'claude-opus-5-5',
+  'gpt-5.3-codex':       'claude-opus-5-5',
+  'gpt-5.1-codex-max':   'claude-opus-5-5',
+  'gpt-5.1-codex':       'claude-sonnet-5',
   'gpt-5.4-mini':        'claude-haiku-4-5-20251001',
   'gpt-5.1-codex-mini':  'claude-haiku-4-5-20251001',
 };
@@ -3376,6 +3388,9 @@ function startProxy() {
 
       if (req.url === '/v1/models' || req.url === '/models') {
         const models = [
+          { id: 'fable-5-1', object: 'model', owned_by: 'indigo-collective' },
+          { id: 'opus-5-5', object: 'model', owned_by: 'indigo-collective' },
+          { id: 'opus-5', object: 'model', owned_by: 'indigo-collective' },
           { id: 'sonnet-5', object: 'model', owned_by: 'indigo-collective' },
           { id: 'fable-5', object: 'model', owned_by: 'indigo-collective' },
           { id: 'opus-4-8', object: 'model', owned_by: 'indigo-collective' },
@@ -3388,6 +3403,9 @@ function startProxy() {
         const anthropicPoolTokens = pool.filter(t => t.provider === 'anthropic' && !t.dead);
         for (const t of anthropicPoolTokens) {
           models.push(
+            { id: `fable-5-1:${t.id}`, object: 'model', owned_by: 'indigo-collective' },
+            { id: `opus-5-5:${t.id}`, object: 'model', owned_by: 'indigo-collective' },
+            { id: `opus-5:${t.id}`, object: 'model', owned_by: 'indigo-collective' },
             { id: `sonnet-5:${t.id}`, object: 'model', owned_by: 'indigo-collective' },
             { id: `fable-5:${t.id}`, object: 'model', owned_by: 'indigo-collective' },
             { id: `sonnet-4-6:${t.id}`, object: 'model', owned_by: 'indigo-collective' },
@@ -3398,6 +3416,10 @@ function startProxy() {
         }
         if (pool.some(t => t.provider === 'openai')) {
           models.push(
+            { id: 'gpt-6-astra', object: 'model', owned_by: 'indigo-collective' },
+            { id: 'gpt-6-sol', object: 'model', owned_by: 'indigo-collective' },
+            { id: 'gpt-6-luna', object: 'model', owned_by: 'indigo-collective' },
+            { id: 'gpt-6', object: 'model', owned_by: 'indigo-collective' },
             { id: 'gpt-5.4', object: 'model', owned_by: 'indigo-collective' },
             { id: 'gpt-5.4-mini', object: 'model', owned_by: 'indigo-collective' },
             { id: 'gpt-5.5', object: 'model', owned_by: 'indigo-collective' },
@@ -3409,6 +3431,7 @@ function startProxy() {
             { id: 'pro', object: 'model', owned_by: 'indigo-collective' },
             { id: 'sol-pro', object: 'model', owned_by: 'indigo-collective' },
             { id: 'gpt-5.6', object: 'model', owned_by: 'indigo-collective' },
+            { id: 'gpt-5.3-codex', object: 'model', owned_by: 'indigo-collective' },
             { id: 'gpt-5.1-codex', object: 'model', owned_by: 'indigo-collective' },
             { id: 'gpt-5.1-codex-mini', object: 'model', owned_by: 'indigo-collective' },
             { id: 'gpt-5.1-codex-max', object: 'model', owned_by: 'indigo-collective' },
@@ -3416,6 +3439,10 @@ function startProxy() {
           const openaiPoolTokens = pool.filter(t => t.provider === 'openai' && !t.dead);
           for (const t of openaiPoolTokens) {
             models.push(
+              { id: `gpt-6-astra:${t.id}`, object: 'model', owned_by: 'indigo-collective' },
+              { id: `gpt-6-sol:${t.id}`, object: 'model', owned_by: 'indigo-collective' },
+              { id: `gpt-6-luna:${t.id}`, object: 'model', owned_by: 'indigo-collective' },
+              { id: `gpt-6:${t.id}`, object: 'model', owned_by: 'indigo-collective' },
               { id: `gpt-5.4:${t.id}`, object: 'model', owned_by: 'indigo-collective' },
               { id: `gpt-5.4-mini:${t.id}`, object: 'model', owned_by: 'indigo-collective' },
               { id: `gpt-5.5:${t.id}`, object: 'model', owned_by: 'indigo-collective' },
@@ -3424,6 +3451,7 @@ function startProxy() {
               { id: `gpt-5.6-sol-pro:${t.id}`, object: 'model', owned_by: 'indigo-collective' },
               { id: `gpt-5.6-pro:${t.id}`, object: 'model', owned_by: 'indigo-collective' },
               { id: `gpt-5.6:${t.id}`, object: 'model', owned_by: 'indigo-collective' },
+              { id: `gpt-5.3-codex:${t.id}`, object: 'model', owned_by: 'indigo-collective' },
             );
           }
         }
@@ -4070,6 +4098,51 @@ function startProxy() {
 
 const ANTHROPIC_MODELS = [
   {
+    id: 'fable-5-1',
+    name: 'Claude Fable 5.1 (SubStation)',
+    reasoning: true,
+    input: ['text'],
+    cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+    contextWindow: 1000000,
+    maxTokens: 128000,
+  },
+  {
+    id: 'opus-5-5',
+    name: 'Claude Opus 5.5 (SubStation)',
+    reasoning: true,
+    input: ['text'],
+    cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+    contextWindow: 1000000,
+    maxTokens: 128000,
+  },
+  {
+    id: 'opus-5',
+    name: 'Claude Opus 5 (SubStation)',
+    reasoning: true,
+    input: ['text'],
+    cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+    contextWindow: 1000000,
+    maxTokens: 128000,
+  },
+  {
+    id: 'sonnet-5',
+    name: 'Claude Sonnet 5 (SubStation)',
+    reasoning: true,
+    input: ['text'],
+    cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+    contextWindow: 1000000,
+    maxTokens: 128000,
+  },
+  {
+    id: 'fable-5',
+    name: 'Claude Fable 5 (SubStation)',
+    reasoning: true,
+    input: ['text'],
+    cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+    contextWindow: 1000000,
+    maxTokens: 128000,
+  },
+  {
     id: 'opus-4-8',
     name: 'Claude Opus 4.8 (SubStation)',
     reasoning: false,
@@ -4117,6 +4190,33 @@ const ANTHROPIC_MODELS = [
 ];
 
 const OPENAI_MODELS = [
+  {
+    id: 'gpt-6-astra',
+    name: 'GPT 6 Astra (SubStation)',
+    reasoning: true,
+    input: ['text'],
+    cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+    contextWindow: 1050000,
+    maxTokens: 128000,
+  },
+  {
+    id: 'gpt-6-sol',
+    name: 'GPT 6 Sol (SubStation)',
+    reasoning: true,
+    input: ['text'],
+    cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+    contextWindow: 1050000,
+    maxTokens: 128000,
+  },
+  {
+    id: 'gpt-6-luna',
+    name: 'GPT 6 Luna (SubStation)',
+    reasoning: true,
+    input: ['text'],
+    cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+    contextWindow: 1050000,
+    maxTokens: 128000,
+  },
   {
     id: 'gpt-5.4',
     name: 'GPT 5.4 (SubStation)',
@@ -4190,6 +4290,15 @@ const OPENAI_MODELS = [
     maxTokens: 128000,
   },
   {
+    id: 'gpt-5.3-codex',
+    name: 'GPT 5.3 Codex (SubStation)',
+    reasoning: true,
+    input: ['text'],
+    cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+    contextWindow: 400000,
+    maxTokens: 128000,
+  },
+  {
     id: 'gpt-5.1-codex',
     name: 'GPT 5.1 Codex (SubStation)',
     reasoning: false,
@@ -4224,6 +4333,11 @@ function getAllModels() {
   const anthropicPoolTokens = pool.filter(t => t.provider === 'anthropic' && !t.dead);
   for (const t of anthropicPoolTokens) {
     models.push(
+      { id: `fable-5-1:${t.id}`, name: `Fable 5.1 — ${t.id}`, reasoning: true, input: ['text'], cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 }, contextWindow: 1000000, maxTokens: 128000 },
+      { id: `opus-5-5:${t.id}`, name: `Opus 5.5 — ${t.id}`, reasoning: true, input: ['text'], cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 }, contextWindow: 1000000, maxTokens: 128000 },
+      { id: `opus-5:${t.id}`, name: `Opus 5 — ${t.id}`, reasoning: true, input: ['text'], cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 }, contextWindow: 1000000, maxTokens: 128000 },
+      { id: `sonnet-5:${t.id}`, name: `Sonnet 5 — ${t.id}`, reasoning: true, input: ['text'], cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 }, contextWindow: 1000000, maxTokens: 128000 },
+      { id: `fable-5:${t.id}`, name: `Fable 5 — ${t.id}`, reasoning: true, input: ['text'], cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 }, contextWindow: 1000000, maxTokens: 128000 },
       { id: `opus-4-8:${t.id}`, name: `Opus 4.8 — ${t.id}`, reasoning: false, input: ['text'], cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 }, contextWindow: 1000000, maxTokens: 128000 },
       { id: `opus-4-6:${t.id}`, name: `Opus 4.6 — ${t.id}`, reasoning: false, input: ['text'], cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 }, contextWindow: 1000000, maxTokens: 128000 },
       { id: `sonnet-4-6:${t.id}`, name: `Sonnet 4.6 — ${t.id}`, reasoning: false, input: ['text'], cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 }, contextWindow: 1000000, maxTokens: 64000 },
@@ -4235,6 +4349,9 @@ function getAllModels() {
     const openaiPoolTokens = pool.filter(t => t.provider === 'openai' && !t.dead);
     for (const t of openaiPoolTokens) {
       models.push(
+        { id: `gpt-6-astra:${t.id}`, name: `GPT 6 Astra — ${t.id}`, reasoning: true, input: ['text'], cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 }, contextWindow: 1050000, maxTokens: 128000 },
+        { id: `gpt-6-sol:${t.id}`, name: `GPT 6 Sol — ${t.id}`, reasoning: true, input: ['text'], cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 }, contextWindow: 1050000, maxTokens: 128000 },
+        { id: `gpt-6-luna:${t.id}`, name: `GPT 6 Luna — ${t.id}`, reasoning: true, input: ['text'], cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 }, contextWindow: 1050000, maxTokens: 128000 },
         { id: `gpt-5.4:${t.id}`, name: `GPT 5.4 — ${t.id}`, reasoning: false, input: ['text'], cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 }, contextWindow: 400000, maxTokens: 128000 },
         { id: `gpt-5.4-mini:${t.id}`, name: `GPT 5.4 Mini — ${t.id}`, reasoning: false, input: ['text'], cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 }, contextWindow: 400000, maxTokens: 64000 },
         { id: `gpt-5.5:${t.id}`, name: `GPT 5.5 — ${t.id}`, reasoning: false, input: ['text'], cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 }, contextWindow: 400000, maxTokens: 128000 },
@@ -4243,6 +4360,7 @@ function getAllModels() {
         { id: `gpt-5.6-sol-pro:${t.id}`, name: `GPT 5.6 Sol Pro Explicit — ${t.id}`, reasoning: true, input: ['text'], cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 }, contextWindow: 1050000, maxTokens: 128000 },
         { id: `gpt-5.6-pro:${t.id}`, name: `GPT 5.6 Pro Alias — ${t.id}`, reasoning: true, input: ['text'], cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 }, contextWindow: 1050000, maxTokens: 128000 },
         { id: `gpt-5.6:${t.id}`, name: `GPT 5.6 / Sol Pro Alias — ${t.id}`, reasoning: true, input: ['text'], cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 }, contextWindow: 1050000, maxTokens: 128000 },
+        { id: `gpt-5.3-codex:${t.id}`, name: `GPT 5.3 Codex — ${t.id}`, reasoning: true, input: ['text'], cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 }, contextWindow: 400000, maxTokens: 128000 },
       );
     }
   }
